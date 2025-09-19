@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Aventura en el Bosque</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #1a3c1a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .herope-game-container {
+      position: relative;
+      width: 600px;
+      height: 540px;
+    }
+
+    .herope-stage {
+      width: 100%;
+      height: 100%;
+    }
+
+    .herope-canvas {
+      width: 100%;
+      height: 100%;
+      background: #2e5933;
+      border: 4px solid #ffffff44;
+      border-radius: 12px;
+      display: block;
+    }
+
+    .herope-ui-top {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      justify-content: space-between;
+      font-family: sans-serif;
+    }
+    .herope-ui-top span {
+      color: white;
+      background: rgba(0,0,0,0.4);
+      padding: 8px 12px;
+      border-radius: 8px;
+    }
+
+    .herope-ui-bottom {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+    }
+
+    .speed-button {
+      font-size: 14px;
+      margin-right: 5px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      background-color: #4a8d4a;
+      color: white;
+    }
+
+    .speed-button.active {
+      background-color: #77c977;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: grid;
+      place-items: center;
+      z-index: 9999;
+    }
+    .modal {
+      background: white;
+      color: black;
+      padding: 20px;
+      border-radius: 8px;
+      min-width: 200px;
+      text-align: center;
+    }
+    .body--lock-scroll { overflow: hidden; }
+    .btn {
+      padding: 12px 28px;
+      font-size: 16px;
+      font-weight: bold;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+      box-shadow: 0 4px 0 rgba(0,0,0,0.25), 0 8px 16px rgba(0,0,0,0.15);
+      text-shadow: 0 1px 0 rgba(0,0,0,0.25);
+    }
+    .btn:hover {
+      filter: brightness(1.03);
+    }
+    .btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 rgba(0,0,0,0.2), 0 4px 8px rgba(0,0,0,0.12);
+    }
+    .btn-blue {
+      background: linear-gradient(145deg, #6db7e6, #4a91c2);
+      color: #e8f6ff;
+    }
+    .white-text {
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="herope-game-container" id="herope-game-container">
+      <div class="herope-stage">
+        <canvas class="herope-canvas" id="herope-canvas"></canvas>
+      </div>
+      <div class="herope-ui-top">
+        <span id="resources-label">Recursos recolectados: 0</span>
+        <span id="timer-label">Tiempo restante: 60s</span>
+      </div>
+      <div class="herope-ui-bottom">
+        <button class="speed-button active" data-speed="1">x1</button>
+        <button class="speed-button" data-speed="2">x2</button>
+        <button class="speed-button" data-speed="3">x3</button>
+      </div>
+  </div>
+
+  <script type="module">
+    import { startLoop } from "../engine/stableLoop.js";
+    window.addEventListener('error', e => console.error('JS Error:', e.error || e.message));
+    window.addEventListener('unhandledrejection', e => console.error('Promise Error:', e.reason));
+    function startGame(){
+    const canvas = document.getElementById("herope-canvas");
+    const ctx = canvas.getContext("2d");
+    function setupCanvas(){
+      const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(rect.height * dpr);
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+    }
+    setupCanvas();
+    window.addEventListener('resize', setupCanvas);
+    const params = new URLSearchParams(location.search);
+    const familiarImg = new Image();
+    const petImg = new Image();
+    if (params.get('familiar')) familiarImg.src = decodeURIComponent(params.get('familiar'));
+    if (params.get('pet')) petImg.src = decodeURIComponent(params.get('pet'));
+    window.addEventListener('message', e => {
+      if (e.data && e.data.type === 'petExplorationImages') {
+        if (e.data.familiar) familiarImg.src = e.data.familiar;
+        if (e.data.pet) petImg.src = e.data.pet;
+      }
+    });
+
+    const familiar = {
+      x: 300,
+      y: 250,
+      radius: 30,
+      width: 60,
+      height: 80
+    };
+
+    const pet = {
+      x: 280,
+      y: 270,
+      radius: 22,
+      width: 44,
+      height: 60
+    };
+
+    const SPEED = { WALKER: 320, PET: 260 };
+    let familiarSpeed = SPEED.WALKER;
+    let petSpeed = SPEED.PET;
+
+    const resources = [];
+    let collected = 0;
+    const resourcesLabel = document.getElementById('resources-label');
+
+    function spawnResource(){
+      const radius = 5;
+      return {
+        x: radius + Math.random() * (canvas.width - radius * 2),
+        y: radius + Math.random() * (canvas.height - radius * 2),
+        radius
+      };
+    }
+
+    // Generar recursos en posiciones aleatorias
+    for (let i = 0; i < 30; i++) {
+      resources.push(spawnResource());
+    }
+
+    const keys = {};
+    window.addEventListener("keydown", e => {
+      keys[e.key.toLowerCase()] = true;
+      if (["w","a","s","d"].includes(e.key.toLowerCase())) e.preventDefault();
+    }, {passive:false});
+    window.addEventListener("keyup", e => {
+      keys[e.key.toLowerCase()] = false;
+    }, {passive:false});
+
+    // Timer de 1 minuto
+    let timeRemaining = 60;
+    let speedMultiplier = 1;
+    const timerLabel = document.getElementById('timer-label');
+    let gameOver = false;
+
+    function appendOverlay(overlay) {
+      const root = document.getElementById('modal-root') || document.body;
+      root.appendChild(overlay);
+      document.body.classList.add('body--lock-scroll');
+    }
+
+    function removeOverlay(overlay) {
+      overlay.remove();
+      if (!document.querySelector('.modal-overlay')) {
+        document.body.classList.remove('body--lock-scroll');
+      }
+    }
+
+    function endGame() {
+      if (gameOver) return;
+      gameOver = true;
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      const modal = document.createElement('div');
+      modal.className = 'modal';
+      const msg = document.createElement('div');
+      const reward = collected * 20;
+      msg.textContent = `You won: ${reward} Gold`;
+      const ok = document.createElement('button');
+      ok.textContent = 'OK';
+      ok.className = 'btn btn-blue white-text';
+      ok.style.marginTop = '10px';
+      ok.onclick = () => removeOverlay(overlay);
+      overlay.tabIndex = -1;
+      overlay.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          ok.click();
+        }
+      });
+      modal.appendChild(msg);
+      modal.appendChild(ok);
+      overlay.appendChild(modal);
+      appendOverlay(overlay);
+      overlay.focus();
+      parent.postMessage({type:'petExplorationWin', gold: reward}, '*');
+    }
+
+    let timeAcc = 0;
+    function updateTimer(dt) {
+      if (timeRemaining > 0) {
+        timeAcc += dt * speedMultiplier;
+        while (timeAcc >= 1) {
+          timeAcc -= 1;
+          timeRemaining -= 1;
+          if (timeRemaining <= 0) {
+            timeRemaining = 0;
+            endGame();
+            break;
+          }
+        }
+          timerLabel.textContent = `Tiempo restante: ${Math.ceil(timeRemaining)}s`;
+      }
+    }
+
+    // Botones de velocidad
+    const buttons = document.querySelectorAll(".speed-button");
+    buttons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        buttons.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        speedMultiplier = parseInt(btn.dataset.speed);
+        familiarSpeed = SPEED.WALKER * speedMultiplier;
+        petSpeed = SPEED.PET * speedMultiplier;
+      });
+    });
+
+    function update(dt) {
+      updateTimer(dt);
+      // Movimiento del familiar permitiendo salirse un poco de los límites
+      const margin = 120; // Aumentado de 80 a 120 para permitir más movimiento
+      let vx = 0, vy = 0;
+      if (keys["w"]) vy -= 1;
+      if (keys["s"]) vy += 1;
+      if (keys["a"]) vx -= 1;
+      if (keys["d"]) vx += 1;
+      if (vx || vy) {
+        const len = Math.hypot(vx, vy);
+        vx /= len; vy /= len;
+        familiar.x += vx * familiarSpeed * dt;
+        familiar.y += vy * familiarSpeed * dt;
+      }
+      const cw = canvas.clientWidth, ch = canvas.clientHeight;
+      familiar.x = Math.max(-margin + familiar.width/2, Math.min(cw + margin - familiar.width/2, familiar.x));
+      familiar.y = Math.max(-margin + familiar.height/2, Math.min(ch + margin - familiar.height/2, familiar.y));
+
+      // Movimiento de la mascota permitiendo salirse un poco de los límites
+      const dx = familiar.x - pet.x;
+      const dy = familiar.y - pet.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 35) {
+        pet.x += (dx / dist) * petSpeed * dt;
+        pet.y += (dy / dist) * petSpeed * dt;
+      }
+
+      // Limitar mascota dentro del canvas con margen extendido
+      const petMargin = 60; // Margen extendido para el pet
+      pet.x = Math.max(-petMargin + pet.width / 2, Math.min(cw + petMargin - pet.width / 2, pet.x));
+      pet.y = Math.max(-petMargin + pet.height / 2, Math.min(ch + petMargin - pet.height / 2, pet.y));
+
+      // Recolección automática - mantener siempre 10 pelotitas
+      for (let i = resources.length - 1; i >= 0; i--) {
+        const r = resources[i];
+        const dx = r.x - pet.x;
+        const dy = r.y - pet.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < pet.radius + r.radius + 5) {
+          resources.splice(i, 1);
+          collected++;
+          resourcesLabel.textContent = `Recursos recolectados: ${collected}`;
+          // Generar nueva pelotita inmediatamente para mantener siempre 10
+          resources.push(spawnResource());
+        }
+      }
+      
+      // Asegurar que siempre haya exactamente 30 pelotitas
+      while (resources.length < 30) {
+        resources.push(spawnResource());
+      }
+    }
+
+    function drawRoundedRect(x, y, w, h, r, color, img) {
+      ctx.save();
+      ctx.beginPath();
+      const rw = Math.min(r, w / 2);
+      const rh = Math.min(r, h / 2);
+      ctx.moveTo(x - w / 2 + rw, y - h / 2);
+      ctx.lineTo(x + w / 2 - rw, y - h / 2);
+      ctx.quadraticCurveTo(x + w / 2, y - h / 2, x + w / 2, y - h / 2 + rh);
+      ctx.lineTo(x + w / 2, y + h / 2 - rh);
+      ctx.quadraticCurveTo(x + w / 2, y + h / 2, x + w / 2 - rw, y + h / 2);
+      ctx.lineTo(x - w / 2 + rw, y + h / 2);
+      ctx.quadraticCurveTo(x - w / 2, y + h / 2, x - w / 2, y + h / 2 - rh);
+      ctx.lineTo(x - w / 2, y - h / 2 + rh);
+      ctx.quadraticCurveTo(x - w / 2, y - h / 2, x - w / 2 + rw, y - h / 2);
+      ctx.closePath();
+      if (img && img.complete) {
+        ctx.clip();
+        ctx.drawImage(img, x - w / 2, y - h / 2, w, h);
+      } else {
+        ctx.fillStyle = color;
+        ctx.fill();
+      }
+      ctx.strokeStyle = "white";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Recursos
+      for (let r of resources) {
+        drawRoundedRect(r.x, r.y, r.radius * 2, r.radius * 2, 4, "green");
+      }
+
+      // Mascota
+      drawRoundedRect(pet.x, pet.y, pet.width, pet.height, 12, "transparent", petImg);
+
+        // Familiar que pasea al pet
+        drawRoundedRect(familiar.x, familiar.y, familiar.width, familiar.height, 16, "transparent", familiarImg);
+    }
+
+    startLoop(update, draw);
+  }
+  window.addEventListener('load', startGame, {once:true});
+  </script>
+  <div id="modal-root"></div>
+</body>
+</html>

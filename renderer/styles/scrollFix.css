@@ -1,0 +1,38 @@
+/* Remueve flechas de scroll en inputs tipo file o contenedores con overflow */
+img::-webkit-scrollbar,
+div::-webkit-scrollbar,
+input::-webkit-scrollbar {
+  display: none;
+}
+
+img, div, input {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* Asegúrate que los contenedores de imagen no tengan scroll habilitado */
+.image-wrapper,
+.hero-image,
+.second-image,
+.villain-image {
+  overflow: hidden !important;
+}
+
+/* Solo para imágenes redimensionadas */
+.hero-image-container,
+.villain-image-container {
+  overflow: hidden !important;
+  max-height: 200px;
+}
+
+.pet-image-container,
+.hero-second-image,
+.ability-image {
+  overflow: hidden !important;
+  max-height: 160px;
+}
+
+/* Clase global opcional */
+.no-vertical-scroll {
+  overflow: hidden !important;
+}

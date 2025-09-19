@@ -1,0 +1,17 @@
+{
+  "name": "Test Chief",
+  "level": 10,
+  "familiars": [
+    {
+      "id": 1,
+      "name": "Familiar 1",
+      "level": 5
+    },
+    {
+      "id": 2,
+      "name": "Familiar 2",
+      "level": 6
+    }
+  ],
+  "bossStats": {}
+}

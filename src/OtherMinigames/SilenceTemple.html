@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Temple of Silence</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #1a1a1a;
+      color: white;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      width: 100%;
+      height: 100%;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .header-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      max-width: 900px;
+    }
+
+    header {
+      font-size: 1.1rem;
+      max-width: 700px;
+      margin-bottom: 5px;
+    }
+
+    .timer-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+
+    .timer {
+      font-size: 1rem;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 6px 14px;
+      border-radius: 12px;
+      white-space: nowrap;
+    }
+
+    .benefits {
+      margin-top: 10px;
+      max-width: 700px;
+      text-align: left;
+    }
+
+    .benefits h3 {
+      margin: 0 0 4px;
+      text-align: center;
+      font-size: 1rem;
+    }
+
+    .benefits ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .benefits li {
+      margin-bottom: 4px;
+    }
+
+    .main-area {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      margin-top: 20px;
+      gap: 120px;
+      width: 100%;
+      max-width: 800px;
+    }
+
+    .familiar-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .familiar-name {
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+
+    .familiar-box {
+      width: 200px;
+      height: 200px;
+      border-radius: 30px;
+      background-color: #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      color: #aaa;
+      text-align: center;
+      padding: 10px;
+    }
+
+    .familiar-box img {
+      max-width: 100%;
+      max-height: 100%;
+      border-radius: 30px;
+      object-fit: contain;
+    }
+
+    .familiar-lvl {
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    .breath-circle {
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: #444;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      transition: transform 6s ease-in-out;
+      text-align: center;
+      margin-top: 40px;
+      transform: scale(1);
+    }
+
+    .breathe-in {
+      background-color: #4CAF50;
+    }
+
+    .hold {
+      background-color: #2196F3;
+    }
+
+    .breathe-out {
+      background-color: #f44336;
+    }
+
+    .step-timer {
+      font-size: 1.3rem;
+      font-weight: bold;
+      margin-top: 5px;
+    }
+
+    @media (max-width: 700px) {
+      .main-area {
+        flex-direction: column;
+        align-items: center;
+        gap: 30px;
+      }
+
+      .header-group {
+        text-align: center;
+        align-items: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+
+    <div class="header-group">
+      <header>
+        “Not all battles are fought with a sword. In the Temple of Silence, your mind is the battlefield, your breath the weapon, and your victory… is inner growth.”
+      </header>
+      <div class="timer-group">
+        <div id="dailyCount">DailyMeditations: 0</div>
+        <div class="timer" id="totalTimer">00:00 / 00:00</div>
+      </div>
+    </div>
+
+    <div id="benefits" class="benefits"></div>
+
+    <div class="main-area">
+      <div class="breath-circle" id="circle">
+        <div id="stepLabel">Inhale</div>
+        <div class="step-timer" id="stepTimer">4s</div>
+      </div>
+
+      <div class="familiar-container">
+        <div class="familiar-name" id="familiarName">FamiliarName</div>
+        <div class="familiar-box" id="familiar">Your Familiar 🐾</div>
+        <div class="familiar-lvl" id="familiarLvl">Lvl: 1</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const circle = document.getElementById("circle");
+    const stepLabel = document.getElementById("stepLabel");
+    const stepTimerDisplay = document.getElementById("stepTimer");
+    const totalTimer = document.getElementById("totalTimer");
+    const dailyCount = document.getElementById("dailyCount");
+
+    const DEFAULT_IMG = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
+    const params = new URLSearchParams(location.search);
+    let dailyMeditations = parseInt(params.get('daily')) || 0;
+    dailyCount.textContent = `DailyMeditations: ${dailyMeditations}`;
+    const familiarBox = document.getElementById("familiar");
+    const familiarName = document.getElementById("familiarName");
+    const familiarLvl = document.getElementById("familiarLvl");
+    if (params.get('name')) familiarName.textContent = params.get('name');
+    if (params.get('level')) familiarLvl.textContent = `Lvl: ${params.get('level')}`;
+    const famImg = new Image();
+    famImg.onload = () => { familiarBox.innerHTML = ''; familiarBox.appendChild(famImg); };
+    famImg.onerror = () => { famImg.src = DEFAULT_IMG; };
+    famImg.src = DEFAULT_IMG;
+    window.addEventListener('message', e => {
+      const data = e.data;
+      if (data && data.type === 'familiarData') {
+        if (data.name) familiarName.textContent = data.name;
+        if (data.level) familiarLvl.textContent = `Lvl: ${data.level}`;
+        if (data.img) famImg.src = data.img;
+      }
+    });
+
+    const tech = params.get('tech') || '446';
+
+    const techTitles = {
+      '446': '🫁 4-4-6 Relaxing (Inhale 4s, hold 4s, exhale 6s)',
+      'kapalabhati': '🔥 Kapalabhati Energizing (Rapid breathing with forced exhalations)',
+      'nadi': '🌬️ Nadi Shodhana / Nadi Balancing (Alternate nostril breathing)'
+    };
+
+    const techBenefits = {
+      '446': [
+        'Activates the parasympathetic nervous system',
+        'Reduces stress and anxiety',
+        'Improves sleep and general relaxation'
+      ],
+      'kapalabhati': [
+        'Increases energy and mental clarity',
+        'Stimulates the digestive system',
+        'Cleanses the respiratory tract and awakens the body'
+      ],
+      'nadi': [
+        'Balances both brain hemispheres',
+        'Calms the mind and improves concentration',
+        'Harmonizes the energy flow (prana)'
+      ]
+    };
+
+    const benefitsEl = document.getElementById('benefits');
+    if (benefitsEl) {
+      const nameEl = document.createElement('h3');
+      nameEl.textContent = techTitles[tech] || '';
+      benefitsEl.appendChild(nameEl);
+      const ul = document.createElement('ul');
+      (techBenefits[tech] || []).forEach(b => {
+        const li = document.createElement('li');
+        li.textContent = b;
+        ul.appendChild(li);
+      });
+      benefitsEl.appendChild(ul);
+    }
+
+    let totalDuration = 120;
+    let steps;
+    if (tech === 'kapalabhati') {
+      steps = [
+        { label: 'Exhale', class: 'breathe-out', duration: 1, scale: 1.2 },
+        { label: 'Inhale', class: 'breathe-in', duration: 1, scale: 1.0 }
+      ];
+    } else if (tech === 'nadi') {
+      steps = [
+        { label: 'Inhale Left', class: 'breathe-in', duration: 4, scale: 1.3 },
+        { label: 'Hold', class: 'hold', duration: 4, scale: 1.3 },
+        { label: 'Exhale Right', class: 'breathe-out', duration: 4, scale: 0.8 },
+        { label: 'Inhale Right', class: 'breathe-in', duration: 4, scale: 1.3 },
+        { label: 'Hold', class: 'hold', duration: 4, scale: 1.3 },
+        { label: 'Exhale Left', class: 'breathe-out', duration: 4, scale: 0.8 }
+      ];
+    } else {
+      steps = [
+        { label: 'Inhale', class: 'breathe-in', duration: 4, scale: 1.3 },
+        { label: 'Hold', class: 'hold', duration: 4, scale: 1.3 },
+        { label: 'Exhale', class: 'breathe-out', duration: 6, scale: 0.8 }
+      ];
+    }
+    let totalSeconds = 0;
+    let meditationCompleted = false;
+    let stepInterval = null;
+
+    function formatTime(sec) {
+      const m = String(Math.floor(sec / 60)).padStart(2, '0');
+      const s = String(sec % 60).padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    function updateTotalTimer() {
+      if (totalSeconds < totalDuration) {
+        totalSeconds++;
+        totalTimer.textContent = `${formatTime(totalSeconds)} / ${formatTime(totalDuration)}`;
+
+        if (totalSeconds === totalDuration && !meditationCompleted) {
+          meditationCompleted = true;
+          dailyMeditations++;
+          dailyCount.textContent = `DailyMeditations: ${dailyMeditations}`;
+
+          // Detener animación al finalizar
+          clearInterval(stepInterval);
+          stepLabel.textContent = "Session Complete";
+          stepTimerDisplay.textContent = "";
+          circle.className = "breath-circle";
+          circle.style.transform = "scale(1)";
+          circle.style.backgroundColor = "#444";
+          parent.postMessage({type:'silenceTempleComplete'}, '*');
+        }
+      }
+    }
+
+    let stepIndex = 0;
+    let stepTimeRemaining = steps[0].duration;
+    let totalInterval = null;
+
+    function nextStep() {
+      if (meditationCompleted) return;
+
+      const step = steps[stepIndex];
+      stepLabel.textContent = step.label;
+      stepTimerDisplay.textContent = `${step.duration}s`;
+
+      circle.className = "breath-circle";
+      circle.offsetHeight;
+      circle.classList.add(step.class);
+      circle.style.transform = `scale(${step.scale})`;
+
+      stepTimeRemaining = step.duration;
+
+      stepInterval = setInterval(() => {
+        stepTimeRemaining--;
+        if (stepTimeRemaining > 0) {
+          stepTimerDisplay.textContent = `${stepTimeRemaining}s`;
+        } else {
+          clearInterval(stepInterval);
+          stepIndex = (stepIndex + 1) % steps.length;
+          nextStep();
+        }
+      }, 1000); // Mantener 1 segundo para funcionalidad del minijuego
+    }
+
+    function startSession() {
+      clearInterval(totalInterval);
+      clearInterval(stepInterval);
+
+      totalSeconds = 0;
+      meditationCompleted = false;
+      stepIndex = 0;
+      stepTimeRemaining = steps[0].duration;
+
+      totalTimer.textContent = `00:00 / ${formatTime(totalDuration)}`;
+      stepLabel.textContent = '';
+      stepTimerDisplay.textContent = '';
+
+      circle.className = 'breath-circle';
+      circle.style.transform = 'scale(1)';
+      circle.style.backgroundColor = '#444';
+
+      totalInterval = setInterval(updateTotalTimer, 1000); // Mantener 1 segundo para funcionalidad del minijuego
+      nextStep();
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) startSession();
+    });
+
+    window.addEventListener('blur', startSession);
+
+    startSession();
+  </script>
+</body>
+</html>

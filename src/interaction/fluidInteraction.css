@@ -1,0 +1,282 @@
+/**
+ * Estilos para interacción fluida
+ * Proporciona feedback visual inmediato y transiciones suaves
+ */
+
+/* Base para todos los elementos interactivos */
+.button, 
+button, 
+[data-button],
+[data-interactive],
+.btn,
+.hero-card,
+.mission-slot,
+.group-mission-card,
+.special-builder-card,
+.builder-avatar,
+.hero-avatar,
+.selectable-hero,
+.interactive-element {
+  /* Transiciones suaves y baratas */
+  transition: transform 120ms ease-out, 
+              filter 120ms ease-out, 
+              opacity 120ms ease-out,
+              box-shadow 120ms ease-out;
+  
+  /* Optimizaciones de rendimiento */
+  will-change: transform;
+  transform: translateZ(0); /* Forzar capa de composición */
+  
+  /* Cursor apropiado */
+  cursor: pointer;
+  
+  /* Prevenir selección de texto */
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  
+  /* Mejorar accesibilidad */
+  outline: none;
+}
+
+/* Estado presionado */
+.button.pressed, 
+button.pressed, 
+[data-button].pressed,
+[data-interactive].pressed,
+.btn.pressed,
+.hero-card.pressed,
+.mission-slot.pressed,
+.group-mission-card.pressed,
+.special-builder-card.pressed,
+.builder-avatar.pressed,
+.hero-avatar.pressed,
+.selectable-hero.pressed,
+.interactive-element.pressed {
+  /* Transformación visual */
+  transform: scale(0.98) translateZ(0);
+  
+  /* Cambios de apariencia */
+  filter: brightness(0.96) contrast(1.02);
+  
+  /* Sombra más pronunciada */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  
+  /* Opacidad sutil */
+  opacity: 0.95;
+}
+
+/* Estados de hover (solo en dispositivos con mouse) */
+@media (hover: hover) {
+  .button:hover, 
+  button:hover, 
+  [data-button]:hover,
+  [data-interactive]:hover,
+  .btn:hover,
+  .hero-card:hover,
+  .mission-slot:hover,
+  .group-mission-card:hover,
+  .special-builder-card:hover,
+  .builder-avatar:hover,
+  .hero-avatar:hover,
+  .selectable-hero:hover,
+  .interactive-element:hover {
+    transform: scale(1.02) translateZ(0);
+    filter: brightness(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* Estados activos (para teclado) */
+.button:active, 
+button:active, 
+[data-button]:active,
+[data-interactive]:active,
+.btn:active,
+.hero-card:active,
+.mission-slot:active,
+.group-mission-card:active,
+.special-builder-card:active,
+.builder-avatar:active,
+.hero-avatar:active,
+.selectable-hero:active,
+.interactive-element:active {
+  transform: scale(0.96) translateZ(0);
+  filter: brightness(0.94);
+}
+
+/* Estados de foco para accesibilidad */
+.button:focus-visible, 
+button:focus-visible, 
+[data-button]:focus-visible,
+[data-interactive]:focus-visible,
+.btn:focus-visible,
+.hero-card:focus-visible,
+.mission-slot:focus-visible,
+.group-mission-card:focus-visible,
+.special-builder-card:focus-visible,
+.builder-avatar:focus-visible,
+.hero-avatar:focus-visible,
+.selectable-hero:focus-visible,
+.interactive-element:focus-visible {
+  outline: 2px solid #007acc;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(0, 122, 204, 0.2);
+}
+
+/* Estados deshabilitados */
+.button:disabled, 
+button:disabled, 
+[data-button]:disabled,
+[data-interactive]:disabled,
+.btn:disabled,
+.hero-card:disabled,
+.mission-slot:disabled,
+.group-mission-card:disabled,
+.special-builder-card:disabled,
+.builder-avatar:disabled,
+.hero-avatar:disabled,
+.selectable-hero:disabled,
+.interactive-element:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  filter: none !important;
+  box-shadow: none !important;
+}
+
+/* Transiciones específicas para diferentes tipos de elementos */
+.hero-card,
+.mission-slot,
+.group-mission-card {
+  transition: transform 150ms ease-out, 
+              filter 150ms ease-out, 
+              box-shadow 150ms ease-out,
+              background-color 200ms ease-out,
+              border-color 200ms ease-out;
+}
+
+/* Botones de acción principales */
+.btn-primary,
+.btn-green,
+.btn-celeste,
+.btn-red {
+  transition: transform 100ms ease-out, 
+              filter 100ms ease-out, 
+              box-shadow 100ms ease-out,
+              background-color 150ms ease-out;
+}
+
+/* Elementos de selección */
+select,
+input[type="checkbox"],
+input[type="radio"] {
+  transition: transform 80ms ease-out, 
+              filter 80ms ease-out,
+              border-color 120ms ease-out;
+}
+
+/* Estados de carga */
+.loading {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Optimizaciones para dispositivos táctiles */
+@media (pointer: coarse) {
+  .button, 
+  button, 
+  [data-button],
+  [data-interactive],
+  .btn,
+  .hero-card,
+  .mission-slot,
+  .group-mission-card,
+  .special-builder-card,
+  .builder-avatar,
+  .hero-avatar,
+  .selectable-hero,
+  .interactive-element {
+    /* Área de toque mínima recomendada */
+    min-height: 44px;
+    min-width: 44px;
+    
+    /* Transiciones más rápidas en táctil */
+    transition: transform 80ms ease-out, 
+                filter 80ms ease-out;
+  }
+  
+  /* Feedback más pronunciado en táctil */
+  .button.pressed, 
+  button.pressed, 
+  [data-button].pressed,
+  [data-interactive].pressed,
+  .btn.pressed,
+  .hero-card.pressed,
+  .mission-slot.pressed,
+  .group-mission-card.pressed,
+  .special-builder-card.pressed,
+  .builder-avatar.pressed,
+  .hero-avatar.pressed,
+  .selectable-hero.pressed,
+  .interactive-element.pressed {
+    transform: scale(0.95) translateZ(0);
+    filter: brightness(0.92);
+  }
+}
+
+/* Reducir motion para usuarios que lo prefieren */
+@media (prefers-reduced-motion: reduce) {
+  .button, 
+  button, 
+  [data-button],
+  [data-interactive],
+  .btn,
+  .hero-card,
+  .mission-slot,
+  .group-mission-card,
+  .special-builder-card,
+  .builder-avatar,
+  .hero-avatar,
+  .selectable-hero,
+  .interactive-element {
+    transition: none;
+  }
+  
+  .button.pressed, 
+  button.pressed, 
+  [data-button].pressed,
+  [data-interactive].pressed,
+  .btn.pressed,
+  .hero-card.pressed,
+  .mission-slot.pressed,
+  .group-mission-card.pressed,
+  .special-builder-card.pressed,
+  .builder-avatar.pressed,
+  .hero-avatar.pressed,
+  .selectable-hero.pressed,
+  .interactive-element.pressed {
+    transform: none;
+    filter: none;
+  }
+}

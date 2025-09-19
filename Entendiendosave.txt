@@ -1,0 +1,150 @@
+ENTENDIENDO EL SISTEMA DE GUARDADO DE FABIAN HEROES ELECTRON
+============================================================
+
+Este documento explica cómo funciona el sistema de guardado y carga de datos en el juego Fabian Heroes Electron.
+
+1. UBICACIÓN DEL ARCHIVO DE GUARDADO
+====================================
+
+El archivo de guardado se encuentra en:
+- Ruta principal: Documents/SummonYourWillSaves/save.json
+- Ruta legacy (migrada automáticamente): AppData/Roaming/FabianHeroesElectron/save.json
+
+2. ESTRUCTURA DEL ARCHIVO SAVE.JSON
+===================================
+
+El archivo contiene un objeto JSON con la siguiente estructura principal:
+
+{
+  "version": 4,                    // Versión del formato de guardado
+  "savedAt": 1234567890,           // Timestamp de cuando se guardó
+  "money": 1000,                   // Dinero del jugador
+  "food": 500,                     // Comida disponible
+  "wood": 300,                     // Madera disponible
+  "stone": 200,                    // Piedra disponible
+  "houses": 5,                     // Número de casas construidas
+  "terrain": 10,                   // Terreno disponible
+  "citizens": 25,                  // Ciudadanos
+  "soldiers": 15,                  // Soldados
+  "summonCost": 100,               // Costo de invocación
+  "heroes": [...],                 // Array de héroes
+  "missions": [...],               // Misiones activas
+  "groupMissions": [...],          // Misiones de grupo
+  "dailyMissions": [...],          // Misiones diarias
+  "villageChief": {...},           // Datos del jefe de aldea
+  "companions": [...],             // Compañeros
+  "farmers": 8,                    // Granjeros
+  "lumberjacks": 6,                // Leñadores
+  "miners": 4,                     // Mineros
+  "villains": [...],               // Villanos desbloqueados
+  "nextVillainFloor": 5,           // Siguiente piso de villanos
+  "buildingLevels": {...},         // Niveles de edificios
+  "projects": [...],               // Proyectos del jugador
+  "projectPoints": 150             // Puntos de proyecto
+}
+
+3. PROCESO DE GUARDADO
+=======================
+
+3.1 Función saveGame() en script.js:
+- Se ejecuta automáticamente cada cierto tiempo
+- Recopila todo el estado actual del juego
+- Calcula tiempos de descanso restantes para héroes
+- Actualiza costos de promoción y invocación
+- Crea un objeto gameState con todos los datos
+- Envía los datos al proceso principal via IPC
+
+3.2 Función saveGame() en saveManager.cjs:
+- Recibe los datos del renderer
+- Crea un directorio temporal si no existe
+- Escribe los datos en un archivo temporal (.tmp)
+- Renombra el archivo temporal a save.json
+- Registra la operación en el logger
+
+4. PROCESO DE CARGA
+====================
+
+4.1 Función loadGame() en script.js:
+- Solicita los datos al proceso principal via IPC
+- Verifica la versión del archivo de guardado
+- Aplica migración si es necesario (migrateSave)
+- Restaura todos los estados del juego:
+  * Recursos (dinero, comida, madera, piedra)
+  * Población (casas, ciudadanos, soldados)
+  * Héroes y sus estadísticas
+  * Misiones y progreso
+  * Edificios y niveles
+  * Configuraciones del juego
+
+4.2 Función loadGame() en saveManager.cjs:
+- Verifica si existe migración de archivo legacy
+- Lee el archivo save.json
+- Parsea el JSON
+- Maneja errores de archivo corrupto
+- Retorna los datos o datos por defecto
+
+5. SISTEMA DE MIGRACIÓN
+========================
+
+5.1 Función migrateSave():
+- Actualiza archivos de versiones anteriores
+- Aplica correcciones automáticas
+- Asegura compatibilidad hacia atrás
+- Actualiza la versión a la actual (SAVE_VERSION = 4)
+
+5.2 Migración de archivos legacy:
+- Detecta archivos guardados en ubicación anterior
+- Los mueve automáticamente a la nueva ubicación
+- Mantiene la compatibilidad con partidas antiguas
+
+6. MANEJO DE ERRORES
+=====================
+
+6.1 Archivo corrupto:
+- Se detecta si el JSON no es válido
+- Se renombra a .corrupt para preservar
+- Se inicia con datos por defecto
+- Se registra el error en el logger
+
+6.2 Archivo no encontrado:
+- Se inicia con datos por defecto
+- Se crea un nuevo archivo al guardar
+
+7. FUNCIONES ADICIONALES
+=========================
+
+7.1 Exportar partida:
+- Permite descargar el archivo de guardado
+- Útil para respaldos o transferencias
+
+7.2 Importar partida:
+- Permite cargar archivos de guardado externos
+- Valida la versión y compatibilidad
+- Aplica migración si es necesario
+
+8. AUTOGUARDADO
+================
+
+- Se ejecuta automáticamente cada cierto tiempo
+- Se activa al cerrar la aplicación
+- Se ejecuta después de cambios importantes
+- Usa un sistema de timeout para evitar guardados excesivos
+
+9. SEGURIDAD Y INTEGRIDAD
+==========================
+
+- Uso de archivos temporales para evitar corrupción
+- Validación de versión antes de cargar
+- Backup automático de archivos corruptos
+- Logging detallado de todas las operaciones
+
+10. UBICACIONES DE ARCHIVOS IMPORTANTES
+========================================
+
+- saveManager.cjs: src/core/saveManager.cjs
+- Funciones de guardado: script.js (líneas 1987-2084)
+- Funciones de carga: script.js (líneas 856-962)
+- Función de migración: script.js (líneas 794-854)
+- Configuración principal: main.cjs
+
+Este sistema garantiza que las partidas se guarden de forma segura y se puedan cargar correctamente, manteniendo la compatibilidad entre versiones del juego.

@@ -1,0 +1,11 @@
+{
+  "compact": true,
+  "controlFlowFlattening": false,
+  "deadCodeInjection": false,
+  "stringArray": true,
+  "rotateStringArray": true,
+  "stringArrayThreshold": 0.75,
+  "identifierNamesGenerator": "mangled",
+  "identifiersPrefix": "syw_",
+  "renameGlobals": false
+}

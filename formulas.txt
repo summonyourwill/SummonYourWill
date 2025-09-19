@@ -1,0 +1,220 @@
+FORMULAS DE CONSTRUCCIONES DEL VILLAGE
+========================================
+
+Este documento contiene todas las fórmulas matemáticas utilizadas en el juego
+para calcular costos, capacidades, tiempos y efectos de las construcciones.
+
+1. CONSTRUCCIÓN DE CASAS
+-------------------------
+Costo por casa: 10 × (casas_actuales + 1)
+Ejemplo: 
+- 1ra casa: 10 × (0 + 1) = 10 materiales
+- 2da casa: 10 × (1 + 1) = 20 materiales
+- 3ra casa: 10 × (2 + 1) = 30 materiales
+
+Tiempo de construcción: 300 segundos (5 minutos)
+Héroes requeridos: 3
+Experiencia ganada: 20 EXP
+Energía consumida: 30%
+
+2. ALMACENES (STORAGES)
+------------------------
+
+2.1 PANTRY (FoodStorage)
+- Capacidad máxima: (nivel + 1) × 10
+- Nivel 0: 10 comida
+- Nivel 1: 20 comida
+- Nivel 2: 30 comida
+- Nivel 3: 40 comida
+
+2.2 LUMBERYARD (WoodStorage)
+- Capacidad máxima: (nivel + 1) × 10
+- Nivel 0: 10 madera
+- Nivel 1: 20 madera
+- Nivel 2: 30 madera
+- Nivel 3: 40 madera
+
+2.3 QUARRY (StoneStorage)
+- Capacidad máxima: (nivel + 1) × 10
+- Nivel 0: 10 piedra
+- Nivel 1: 20 piedra
+- Nivel 2: 30 piedra
+- Nivel 3: 40 piedra
+
+FÓRMULA GENERAL STORAGES:
+Capacidad = (nivel_edificio + 1) × 10
+
+3. COSTOS DE MEJORAS
+---------------------
+
+3.1 EDIFICIOS BÁSICOS (Gym, ArcheryField, MageAcademy, BoxingRing, Ashram, LifeAltar, FortuneTotem, Pantry, Lumberyard, Quarry, Hospital, Dungeons)
+- Costo: (nivel_actual + 1) × 10
+- Energía: 30%
+- Experiencia: 10 EXP
+- Tiempo: 180 segundos (3 minutos)
+
+3.2 PET SANCTUARY
+- Costo: (MAX_PETS + 1) × 20
+- Energía: 50%
+- Experiencia: 30 EXP
+- Tiempo: 600 segundos (10 minutos)
+- Capacidad: 5 + nivel_edificio mascotas
+
+3.3 TOWER
+- Costo: (nivel_actual + 1) × 20
+- Energía: 50%
+- Experiencia: 30 EXP
+- Tiempo: 1200 segundos (20 minutos)
+- Efecto: +1 villano máximo por nivel
+
+3.4 CASTLE
+- Costo: (nivel_actual + 1) × 50
+- Energía: 50%
+- Experiencia: 50 EXP
+- Tiempo: 1800 segundos (30 minutos)
+- Efecto: Aumenta niveles máximos de héroes
+
+3.5 HOUSE
+- Costo: 10 × (casas_actuales + 1)
+- Energía: 30%
+- Experiencia: 20 EXP
+- Tiempo: 300 segundos (5 minutos)
+
+4. NIVELES MÁXIMOS (CASTLE)
+----------------------------
+
+4.1 HÉROES NORMALES
+- Nivel máximo: 10 + (5 × nivel_castillo)
+- Nivel 0: 10
+- Nivel 1: 15
+- Nivel 2: 20
+- Nivel 3: 25
+
+4.2 VILLAGE CHIEF
+- Nivel máximo: 20 + (10 × nivel_castillo)
+- Nivel 0: 20
+- Nivel 1: 30
+- Nivel 2: 40
+- Nivel 3: 50
+
+4.3 PARTNER
+- Nivel máximo: 20 + (10 × nivel_castillo)
+- Nivel 0: 20
+- Nivel 1: 30
+- Nivel 2: 40
+- Nivel 3: 50
+
+5. ESTADÍSTICAS MÁXIMAS
+------------------------
+
+5.1 HÉROES NORMALES
+- Base: 5 en todas las stats
+- Por nivel de edificio de entrenamiento: +1
+- Fórmula: 5 + nivel_edificio
+
+5.2 VILLAGE CHIEF
+- Base: 15 en todas las stats
+- Por nivel de edificio de entrenamiento: +1
+- Fórmula: 15 + nivel_edificio
+
+5.3 PARTNER
+- Base: 15 en todas las stats
+- Por nivel de edificio de entrenamiento: +1
+- Fórmula: 15 + nivel_edificio
+
+EDIFICIOS DE ENTRENAMIENTO:
+- Gym: +1 fuerza
+- ArcheryField: +1 destreza
+- MageAcademy: +1 inteligencia
+- BoxingRing: +1 defensa
+- LifeAltar: +1 vida
+- Ashram: +1 mana
+- FortuneTotem: +1 suerte
+
+6. CAPACIDADES ESPECIALES
+--------------------------
+
+6.1 MASCOTAS (PetSanctuary)
+- Base: 5 mascotas
+- Por nivel: +1 mascota
+- Fórmula: 5 + nivel_PetSanctuary
+
+6.2 VILLANOS (Tower)
+- Base: 3 villanos
+- Por nivel: +1 villano
+- Fórmula: 3 + nivel_Tower
+
+6.3 CASAS MÁXIMAS
+- Fórmula: terreno × 5 + casas_extra
+- Terreno base: 1 (5 casas)
+- Terreno 2: 10 casas
+- Terreno 3: 15 casas
+
+7. COSTOS DE TERRENO
+---------------------
+- Segundo terreno: 3,000 oro
+- Tercer terreno: 4,000 oro
+- Cuarto terreno: 8,000 oro
+- Quinto terreno: 15,000 oro
+- Sexto en adelante: 15,000 + (terreno - 4) × 5,000
+
+8. RECOMPENSAS DE DUNGEON
+--------------------------
+- Oro por nivel: nivel_dungeon × 100
+- Nivel 0: 0 oro
+- Nivel 1: 100 oro
+- Nivel 2: 200 oro
+- Nivel 3: 300 oro
+
+9. TRIBUTO DIARIO
+------------------
+- Oro por villano: 300
+- Oro por familiar: 500 + (nivel_familiar × 50)
+- Oro por héroe: 250
+- Oro por mascota: 200
+- Oro por dungeon: nivel_dungeon × 100
+
+10. HÉROES REQUERIDOS POR MEJORA
+---------------------------------
+- Gym: 4 héroes
+- ArcheryField: 4 héroes
+- MageAcademy: 4 héroes
+- BoxingRing: 4 héroes
+- FortuneTotem: 1 héroe
+- LifeAltar: 1 héroe
+- Hospital: 4 héroes
+- Ashram: 3 héroes
+- Castle: 12 héroes
+- Dungeons: 2 héroes
+- Pantry: 4 héroes
+- PetSanctuary: 3 héroes
+- Quarry: 5 héroes
+- Tower: 6 héroes
+- Lumberyard: 6 héroes
+- House: 3 héroes
+
+11. TIEMPOS DE MEJORA
+----------------------
+- House: 300s (5 min)
+- PetSanctuary: 600s (10 min)
+- Pantry: 180s (3 min)
+- Lumberyard: 180s (3 min)
+- Quarry: 180s (3 min)
+- Gym: 240s (4 min)
+- ArcheryField: 240s (4 min)
+- MageAcademy: 240s (4 min)
+- BoxingRing: 240s (4 min)
+- Ashram: 240s (4 min)
+- LifeAltar: 240s (4 min)
+- FortuneTotem: 240s (4 min)
+- Tower: 1200s (20 min)
+- Castle: 1800s (30 min)
+- Dungeons: 900s (15 min)
+- Hospital: 900s (15 min)
+
+NOTAS IMPORTANTES:
+- Todos los costos se pagan en Food, Wood y Stone por igual
+- La energía se consume de los héroes asignados
+- La experiencia se gana por héroe asignado
+- Los tiempos se pueden reducir con héroes de mayor nivel
+- Las capacidades se aplican inmediatamente al completar la mejora

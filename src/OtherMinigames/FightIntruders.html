@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FightIntrudersV6 — Village Defense 2v2</title>
+  <style>
+    :root{
+      --bg:#0e0f12;
+      --panel:#171921;
+      --accent:#7dd3fc;
+      --accent2:#fca5a5;
+      --gold:#f5d76e;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --success:#34d399;
+      --danger:#ef4444;
+      --ally:#2dd4bf;
+      --ally2:#60a5fa;
+      --enemy:#f87171;
+      --enemy-dead:#6b7280;
+    }
+    *{box-sizing:border-box}
+    html, body, .app, .app *:not(input):not(textarea){
+      -webkit-user-select:none;
+      -ms-user-select:none;
+      user-select:none;
+      -webkit-touch-callout:none;
+    }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1200px 600px at 30% 20%, #121420, #0b0c10 60%);
+      color:var(--text);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+    .app{
+      width:min(960px, 96vw);
+      background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:18px;
+      padding:20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+    .row{ display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+    .titleline{ display:flex; align-items:center; gap:10px; }
+    h1{font-size:20px; margin:0; letter-spacing:0.3px}
+    .right-controls{ display:flex; gap:10px; align-items:center; margin-left:auto; }
+    .badge{
+      background:rgba(255,255,255,0.06);
+      border:1px solid rgba(255,255,255,0.08);
+      padding:8px 12px;
+      border-radius:12px;
+      font-weight:600;
+    }
+    .gold{
+      color:var(--bg);
+      background:linear-gradient(180deg, #ffe9a3, #e9c979);
+      border:0;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+    }
+    button{
+      background:#10121a;
+      color:var(--text);
+      border:1px solid rgba(255,255,255,0.1);
+      padding:10px 14px;
+      border-radius:12px;
+      cursor:pointer;
+      transition:transform .06s ease, border-color .2s ease, background .2s ease;
+      font-weight:600;
+    }
+    button:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,0.18); }
+    button:disabled{opacity:0.5; cursor:not-allowed; transform:none}
+    select{
+      background:#0f1320;
+      color:var(--text);
+      border:1px solid rgba(255,255,255,0.12);
+      padding:8px 10px;
+      border-radius:10px;
+      min-width:150px;
+    }
+    select option[disabled]{ color:#6b7280; }
+    .accent{ border-color:rgba(125,211,252,0.5); background:linear-gradient(180deg, rgba(125,211,252,0.15), rgba(125,211,252,0.05)); }
+    .danger{ border-color:rgba(239,68,68,0.45); }
+    .divider{height:1px; background: rgba(255,255,255,0.08); margin:14px 0}
+    .hint{ color:var(--muted); font-size:13px; }
+
+    /* Modal */
+    .modal-backdrop{
+      position:fixed; inset:0; background:rgba(0,0,0,0.5);
+      display:none; align-items:center; justify-content:center; padding:16px;
+      z-index:50;
+    }
+    .modal{
+      width:min(860px, 96vw);
+      background:#121420;
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:16px; padding:16px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+      animation: pop .12s ease-out;
+    }
+    @keyframes pop{ from{ transform: scale(.98); opacity:0 } to{ transform: scale(1); opacity:1 } }
+    .choice-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:14px; padding:14px; display:flex; gap:12px; align-items:flex-start;
+    }
+    .rect{
+      width:60px; height:60px; border-radius:10px;
+      display:flex; align-items:center; justify-content:center; font-weight:800;
+      border:1px solid rgba(255,255,255,0.08);
+      flex-shrink:0;
+      background-size: cover; background-position: center;
+    }
+    .chief{ background:linear-gradient(180deg, rgba(45,212,191,0.25), rgba(45,212,191,0.1)); color:#a7fff2; }
+    .partner{ background:linear-gradient(180deg, rgba(96,165,250,0.25), rgba(96,165,250,0.1)); color:#d4e7ff; }
+    .skill{ outline: 2px solid rgba(250,204,21,0.6); box-shadow: 0 0 0 6px rgba(250,204,21,0.08); }
+
+    .select-row{ display:flex; gap:8px; align-items:center; margin-top:6px; flex-wrap:wrap }
+    .select-row label{ font-size:12px; color:var(--muted) }
+
+    /* Battle */
+    .battle{
+      display:none; background:#10131a; border:1px solid rgba(255,255,255,0.08);
+      border-radius:16px; padding:16px; margin-top:16px;
+    }
+    .stage{
+      position:relative; height:220px; background:linear-gradient(180deg,#121521,#0e1016);
+      border-radius:12px; border:1px dashed rgba(255,255,255,0.08);
+      overflow:hidden; display:flex; align-items:center; justify-content:space-between; padding:14px;
+    }
+    .unit{
+      width:96px; height:96px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:800;
+      border:1px solid rgba(255,255,255,0.08); position:relative;
+      transition: transform .35s ease;
+      background-size: cover; background-position: center;
+    }
+    .ally1{ background: linear-gradient(180deg, rgba(45,212,191,0.25), rgba(45,212,191,0.1)); color:#a7fff2; }
+    .ally2{ background: linear-gradient(180deg, rgba(96,165,250,0.25), rgba(96,165,250,0.1)); color:#d4e7ff; }
+    .enemy{ background: linear-gradient(180deg, rgba(248,113,113,0.25), rgba(248,113,113,0.1)); color:#ffd5d5; }
+    .dead{ background: linear-gradient(180deg, rgba(107,114,128,0.4), rgba(75,85,99,0.2)); color:#d1d5db; filter: grayscale(0.6); }
+    .name{ font-size:12px; color:var(--muted); text-align:center; margin-top:6px }
+    .col{ display:flex; flex-direction:column; align-items:center; gap:8px }
+
+    /* Effects */
+    .shake{ animation: shake .3s ease-in-out 2 }
+    @keyframes shake{
+      0%{ transform: translateX(0) }
+      25%{ transform: translateX(-6px) }
+      50%{ transform: translateX(6px) }
+      75%{ transform: translateX(-3px) }
+      100%{ transform: translateX(0) }
+    }
+    .fly{ animation: fly .35s ease-in-out forwards }
+    @keyframes fly{
+      from{ transform: translateX(0) }
+      to{ transform: translateX(120px) }
+    }
+    .fly-left{ animation: flyLeft .35s ease-in-out forwards }
+    @keyframes flyLeft{
+      from{ transform: translateX(0) }
+      to{ transform: translateX(-120px) }
+    }
+    .gold-float{
+      position:absolute; left:50%; top:50%; transform:translate(-50%, -50%);
+      font-weight:900; font-size:28px; color:#000;
+      background:linear-gradient(180deg, #ffe9a3, #e9c979);
+      padding:8px 14px; border-radius:12px; box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+      border:0; opacity:0;
+    }
+    .gold-float.show{
+      animation: floatUp 900ms ease-out forwards;
+    }
+    @keyframes floatUp{
+      0%{ transform: translate(-50%, -10px); opacity:0 }
+      15%{ opacity:1 }
+      100%{ transform: translate(-50%, -80px); opacity:0 }
+    }
+
+    .footer{ display:flex; justify-content:space-between; align-items:center; margin-top:10px }
+    .muted{ color:var(--muted); font-size:12px }
+
+    /* Toast */
+    .toast{
+      position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+      background:#0f1320; border:1px solid rgba(255,255,255,0.1);
+      color:var(--text); padding:10px 14px; border-radius:12px; display:none; z-index:60;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="row">
+      <div class="titleline">
+        <h1>Village Defense — 2 vs 2</h1>
+        <button id="btnIntruders" class="accent">Intruders detected</button>
+      </div>
+      <div class="right-controls">
+        <span class="badge gold" id="goldBadge">Gold: 0</span>
+        <button id="btnReset" class="danger" style="display: none;">Reset</button>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="row">
+      <div class="hint">Each individual ability can be used <strong>once per day</strong>. Using an ability defeats 2 intruders and grants <strong>+1000 Gold</strong> plus <strong>+100 Gold</strong> per ability level.</div>
+      <button id="btnDebug" style="font-size: 12px; padding: 4px 8px; background: #666; color: white; display: none;">Debug Sync</button>
+    </div>
+
+    <!-- Battle Card -->
+    <div class="battle" id="battleCard">
+      <div class="stage" id="stage">
+        <div class="col">
+          <div class="unit ally1" id="chiefRect">Chief</div>
+          <div class="name" id="chiefDisplayName">Village Chief</div>
+        </div>
+        <div class="col">
+          <div class="unit ally2" id="partnerRect">Partner</div>
+          <div class="name" id="partnerDisplayName">Partner</div>
+        </div>
+        <div class="col">
+          <div class="unit enemy" id="enemy1">Enemy A</div>
+          <div class="name">Intruder A</div>
+        </div>
+        <div class="col">
+          <div class="unit enemy" id="enemy2">Enemy B</div>
+          <div class="name">Intruder B</div>
+        </div>
+        <div class="gold-float" id="gold-float"></div>
+      </div>
+      <div class="footer">
+        <span class="muted" id="resultText"></span>
+        <div>
+          <button id="closeBattle">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ability Selection Modal (selectors) -->
+    <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal">
+        <div class="row" style="margin-bottom:8px">
+          <h2 id="modalTitle" style="font-size:18px; margin:0">Choose an ability</h2>
+          <button id="closeModal">✕</button>
+        </div>
+        <div class="choice-grid">
+          <!-- Chief -->
+          <div class="card">
+            <div class="rect chief" id="chiefThumb">Chief</div>
+            <div style="flex:1">
+              <div style="font-weight:800" id="chiefLabel">Village Chief</div>
+              <div class="hint">Pick one ability below.</div>
+              <div class="select-row" id="chiefSelectRow">
+                <label for="chiefSelect">Ability</label>
+                <select id="chiefSelect" aria-label="Chief ability"></select>
+                <button id="useChief" class="accent">Use</button>
+              </div>
+              <div class="hint" id="chiefNone" style="display:none">All abilities used today.</div>
+            </div>
+          </div>
+
+          <!-- Partner -->
+          <div class="card">
+            <div class="rect partner" id="partnerThumb">Partner</div>
+            <div style="flex:1">
+              <div style="font-weight:800" id="partnerLabel">Partner</div>
+              <div class="hint">Pick one ability below.</div>
+              <div class="select-row" id="partnerSelectRow">
+                <label for="partnerSelect">P_Ability</label>
+                <select id="partnerSelect" aria-label="Partner ability"></select>
+                <button id="usePartner" class="accent">Use</button>
+              </div>
+              <div class="hint" id="partnerNone" style="display:none">All abilities used today.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirm Reset Modal -->
+    <div class="modal-backdrop" id="confirmBackdrop" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <div class="modal">
+        <div class="row" style="margin-bottom:8px">
+          <h2 id="confirmTitle" style="font-size:18px; margin:0">Reset progress?</h2>
+        </div>
+        <p class="hint" style="margin:0 0 12px 0">
+          This will set <strong>Gold to 0</strong> and refresh <strong>daily ability usage</strong> for each individual ability.
+        </p>
+        <div style="display:flex; gap:10px; justify-content:flex-end">
+          <button id="confirmCancel">Cancel</button>
+          <button id="confirmYes" class="danger">Yes, reset</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script>
+    // ====== Config ======
+    const BASE_GOLD = 1000;
+    const GOLD_PER_LEVEL = 100;
+    const GOLD_KEY = "fightIntrudersGold";
+
+    function normalizeAbility(ab, idx) {
+      // Aceptar múltiples alias para mayor robustez en producción
+      const rawName = ab?.name ?? ab?.label ?? ab?.abilityName ?? ab?.displayName ?? ab?.title ?? ab?.text ?? ab?.nombre;
+      const name = (typeof rawName === 'string' && rawName.trim().length) ? rawName.trim() : null;
+      const img = ab?.img || ab?.image || ab?.avatar || ab?.icon || ab?.iconUrl || ab?.src || '';
+      const level = ab?.level ?? ab?.lvl ?? ab?.abilityLevel ?? ab?.lvlAbility ?? ab?.skillLevel ?? ab?.nivel ?? 1;
+      const id = ab?.id ?? ab?.number ?? (idx != null ? String(idx + 1) : (name || ''));
+      const label = (ab?.label ?? name ?? '').toString().trim() || `Ability ${idx != null ? (idx + 1) : ''}`.trim();
+
+      return {
+        ...ab,
+        id,
+        label,
+        name: name || label || 'No name',
+        img,
+        level,
+        number: ab?.number || null
+      };
+    }
+
+    let CHIEF_ABILITIES = [];
+    let PARTNER_ABILITIES = [];
+    let externalData = null;
+
+    // Metadatos que se rellenarán desde la app
+    let chiefData   = { name: (window.parent||window)?.villageChief?.name || "Village Chief", avatar: "", abilities: [] };
+    let partnerData = { name: (window.parent||window)?.partner?.name || "Partner",              avatar: "", abilities: [] };
+
+    // ====== Elements ======
+    const goldEl = document.getElementById("goldBadge");
+    const btnIntruders = document.getElementById("btnIntruders");
+
+    const modalBackdrop = document.getElementById("modalBackdrop");
+    const closeModal = document.getElementById("closeModal");
+    const chiefThumb = document.getElementById("chiefThumb");
+    const partnerThumb = document.getElementById("partnerThumb");
+    const chiefSelectRow = document.getElementById("chiefSelectRow");
+    const partnerSelectRow = document.getElementById("partnerSelectRow");
+    const chiefSelect = document.getElementById("chiefSelect");
+    const partnerSelect = document.getElementById("partnerSelect");
+    const useChief = document.getElementById("useChief");
+    const usePartner = document.getElementById("usePartner");
+    const chiefNone = document.getElementById("chiefNone");
+    const partnerNone = document.getElementById("partnerNone");
+    const chiefLabel = document.getElementById("chiefLabel");
+    const partnerLabel = document.getElementById("partnerLabel");
+    const chiefDisplayName = document.getElementById("chiefDisplayName");
+    const partnerDisplayName = document.getElementById("partnerDisplayName");
+
+
+    const battleCard = document.getElementById("battleCard");
+    const closeBattle = document.getElementById("closeBattle");
+    const chiefRect = document.getElementById("chiefRect");
+    const partnerRect = document.getElementById("partnerRect");
+    const enemy1 = document.getElementById("enemy1");
+    const enemy2 = document.getElementById("enemy2");
+    const resultText = document.getElementById("resultText");
+    const goldFloat = document.getElementById("gold-float");
+
+    const toast = document.getElementById("toast");
+
+    const btnReset = document.getElementById("btnReset");
+    const confirmBackdrop = document.getElementById("confirmBackdrop");
+    const confirmCancel = document.getElementById("confirmCancel");
+    const confirmYes = document.getElementById("confirmYes");
+    const btnDebug = document.getElementById("btnDebug");
+
+    // ====== Helpers ======
+    function initials(fullName){
+      if(!fullName) return "";
+      return fullName.trim().split(/\s+/).slice(0,2)
+        .map(s => (s[0]||"").toUpperCase()).join("");
+    }
+
+    function applyAvatar(el, url, fallbackText){
+      if(url){
+        el.style.backgroundImage = `url(${url})`;
+        el.style.backgroundSize = "cover";
+        el.style.backgroundPosition = "center";
+        el.textContent = "";
+      }else{
+        el.style.backgroundImage = "";
+        el.textContent = fallbackText || "";
+      }
+    }
+
+    function getTodayKey(){
+      return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' });
+    }
+
+    function loadGold(){
+      try{
+        const data = JSON.parse(localStorage.getItem(GOLD_KEY) || "{}");
+        if(data.date === getTodayKey()) return Number(data.gold) || 0;
+      }catch(e){}
+      return 0;
+    }
+
+    function saveGold(value){
+      localStorage.setItem(GOLD_KEY, JSON.stringify({ date: getTodayKey(), gold: value }));
+    }
+
+    // En producción usa externalData (postMessage), en desarrollo usa window.parent
+    function getUnlockedChiefAbilitiesFromParent(){
+      // Si tenemos datos externos (producción), usarlos
+      if (externalData?.chief?.abilities) {
+        const today = getTodayKey();
+        return externalData.chief.abilities.map((ab, idx) => {
+          const normalized = normalizeAbility(ab, idx);
+          // Verificar si la habilidad ya fue usada hoy en el parent
+          if (ab?.fightIntrudersDay === today) {
+            normalized.fightIntrudersDay = today;
+          }
+          return normalized;
+        });
+      }
+      
+      // Fallback para desarrollo
+      const p  = (window.parent||window);
+      const vc = p?.villageChief || {};
+      const list = Array.isArray(vc.habilities) ? vc.habilities : [];
+      const unlocked = Number(vc.unlockedHabilities ?? list.length);
+      const today = getTodayKey();
+      
+      return list
+        .filter((ab, idx) => (ab?.number ?? (idx+1)) <= unlocked)
+        .map((ab, idx) => {
+          const normalized = normalizeAbility(ab, idx);
+          // Verificar si la habilidad ya fue usada hoy en el parent
+          if (ab?.fightIntrudersDay === today) {
+            normalized.fightIntrudersDay = today;
+          }
+          return normalized;
+        });
+    }
+
+    function getUnlockedPartnerAbilitiesFromParent(){
+      // Si tenemos datos externos (producción), usarlos
+      if (externalData?.partner?.abilities) {
+        const today = getTodayKey();
+        return externalData.partner.abilities.map((ab, idx) => {
+          const normalized = normalizeAbility(ab, idx);
+          // Verificar si la habilidad ya fue usada hoy en el parent
+          if (ab?.fightIntrudersDay === today) {
+            normalized.fightIntrudersDay = today;
+          }
+          return normalized;
+        });
+      }
+      
+      // Fallback para desarrollo
+      const p  = (window.parent||window);
+      const vc = p?.villageChief || {};
+      const list = Array.isArray(vc.partnerAbilities) ? vc.partnerAbilities : [];
+      const unlocked = Number(vc.unlockedPartnerAbilities ?? list.length);
+      const today = getTodayKey();
+      
+      return list
+        .filter((ab, idx) => (ab?.number ?? (idx+1)) <= unlocked)
+        .map((ab, idx) => {
+          const normalized = normalizeAbility(ab, idx);
+          // Verificar si la habilidad ya fue usada hoy en el parent
+          if (ab?.fightIntrudersDay === today) {
+            normalized.fightIntrudersDay = today;
+          }
+          return normalized;
+        });
+    }
+
+    function forceSyncFromParent() {
+      console.log('=== FORCING SYNC FROM PARENT ===');
+      const today = getTodayKey();
+      
+      // Obtener habilidades del parent y sincronizar estado
+      const parentChiefAbilities = getUnlockedChiefAbilitiesFromParent();
+      const parentPartnerAbilities = getUnlockedPartnerAbilitiesFromParent();
+      
+      // Aplicar estado de uso desde el parent
+      CHIEF_ABILITIES = parentChiefAbilities.map(ab => {
+        // En producción, buscar en externalData; en desarrollo, buscar en window.parent
+        let parentAb = null;
+        if (externalData?.chief?.abilities) {
+          // Producción: buscar en externalData
+          parentAb = externalData.chief.abilities.find(pab => pab?.name === ab.name);
+        } else {
+          // Desarrollo: buscar en window.parent
+          parentAb = (window.parent||window)?.villageChief?.habilities?.find(pab => pab?.name === ab.name);
+        }
+        return {
+          ...ab,
+          fightIntrudersDay: parentAb?.fightIntrudersDay === today ? today : null
+        };
+      });
+      
+      PARTNER_ABILITIES = parentPartnerAbilities.map(ab => {
+        // En producción, buscar en externalData; en desarrollo, buscar en window.parent
+        let parentAb = null;
+        if (externalData?.partner?.abilities) {
+          // Producción: buscar en externalData
+          parentAb = externalData.partner.abilities.find(pab => pab?.name === ab.name);
+        } else {
+          // Desarrollo: buscar en window.parent
+          parentAb = (window.parent||window)?.villageChief?.partnerAbilities?.find(pab => pab?.name === ab.name);
+        }
+        return {
+          ...ab,
+          fightIntrudersDay: parentAb?.fightIntrudersDay === today ? today : null
+        };
+      });
+      
+      console.log('Sync completed. Chief abilities:', CHIEF_ABILITIES.map(a => ({ name: a.name, used: a.fightIntrudersDay === today })));
+      console.log('Sync completed. Partner abilities:', PARTNER_ABILITIES.map(a => ({ name: a.name, used: a.fightIntrudersDay === today })));
+      
+      // NO llamar a refreshSelectors() aquí - preservar cambios visuales existentes
+      // Solo actualizar los datos, no recrear los selectores
+    }
+
+    function hydrateFromParent(data){
+      const p  = (window.parent||window);
+      const vc = p?.villageChief || {};
+      const chiefSrc = data?.chief || externalData?.chief || {};
+      const partnerSrc = data?.partner || externalData?.partner || {};
+
+      gold = loadGold();
+      setGold(gold);
+
+      // Nombres/Fotos
+      chiefData.name   = chiefSrc.name   || vc?.name   || "Village Chief";
+      chiefData.avatar = chiefSrc.avatar || vc?.avatar || "";
+
+      partnerData.name   = partnerSrc.name || p?.partner?.name || vc?.partner?.name || vc?.partnerName || "Partner";
+      partnerData.avatar = partnerSrc.avatar || partnerSrc.img || partnerSrc.image ||
+                           p?.partner?.avatar || p?.partner?.img ||
+                           vc?.partner?.avatar || vc?.partner?.img || vc?.partnerAvatar || "";
+
+      // Habilidades desbloqueadas - sincronizar estado desde el parent
+      let chiefList, partnerList;
+      
+      if (chiefSrc.abilities) {
+        // Si vienen datos externos, usarlos directamente
+        chiefList = chiefSrc.abilities.map((x, i) => normalizeAbility(x, i));
+      } else {
+        // Obtener del parent y sincronizar estado
+        const parentChiefAbilities = getUnlockedChiefAbilitiesFromParent();
+        const today = getTodayKey();
+        
+        // Buscar habilidades usadas en el parent
+        const usedAbilities = new Set();
+        if (vc?.habilities) {
+          vc.habilities.forEach(ab => {
+            if (ab?.fightIntrudersDay === today) {
+              usedAbilities.add(ab.name);
+            }
+          });
+        }
+        
+        // Aplicar estado de uso a las habilidades locales
+        chiefList = parentChiefAbilities.map(ab => ({
+          ...ab,
+          fightIntrudersDay: usedAbilities.has(ab.name) ? today : null
+        }));
+      }
+      
+      if (partnerSrc.abilities) {
+        // Si vienen datos externos, usarlos directamente
+        partnerList = partnerSrc.abilities.map((x, i) => normalizeAbility(x, i));
+      } else {
+        // Obtener del parent y sincronizar estado
+        const parentPartnerAbilities = getUnlockedPartnerAbilitiesFromParent();
+        const today = getTodayKey();
+        
+        // Buscar habilidades usadas en el parent
+        const usedAbilities = new Set();
+        if (vc?.partnerAbilities) {
+          vc.partnerAbilities.forEach(ab => {
+            if (ab?.fightIntrudersDay === today) {
+              usedAbilities.add(ab.name);
+            }
+          });
+        }
+        
+        // Aplicar estado de uso a las habilidades locales
+        partnerList = parentPartnerAbilities.map(ab => ({
+          ...ab,
+          fightIntrudersDay: usedAbilities.has(ab.name) ? today : null
+        }));
+      }
+      
+      CHIEF_ABILITIES   = chiefList || [];
+      PARTNER_ABILITIES = partnerList || [];
+
+      // Debug: mostrar el estado de las habilidades
+      console.log('Chief abilities loaded:', CHIEF_ABILITIES.map(a => ({ name: a.name, used: a.fightIntrudersDay })));
+      console.log('Partner abilities loaded:', PARTNER_ABILITIES.map(a => ({ name: a.name, used: a.fightIntrudersDay })));
+
+      // Refrescar textos visibles
+      const cd = document.getElementById("chiefDisplayName");
+      const pd = document.getElementById("partnerDisplayName");
+      const cl = document.getElementById("chiefLabel");
+      const pl = document.getElementById("partnerLabel");
+
+      if(cd) cd.textContent = chiefData.name;
+      if(pd) pd.textContent = partnerData.name;
+      if(cl) cl.textContent = chiefData.name;
+      if(pl) pl.textContent = partnerData.name;
+
+      // Aplicar avatares (rects + thumbs)
+      applyAvatar(document.getElementById("chiefRect"),   chiefData.avatar,   "VC");
+      applyAvatar(document.getElementById("partnerRect"), partnerData.avatar, "P");
+      applyAvatar(document.getElementById("chiefThumb"),  chiefData.avatar,   "VC");
+      applyAvatar(document.getElementById("partnerThumb"),partnerData.avatar, "P");
+      if(!chiefData.avatar){
+        const cr = document.getElementById("chiefRect");
+        if(cr && !cr.style.backgroundImage) cr.textContent = initials(chiefData.name || "VC");
+      }
+      if(!partnerData.avatar){
+        const pr = document.getElementById("partnerRect");
+        if(pr && !pr.style.backgroundImage) pr.textContent = initials(partnerData.name || "P");
+      }
+
+      // NO llamar a refreshSelectors() aquí - preservar cambios visuales existentes
+      // Solo actualizar los datos, no recrear los selectores
+    }
+
+    function showToast(text){
+      toast.textContent = text;
+      toast.style.display = "block";
+      setTimeout(()=> toast.style.display = "none", 1500);
+    }
+
+    let gold = loadGold();
+    function getGold(){ return gold; }
+    function setGold(v){ gold = v; goldEl.textContent = "Gold: " + gold; saveGold(gold); }
+
+    function fillSelect(selectEl, items, today){
+      const currentVal = selectEl.value;
+      selectEl.innerHTML = "";
+      
+      // Debug: mostrar qué habilidades están siendo procesadas
+      console.log(`Filling select with ${items.length} items for date: ${today}`);
+      
+      items.forEach(obj => {
+        const opt = document.createElement("option");
+        opt.value = String(obj.id);
+        opt.textContent = `${obj.label} (Lvl: ${obj.level || 1})`;
+        
+        // Debug: mostrar el estado de cada habilidad
+        console.log(`Ability: ${obj.name}, fightIntrudersDay: ${obj.fightIntrudersDay}, today: ${today}, used: ${obj.fightIntrudersDay === today}`);
+        
+        if (obj.fightIntrudersDay === today) {
+          opt.disabled = true;
+          opt.title = "Used today";
+          opt.style.color = "#6b7280";
+          opt.textContent += " (Used)";
+        }
+        selectEl.appendChild(opt);
+      });
+      
+      if (currentVal && items.some(a => String(a.id) === String(currentVal) && a.fightIntrudersDay !== today)) {
+        selectEl.value = currentVal;
+      } else {
+        const firstEnabled = Array.from(selectEl.options).find(o => !o.disabled);
+        if (firstEnabled) selectEl.value = firstEnabled.value;
+      }
+    }
+
+    function debugAbilitiesState() {
+      const today = getTodayKey();
+      console.log('=== DEBUG: Abilities State ===');
+      console.log('Today:', today);
+      console.log('Chief abilities:', CHIEF_ABILITIES.map(a => ({
+        name: a.name,
+        fightIntrudersDay: a.fightIntrudersDay,
+        used: a.fightIntrudersDay === today
+      })));
+      console.log('Partner abilities:', PARTNER_ABILITIES.map(a => ({
+        name: a.name,
+        fightIntrudersDay: a.fightIntrudersDay,
+        used: a.fightIntrudersDay === today
+      })));
+      
+      // Verificar estado en el parent
+      const p = (window.parent||window);
+      const vc = p?.villageChief || {};
+      if (vc?.habilities) {
+        console.log('Parent chief abilities:', vc.habilities.map(a => ({
+          name: a.name,
+          fightIntrudersDay: a.fightIntrudersDay,
+          used: a.fightIntrudersDay === today
+        })));
+      }
+      if (vc?.partnerAbilities) {
+        console.log('Parent partner abilities:', vc.partnerAbilities.map(a => ({
+          name: a.name,
+          fightIntrudersDay: a.fightIntrudersDay,
+          used: a.fightIntrudersDay === today
+        })));
+      }
+      console.log('=== END DEBUG ===');
+    }
+
+    function refreshSelectors(){
+      const today = getTodayKey();
+      console.log(`Refreshing selectors for date: ${today}`);
+
+      // Debug: mostrar estado completo
+      debugAbilitiesState();
+
+      // Chief
+      const configuredChief = getUnlockedChiefAbilitiesFromParent().length;
+      const availableChief = CHIEF_ABILITIES.filter(a => a.fightIntrudersDay !== today);
+      console.log(`Chief abilities: ${CHIEF_ABILITIES.length} total, ${availableChief.length} available`);
+      
+      if(configuredChief === 0){
+        chiefSelectRow.style.display = "none";
+        chiefNone.style.display = "block";
+        chiefNone.textContent = "No abilities configured yet.";
+        useChief.disabled = true;
+      }else{
+        chiefSelectRow.style.display = "flex";
+        chiefNone.style.display = availableChief.length === 0 ? "block" : "none";
+        if (availableChief.length === 0) chiefNone.textContent = "All abilities used today.";
+        fillSelect(chiefSelect, CHIEF_ABILITIES, today);
+        useChief.disabled = availableChief.length === 0;
+      }
+
+      // Partner
+      const configuredPartner = getUnlockedPartnerAbilitiesFromParent().length;
+      const availablePartner = PARTNER_ABILITIES.filter(a => a.fightIntrudersDay !== today);
+      console.log(`Partner abilities: ${PARTNER_ABILITIES.length} total, ${availablePartner.length} available`);
+      
+      if(configuredPartner === 0){
+        partnerSelectRow.style.display = "none";
+        partnerNone.style.display = "block";
+        partnerNone.textContent = "No abilities configured yet.";
+        usePartner.disabled = true;
+      }else{
+        partnerSelectRow.style.display = "flex";
+        partnerNone.style.display = availablePartner.length === 0 ? "block" : "none";
+        if (availablePartner.length === 0) partnerNone.textContent = "All abilities used today.";
+        fillSelect(partnerSelect, PARTNER_ABILITIES, today);
+        usePartner.disabled = availablePartner.length === 0;
+      }
+    }
+
+    function markUsedLocally(who, abilityName){
+      const today = getTodayKey();
+      const arr = (who === 'partner') ? PARTNER_ABILITIES : CHIEF_ABILITIES;
+      const it = arr.find(a => a.name === abilityName);
+      if (it) {
+        it.fightIntrudersDay = today;
+        console.log(`Marked ${who} ability "${abilityName}" as used for ${today}`);
+        
+        // Enviar mensaje al parent para sincronizar estado (producción)
+        if (window.parent && window.parent !== window) {
+          parent.postMessage({ 
+            type: 'fightIntrudersAbilityUsed', 
+            who, 
+            abilityName, 
+            level: it.level || 1, 
+            today: today 
+          }, '*');
+        }
+        
+        // Sincronizar también con el parent si es posible (desarrollo)
+        const p = (window.parent||window);
+        const vc = p?.villageChief || {};
+        if (who === 'partner' && vc?.partnerAbilities) {
+          const parentAbility = vc.partnerAbilities.find(a => a?.name === abilityName);
+          if (parentAbility) {
+            parentAbility.fightIntrudersDay = today;
+            console.log(`Synced with parent: ${who} ability "${abilityName}" marked as used`);
+          }
+        } else if (who === 'chief' && vc?.habilities) {
+          const parentAbility = vc.habilities.find(a => a?.name === abilityName);
+          if (parentAbility) {
+            parentAbility.fightIntrudersDay = today;
+            console.log(`Synced with parent: ${who} ability "${abilityName}" marked as used`);
+          }
+        }
+        
+        // Actualizar inmediatamente la UI del selector para mostrar la habilidad como usada
+        const selectEl = who === 'chief' ? chiefSelect : partnerSelect;
+        console.log(`[DEBUG] Actualizando UI para ${who}, selectEl:`, selectEl);
+        
+        if (selectEl) {
+          // Buscar la opción que corresponde a esta habilidad
+          const options = Array.from(selectEl.options);
+          console.log(`[DEBUG] Opciones disponibles:`, options.map(o => ({ value: o.value, text: o.textContent })));
+          console.log(`[DEBUG] Buscando habilidad con id:`, it.id, 'tipo:', typeof it.id);
+          
+          const option = options.find(opt => {
+            console.log(`[DEBUG] Comparando opt.value:`, opt.value, 'tipo:', typeof opt.value, 'con it.id:', it.id);
+            return String(opt.value) === String(it.id);
+          });
+          
+          console.log(`[DEBUG] Opción encontrada:`, option);
+          
+          if (option) {
+            console.log(`[DEBUG] Aplicando cambios visuales a la opción:`, option.textContent);
+            option.disabled = true;
+            option.title = "Used today";
+            option.style.color = "#6b7280";
+            option.textContent = `${it.label} (Lvl: ${it.level || 1}) (Used)`;
+            console.log(`[DEBUG] Cambios aplicados. Opción ahora:`, option.textContent, 'disabled:', option.disabled, 'color:', option.style.color);
+          } else {
+            console.warn(`[DEBUG] No se encontró la opción para la habilidad ${it.name} con id ${it.id}`);
+          }
+        } else {
+          console.warn(`[DEBUG] No se encontró el selector para ${who}`);
+        }
+      } else {
+        console.warn(`Could not find ${who} ability "${abilityName}" to mark as used`);
+      }
+      
+      // NO llamar a refreshSelectors() aquí - sobrescribiría los cambios visuales inmediatos
+      // Solo actualizar el estado del botón Use si es necesario
+      if (who === 'chief') {
+        const availableChief = CHIEF_ABILITIES.filter(a => a.fightIntrudersDay !== today);
+        useChief.disabled = availableChief.length === 0;
+      } else {
+        const availablePartner = PARTNER_ABILITIES.filter(a => a.fightIntrudersDay !== today);
+        usePartner.disabled = availablePartner.length === 0;
+      }
+    }
+
+    function fillSelectorsInitial(){
+      const today = getTodayKey();
+      console.log(`Filling selectors initially for date: ${today}`);
+      
+      // Chief abilities
+      if (CHIEF_ABILITIES.length > 0) {
+        fillSelect(chiefSelect, CHIEF_ABILITIES, today);
+        chiefSelectRow.style.display = "block";
+        chiefNone.style.display = "none";
+        useChief.disabled = false;
+      } else {
+        chiefSelectRow.style.display = "none";
+        chiefNone.style.display = "block";
+        chiefNone.textContent = "No abilities configured yet.";
+        useChief.disabled = true;
+      }
+      
+      // Partner abilities
+      if (PARTNER_ABILITIES.length > 0) {
+        fillSelect(partnerSelect, PARTNER_ABILITIES, today);
+        partnerSelectRow.style.display = "block";
+        partnerNone.style.display = "none";
+        usePartner.disabled = false;
+      } else {
+        partnerSelectRow.style.display = "none";
+        partnerNone.style.display = "block";
+        partnerNone.textContent = "No abilities configured yet.";
+        usePartner.disabled = true;
+      }
+    }
+
+    function render(){
+      goldEl.textContent = "Gold: " + getGold();
+      btnIntruders.style.display = "inline-flex";
+      // NO llamar a refreshSelectors() aquí - sobrescribiría los cambios visuales inmediatos
+      // Los selectores se actualizan solo cuando es necesario
+    }
+
+    // ====== Reset (confirm) ======
+    function openConfirm(){ confirmBackdrop.style.display = "flex"; }
+    function closeConfirm(){ confirmBackdrop.style.display = "none"; }
+    function fullReset(){
+      // Clear gold and ability usage
+      setGold(0);
+      parent.postMessage({ type: 'fightIntrudersReset' }, '*');
+      // UI reset
+      battleCard.style.display = "none";
+      modalBackdrop.style.display = "none";
+      [enemy1, enemy2].forEach(e => e.classList.remove("dead","shake"));
+      [chiefRect, partnerRect].forEach(e => { e.style.transform = "translateX(0)"; e.classList.remove("skill","fly"); }); // Cambiado de "fly","fly-left" a solo "fly"
+      [chiefThumb, partnerThumb].forEach(e => e.classList.remove("skill"));
+      
+      // Forzar sincronización completa después del reset
+      setTimeout(() => {
+        forceSyncFromParent();
+        render();
+        showToast("Reset completed");
+      }, 100);
+    }
+    btnReset.addEventListener("click", openConfirm);
+    confirmCancel.addEventListener("click", closeConfirm);
+    confirmYes.addEventListener("click", ()=>{ closeConfirm(); fullReset(); });
+
+    // ====== UI events ======
+    btnIntruders.addEventListener("click", ()=>{
+      // Forzar sincronización completa del estado antes de abrir el modal
+      forceSyncFromParent();
+      modalBackdrop.style.display = "flex";
+    });
+    
+    btnDebug.addEventListener("click", ()=>{
+      console.log('=== FORCING DEBUG SYNC ===');
+      forceSyncFromParent();
+      showToast("Debug sync completed - check console");
+    });
+    
+    closeModal.addEventListener("click", ()=>{
+      modalBackdrop.style.display = "none";
+      // Enviar mensaje al parent para sincronizar estado
+      parent.postMessage({ type: 'fightIntrudersModalClosed' }, '*');
+      console.log('Modal cerrado - enviando mensaje de sincronización al parent');
+      // NO forzar sincronización aquí - los cambios visuales ya están aplicados
+      // La sincronización con el parent se hará cuando sea necesario
+    });
+
+    function runBattle(who, selectedId){
+      modalBackdrop.style.display = "none";
+      battleCard.style.display = "block";
+      resultText.textContent = "";
+
+      // Reset stage visuals
+      [enemy1, enemy2].forEach(e => { e.classList.remove("dead","shake"); });
+      [chiefRect, partnerRect].forEach(e => { e.style.transform = "translateX(0)"; e.classList.remove("skill","fly","fly-left"); });
+      goldFloat.classList.remove('show');
+      goldFloat.textContent = '';
+
+      const abilityList = who === "chief" ? CHIEF_ABILITIES : PARTNER_ABILITIES;
+      const ability = abilityList.find(a => String(a.id) === String(selectedId)) || {};
+      const abilityName = ability?.name || ability?.label || String(selectedId);
+      const selectEl = who === "chief" ? chiefSelect : partnerSelect;
+      const selectedOption = selectEl ? selectEl.selectedOptions[0] : null;
+      const rect = who === "chief" ? chiefRect : partnerRect;
+      const thumb = who === "chief" ? chiefThumb : partnerThumb;
+      if (ability.img) {
+        rect.style.backgroundImage = `url(${ability.img})`;
+        rect.style.backgroundSize = "contain";
+        rect.style.backgroundPosition = "center";
+        rect.style.backgroundRepeat = "no-repeat";
+        rect.textContent = "";
+        thumb.style.backgroundImage = `url(${ability.img})`;
+        thumb.style.backgroundSize = "contain";
+        thumb.style.backgroundPosition = "center";
+        thumb.style.backgroundRepeat = "no-repeat";
+        thumb.textContent = "";
+      }
+
+      // Mark skill user visually
+      if(who === "chief"){
+        chiefRect.classList.add("skill");
+        chiefThumb.classList.add("skill");
+        partnerThumb.classList.remove("skill");
+      }else{
+        partnerRect.classList.add("skill");
+        partnerThumb.classList.add("skill");
+        chiefThumb.classList.remove("skill");
+      }
+
+      // Simple animation
+      setTimeout(()=>{
+        rect.classList.add(who === "chief" ? "fly" : "fly"); // Cambiado de "fly-left" a "fly" para el partner
+        enemy1.classList.add("shake");
+        enemy2.classList.add("shake");
+      }, 50);
+
+      setTimeout(()=>{
+        enemy1.classList.remove("shake"); enemy2.classList.remove("shake");
+        enemy1.classList.add("dead"); enemy2.classList.add("dead");
+        const level = Number(selectedOption?.dataset?.level || ability.level || 1);
+        const reward = BASE_GOLD + GOLD_PER_LEVEL * level;
+        if (reward > 0) {
+          goldFloat.textContent = `+${reward} Gold`;
+          goldFloat.classList.remove('show'); void goldFloat.offsetWidth; goldFloat.classList.add('show');
+          showToast(`+${reward} Gold`);
+        } else {
+          goldFloat.classList.remove('show');
+          goldFloat.textContent = '';
+        }
+        // Reward
+        setGold(getGold() + reward);
+        resultText.textContent = `${who === "chief" ? chiefData.name : partnerData.name} used ${abilityName}` + (reward > 0 ? ` — +${reward} Gold` : "");
+        parent.postMessage({ type: 'fightIntrudersAbilityUsed', who, abilityName, level, gold: reward, today: getTodayKey() }, '*');
+        markUsedLocally(who, abilityName);
+        
+        // No forzar sincronización aquí - markUsedLocally ya actualiza la UI inmediatamente
+        // La sincronización con el parent se hará cuando sea necesario
+      }, 650);
+
+      // clear flight classes & restore images
+      setTimeout(()=>{
+        chiefRect.classList.remove("fly");
+        partnerRect.classList.remove("fly"); // Cambiado de "fly","fly-left" a solo "fly"
+        applyAvatar(chiefRect, chiefData.avatar, "VC");
+        applyAvatar(partnerRect, partnerData.avatar, "P");
+        applyAvatar(chiefThumb, chiefData.avatar, "VC");
+        applyAvatar(partnerThumb, partnerData.avatar, "P");
+        if(!chiefData.avatar) chiefRect.textContent = initials(chiefData.name || "VC");
+        if(!partnerData.avatar) partnerRect.textContent = initials(partnerData.name || "P");
+      }, 1000);
+    }
+
+    // Wire Use buttons (read selected value from the selector)
+    useChief.addEventListener("click", ()=>{
+      const id = chiefSelect.value;
+      if(!id) return;
+      runBattle("chief", id);
+    });
+    usePartner.addEventListener("click", ()=>{
+      const id = partnerSelect.value;
+      if(!id) return;
+      runBattle("partner", id);
+    });
+
+    closeBattle.addEventListener("click", ()=>{
+      battleCard.style.display = "none";
+      // Enviar mensaje al parent para sincronizar estado
+      parent.postMessage({ type: 'fightIntrudersBattleClosed' }, '*');
+      console.log('Batalla cerrada - enviando mensaje de sincronización al parent');
+      // NO forzar sincronización aquí - los cambios visuales ya están aplicados
+      // La sincronización con el parent se hará cuando sea necesario
+    });
+
+    window.addEventListener("message", e => {
+      const data = e.data;
+      if(!data) return;
+      if(data.type === "fightIntrudersData"){
+        externalData = data;
+        if(data.partner){
+          partnerData = data.partner;
+          partnerData.name   = partnerData.name   || (window.parent?.partner?.name || "Partner");
+          partnerData.avatar = partnerData.avatar || (window.parent?.partner?.img  || window.parent?.partner?.avatar || "");
+          partnerLabel.textContent = partnerDisplayName.textContent = partnerData.name;
+          applyAvatar(document.getElementById("partnerRect"),  partnerData.avatar, "P");
+          applyAvatar(document.getElementById("partnerThumb"), partnerData.avatar, "P");
+        }
+        hydrateFromParent(data);
+        // Asegurar que los selectores se actualicen al recibir datos en producción
+        fillSelectorsInitial();
+      }else if(data.partner || data.chief || data.villageChief){
+        externalData = { ...externalData, ...data };
+        if(data.partner){
+          partnerData = { ...partnerData, ...data.partner };
+          partnerData.name   = partnerData.name   || (window.parent?.partner?.name || "Partner");
+          partnerData.avatar = partnerData.avatar || (window.parent?.partner?.img  || window.parent?.partner?.avatar || "");
+          partnerLabel.textContent = partnerDisplayName.textContent = partnerData.name;
+          applyAvatar(document.getElementById("partnerRect"),  partnerData.avatar, "P");
+          applyAvatar(document.getElementById("partnerThumb"), partnerData.avatar, "P");
+        }
+        hydrateFromParent();
+        // Refrescar selectores cuando llegan datos incrementales
+        fillSelectorsInitial();
+      }
+    });
+
+    // Init
+    hydrateFromParent();    // carga nombres, fotos y habilidades reales
+    // Si no hay avatar, escribe iniciales como texto dentro del rectángulo
+    if(!chiefData.avatar){
+      const cr = document.getElementById("chiefRect");
+      if(cr && !cr.style.backgroundImage) cr.textContent = initials(chiefData.name || "VC");
+    }
+    if(!partnerData.avatar){
+      const pr = document.getElementById("partnerRect");
+      if(pr && !pr.style.backgroundImage) pr.textContent = initials(partnerData.name || "P");
+    }
+    
+    // Llenar selectores inicialmente (solo una vez)
+    fillSelectorsInitial();
+    
+    render();
+    
+    // Evento para sincronizar cuando se cierre el minijuego
+    window.addEventListener('beforeunload', () => {
+      console.log('Minijuego cerrando - sincronizando estado final');
+      // Forzar sincronización final
+      forceSyncFromParent();
+    });
+    
+    // Evento para sincronizar cuando se pierda el foco
+    window.addEventListener('blur', () => {
+      console.log('Minijuego perdiendo foco - sincronizando estado');
+      // Forzar sincronización
+      forceSyncFromParent();
+    });
+  </script>
+</body>
+</html>

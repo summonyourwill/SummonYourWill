@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Autobattler con Tienda</title>
+  <style>
+    body {
+      background: #1e1e1e;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    .hero, .enemy, .item {
+      background: #333;
+      border: 2px solid #666;
+      padding: 10px;
+      margin: 10px;
+      display: inline-block;
+      width: 160px;
+      border-radius: 5px;
+    }
+    .combat-log, .shop {
+      margin: 20px auto;
+      padding: 10px;
+      background: #111;
+      border: 1px solid #444;
+      width: 90%;
+    }
+    .combat-log {
+      height: 150px;
+      overflow-y: auto;
+      text-align: left;
+    }
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #startBtn { margin-top: 20px; }
+    #shopArea { display: none; }
+  </style>
+</head>
+<body>
+
+  <h1>Autobattler - Contrato de 8 Héroes</h1>
+  <div id="goldDisplay"></div>
+
+  <div id="selectHeroArea">
+    <h2>Elige tu primer héroe</h2>
+    <div id="heroSelection"></div>
+  </div>
+
+  <div id="gameArea" style="display:none;">
+    <h2>Héroes</h2>
+    <div id="heroArea"></div>
+
+    <h2>Enemigos</h2>
+    <div id="enemyArea"></div>
+
+    <div class="combat-log" id="log"></div>
+    <button id="startBtn" onclick="startCombat()">Entrar a combate</button>
+  </div>
+
+  <div class="shop" id="shopArea">
+    <h2>🛒 Tienda</h2>
+    <div id="shopItems"></div>
+    <button onclick="closeShop()" style="color:white;">Close</button>
+  </div>
+
+  <script>
+    let gold = 1000;
+    let allHeroes = [
+      { nombre: "Guerrero", vida: 30, ataque: 6 },
+      { nombre: "Arquero", vida: 24, ataque: 7 },
+      { nombre: "Mago", vida: 20, ataque: 9 },
+      { nombre: "Ladrón", vida: 22, ataque: 8 },
+      { nombre: "Paladín", vida: 28, ataque: 6 },
+      { nombre: "Nigromante", vida: 18, ataque: 10 }
+    ];
+    let playerHeroes = [];
+    let enemies = [];
+    let inventory = [];
+
+    function updateGoldDisplay() {
+      document.getElementById("goldDisplay").innerText = `💰 Oro: ${gold}`;
+    }
+
+    function renderHeroSelection() {
+      const container = document.getElementById("heroSelection");
+      container.innerHTML = "";
+      allHeroes.forEach(h => {
+        const div = document.createElement("div");
+        div.className = "hero";
+        div.innerHTML = `<strong>${h.nombre}</strong><br>❤️ ${h.vida}<br>⚔️ ${h.ataque}<br><button onclick="selectHero('${h.nombre}')">Elegir</button>`;
+        container.appendChild(div);
+      });
+    }
+
+    function selectHero(nombre) {
+      const hero = allHeroes.find(h => h.nombre === nombre);
+      playerHeroes.push({ ...hero, nivel: 1, vidaActual: hero.vida });
+      document.getElementById("selectHeroArea").style.display = "none";
+      document.getElementById("gameArea").style.display = "block";
+      updateGoldDisplay();
+      renderHeroes();
+    }
+
+    function renderHeroes() {
+      const container = document.getElementById("heroArea");
+      container.innerHTML = "";
+      playerHeroes.forEach(h => {
+        container.innerHTML += `<div class="hero"><strong>${h.nombre}</strong><br>❤️ ${h.vidaActual}/${h.vida}<br>⚔️ ${getHeroDamage(h)}<br>⭐ Nivel ${h.nivel}</div>`;
+      });
+    }
+
+    function renderEnemies() {
+      const container = document.getElementById("enemyArea");
+      container.innerHTML = "";
+      enemies.forEach(e => {
+        container.innerHTML += `<div class="enemy"><strong>${e.nombre}</strong><br>❤️ ${e.vida}<br>⚔️ ${e.ataque}</div>`;
+      });
+    }
+
+    function log(text) {
+      const logBox = document.getElementById("log");
+      logBox.innerHTML += text + "<br>";
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function getHeroDamage(hero) {
+      return hero.ataque + 2 * (hero.nivel - 1);
+    }
+
+    async function startCombat() {
+      document.getElementById("log").innerHTML = "";
+
+      enemies = [];
+      const count = Math.floor(Math.random() * 3) + 1;
+      for (let i = 0; i < count; i++) {
+        enemies.push({
+          nombre: "Enemigo" + (i + 1),
+          vida: Math.floor(Math.random() * 20) + 25,
+          ataque: Math.floor(Math.random() * 5) + 4
+        });
+      }
+
+      playerHeroes.forEach(h => h.vidaActual = h.vida);
+      renderHeroes();
+      renderEnemies();
+
+      let ronda = 1;
+      while (playerHeroes.some(h => h.vidaActual > 0) && enemies.some(e => e.vida > 0)) {
+        log(`<strong>-- Ronda ${ronda} --</strong>`);
+        for (let hero of playerHeroes) {
+          if (hero.vidaActual <= 0) continue;
+          const target = enemies.filter(e => e.vida > 0)[Math.floor(Math.random() * enemies.filter(e => e.vida > 0).length)];
+          if (target) {
+            let daño = getHeroDamage(hero);
+            target.vida -= daño;
+            log(`${hero.nombre} ataca a ${target.nombre} por ${daño} de daño.`);
+            if (target.vida <= 0) log(`${target.nombre} ha sido derrotado.`);
+            renderEnemies();
+            await new Promise(r => setTimeout(r, 300));
+          }
+        }
+
+        for (let enemy of enemies) {
+          if (enemy.vida <= 0) continue;
+          const target = playerHeroes.filter(h => h.vidaActual > 0)[Math.floor(Math.random() * playerHeroes.filter(h => h.vidaActual > 0).length)];
+          if (target) {
+            target.vidaActual -= enemy.ataque;
+            log(`${enemy.nombre} ataca a ${target.nombre} por ${enemy.ataque} de daño.`);
+            if (target.vidaActual <= 0) log(`${target.nombre} ha sido derrotado.`);
+            renderHeroes();
+            await new Promise(r => setTimeout(r, 300));
+          }
+        }
+        ronda++;
+      }
+
+      const victory = enemies.every(e => e.vida <= 0);
+      if (victory) {
+        log(`<strong>¡Victoria!</strong> Ganas 500 de oro.`);
+        gold += 500;
+        updateGoldDisplay();
+        openShop();
+      } else {
+        log(`<strong>¡Derrota!</strong> No ganaste recompensas.`);
+      }
+    }
+
+    function openShop() {
+      document.getElementById("shopArea").style.display = "block";
+      const shop = document.getElementById("shopItems");
+      shop.innerHTML = "";
+
+      for (let i = 0; i < 3; i++) {
+        const type = Math.random() < 0.5 ? "item" : "hero";
+        if (type === "item") {
+          const items = ["Espada", "Armadura", "Collar"];
+          const itemName = items[Math.floor(Math.random() * items.length)];
+          const cost = Math.floor(Math.random() * 201) + 100;
+          const div = document.createElement("div");
+          div.className = "item";
+          div.innerHTML = `<strong>${itemName}</strong><br>💰 Costo: ${cost}<br><button onclick="buyItem('${itemName}', ${cost})">Comprar</button>`;
+          shop.appendChild(div);
+        } else {
+          const h = allHeroes[Math.floor(Math.random() * allHeroes.length)];
+          const cost = Math.floor(Math.random() * 301) + 700;
+          const div = document.createElement("div");
+          div.className = "item";
+          div.innerHTML = `<strong>${h.nombre}</strong><br>❤️ ${h.vida} ⚔️ ${h.ataque}<br>💰 Costo: ${cost}<br><button onclick="buyHero('${h.nombre}', ${h.vida}, ${h.ataque}, ${cost})">Contratar</button>`;
+          shop.appendChild(div);
+        }
+      }
+    }
+
+    function buyItem(name, cost) {
+      if (gold >= cost) {
+        gold -= cost;
+        inventory.push(name);
+        log(`Compraste ${name}.`);
+        updateGoldDisplay();
+      } else {
+        alert("No tienes suficiente oro.");
+      }
+    }
+
+    function buyHero(nombre, vida, ataque, cost) {
+      if (gold >= cost) {
+        gold -= cost;
+        playerHeroes.push({ nombre, vida, ataque, nivel: 1, vidaActual: vida });
+        log(`Contrataste a ${nombre}.`);
+        updateGoldDisplay();
+        renderHeroes();
+      } else {
+        alert("No tienes suficiente oro.");
+      }
+    }
+
+    function closeShop() {
+      document.getElementById("shopArea").style.display = "none";
+    }
+
+    // Iniciar selección
+    renderHeroSelection();
+  </script>
+</body>
+</html>

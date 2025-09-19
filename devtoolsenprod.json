@@ -1,0 +1,9 @@
+{
+  "enableDevToolsInProduction": true,
+  "description": "Configuración para habilitar/deshabilitar DevTools en producción",
+  "notes": [
+    "true: Las DevTools estarán disponibles en producción",
+    "false: Las DevTools estarán deshabilitadas en producción (recomendado para usuarios finales)",
+    "Cambia este valor solo si necesitas depurar en producción"
+  ]
+}

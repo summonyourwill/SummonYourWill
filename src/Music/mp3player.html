@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SYW Compact Music Player — Ellipsis & Tooltip</title>
+  <style>
+    :root{
+      --bg:#f7f0df;
+      --ink:#222;
+      --muted:#6b7280;
+      --accent:#c59a3b;
+      --btn:#eee2c7;
+      --btn-border:#d8c9a7;
+      --btn-hover:#e7d7b6;
+    }
+    .mini-player{
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      border: 1px solid var(--btn-border);
+      border-radius: 10px;
+      height: 40px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      padding: 4px 8px;
+      gap: 8px;
+      box-sizing: border-box;
+      width: 100%;
+      max-width: 520px;
+    }
+    .controls{ display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+    button{
+      appearance:none; border:1px solid var(--btn-border); background:var(--btn);
+      border-radius:999px; height:28px; min-width:28px; padding:0 8px;
+      font-size:13px; line-height:26px; cursor:pointer;
+    }
+    button:hover{ background:var(--btn-hover); }
+    .title-wrap{
+      display:flex; align-items:center; height:28px; overflow:hidden;
+    }
+    .title{
+      font-size:13px; color:var(--ink);
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      width:100%;
+    }
+    .wrap{ position:relative; display:inline-block; width:100%; }
+  </style>
+</head>
+<body style="margin:8px;background:transparent;">
+  <div class="wrap">
+    <div class="mini-player" id="player">
+      <div class="controls">
+        <button id="mute"   title="Mute/Unmute" aria-label="Mute">🔊</button>
+        <button id="prev"   title="Previous" aria-label="Previous">⏮</button>
+        <button id="play"   title="Play/Pause" aria-label="Play">▶</button>
+        <button id="next"   title="Next" aria-label="Next">⏭</button>
+      </div>
+      <div class="title-wrap">
+        <div class="title" id="title" title="—">—</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Robust to dash/space/underscore variations
+    const TRACKS = [
+      { expected: "mp3files/Beautiful Motivate - YuraSoop (pixabay.com).mp3", title: "Beautiful Motivate — YuraSoop (pixabay.com)" },
+      { expected: "mp3files/Calm - music_for_video (pixabay.com).mp3", title: "Calm — music_for_video (pixabay.com)" },
+      { expected: "mp3files/Dj short - Oqu (pixabay.com).mp3", title: "Dj short — Oqu (pixabay.com)" },
+      { expected: "mp3files/Dreamy Motivational Cinematic - SOULFULJAMTRACKS (pixabay.com).mp3", title: "Dreamy Motivational Cinematic — SOULFULJAMTRACKS (pixabay.com)" },
+      { expected: "mp3files/Epic - Twisterium (pixabay.com).mp3", title: "Epic — Twisterium (pixabay.com)" },
+      { expected: "mp3files/Epic emotional inspirational - LobsangKarma (pixabay.com).mp3", title: "Epic emotional inspirational — LobsangKarma (pixabay.com)" },
+      { expected: "mp3files/Epic Show Opener - Hot_Dope (pixabay.com).mp3", title: "Epic Show Opener — Hot_Dope (pixabay.com)" },
+      { expected: "mp3files/Epic Trailer Music - ProductionMusic (pixabay.com).mp3", title: "Epic Trailer Music — ProductionMusic (pixabay.com)" },
+      { expected: "mp3files/Epic Warrior - Oqu (pixabay.com).mp3", title: "Epic Warrior — Oqu (pixabay.com)" },
+      { expected: "mp3files/Mindfulness Relaxation & Meditation - John_Kensy_Music (pixabay.com).mp3", title: "Mindfulness Relaxation & Meditation — John_Kensy_Music (pixabay.com)" },
+      { expected: "mp3files/Motivational Inspire - YuraSoop (pixabay.com).mp3", title: "Motivational Inspire — YuraSoop (pixabay.com)" },
+      { expected: "mp3files/Stomps (Sonic Stomps) - NRA-LAB (pixabay.com).mp3", title: "Stomps (Sonic Stomps) — NRA-LAB (pixabay.com)" },
+      { expected: "mp3files/The Hapiness Corporation - FreeMusicLab (pixabay.com).mp3", title: "The Hapiness Corporation — FreeMusicLab (pixabay.com)" },
+      { expected: "mp3files/The Kite Runner -  EduardBykovets (pixabay.com).mp3", title: "The Kite Runner — EduardBykovets (pixabay.com)" },
+      { expected: "mp3files/Uplifting Epic - epic_musictracks (pixabay.com).mp3", title: "Uplifting Epic — epic_musictracks (pixabay.com)" },
+      { expected: "mp3files/Calm Dramatic Piano - music_for_video (pixabay.com).mp3", title: "Calm Dramatic Piano — music_for_video (pixabay.com)" },
+      { expected: "mp3files/Medieval Ambient - DeusLower (pixabay.com).mp3", title: "Medieval Ambient — DeusLower (pixabay.com)" },
+      { expected: "mp3files/Medieval Citytavern Ambient - DeusLower (pixabay.com).mp3", title: "Medieval Citytavern Ambient — DeusLower (pixabay.com)" },
+      { expected: "mp3files/Adventure - Rafael Krux (freepd.com).mp3", title: "Adventure — Rafael Krux (freepd.com)" },
+      { expected: "mp3files/Bar Brawl - Bryan Teoh (freepd.com).mp3", title: "Bar Brawl — Bryan Teoh (freepd.com)" },
+      { expected: "mp3files/Epic Boss Battle - Rafael Krux (freepd.com).mp3", title: "Epic Boss Battle — Rafael Krux (freepd.com)" },
+      { expected: "mp3files/Fresh Focus - Kevin MacLeod (freepd.com).mp3", title: "Fresh Focus — Kevin MacLeod (freepd.com)" },
+    ];
+
+    const HYPHENS = [" - ", " – ", " — ", "-", "–", "—"];
+    function collapseSpaces(s){ return s.replace(/\s+/g, " ").trim(); }
+    function variantsFor(name){
+      const base = collapseSpaces(name);
+      const hyphenVariants = new Set();
+      HYPHENS.forEach(h => {
+        const v = base.replace(/\s*[-–—]\s*/g, h);
+        hyphenVariants.add(v);
+      });
+      const results = new Set();
+      hyphenVariants.forEach(v => {
+        const collapsed = collapseSpaces(v);
+        const underscored = collapsed.replace(/ /g, "_");
+        results.add(collapsed);
+        results.add(underscored);
+        results.add(encodeURI(collapsed));
+        results.add(encodeURI(underscored));
+      });
+      results.add(name);
+      results.add(encodeURI(name));
+      return Array.from(results);
+    }
+
+    const btnMute = document.getElementById('mute');
+    const btnPrev = document.getElementById('prev');
+    const btnPlay = document.getElementById('play');
+    const btnNext = document.getElementById('next');
+    const titleEl = document.getElementById('title');
+
+    let i = 0;
+    const audio = new Audio();
+    audio.preload = "metadata";
+    audio.addEventListener('ended', next);
+
+    let trying = null;
+    let tryList = [];
+    let tryIdx = 0;
+
+    function tryLoadNext(){
+      if (!tryList.length) return;
+      if (tryIdx >= tryList.length){
+        console.warn("[Player] Ninguna variante encontrada para:", TRACKS[i].expected);
+        return;
+      }
+      const candidate = tryList[tryIdx++];
+      trying = candidate;
+      audio.src = candidate;
+    }
+
+    audio.addEventListener('error', () => {
+      if (trying && tryIdx < tryList.length){
+        tryLoadNext();
+      } else {
+        console.warn("[Player] Error al cargar todas las variantes de:", TRACKS[i].expected);
+      }
+    });
+
+    audio.addEventListener('loadedmetadata', () => {
+      // success: stop trying further variants
+      trying = null;
+      tryList = [];
+      tryIdx = 0;
+    });
+
+    function load(idx){
+      i = (idx + TRACKS.length) % TRACKS.length;
+      const t = TRACKS[i];
+      // Set both visible text and tooltip to the full title
+      titleEl.textContent = t.title;
+      titleEl.title = t.title; // tooltip with full song name
+      // build candidate list and attempt loads
+      tryList = variantsFor(t.expected);
+      tryIdx = 0;
+      tryLoadNext();
+    }
+
+    function play(){
+      if (!audio.src) load(i);
+      audio.play().then(()=>{ btnPlay.textContent = "⏸"; btnPlay.setAttribute('aria-label','Pause'); }).catch(()=>{});
+    }
+    function pause(){
+      audio.pause();
+      btnPlay.textContent = "▶";
+      btnPlay.setAttribute('aria-label','Play');
+    }
+    function togglePlay(){ audio.paused ? play() : pause(); }
+    function prev(){ load(i-1); play(); }
+    function next(){ load(i+1); play(); }
+    function toggleMute(){
+      audio.muted = !audio.muted;
+      btnMute.textContent = audio.muted ? "🔇" : "🔊";
+    }
+
+    btnPlay.addEventListener('click', togglePlay);
+    btnPrev.addEventListener('click', prev);
+    btnNext.addEventListener('click', next);
+    btnMute.addEventListener('click', toggleMute);
+
+    // Initialize first track (no autoplay)
+    load(0);
+  </script>
+</body>
+</html>

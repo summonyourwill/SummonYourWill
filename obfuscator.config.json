@@ -1,0 +1,13 @@
+{
+  "seed": 1337,
+  "compact": true,
+  "identifierNamesGenerator": "hexadecimal",
+  "stringArray": true,
+  "rotateStringArray": true,
+  "simplify": true,
+  "controlFlowFlattening": false,
+  "deadCodeInjection": false,
+  "stringArrayThreshold": 0.75,
+  "identifiersPrefix": "syw_",
+  "renameGlobals": false
+}

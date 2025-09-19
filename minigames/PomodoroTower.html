@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' data: https:;">
+  <title>Pomodoro Tower</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #1a1a1a;
+      color: white;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      width: 100%;
+      height: 100%;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .header-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      max-width: 900px;
+    }
+
+    header {
+      font-size: 1.1rem;
+      max-width: 700px;
+      margin-bottom: 5px;
+    }
+
+    .timer-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+
+    .timer {
+      font-size: 1rem;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 6px 14px;
+      border-radius: 12px;
+      white-space: nowrap;
+    }
+
+    .main-area {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      margin-top: 20px;
+      gap: 120px;
+      width: 100%;
+      max-width: 800px;
+    }
+
+    .skill-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .skill-name {
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+
+    .skill-box {
+      width: 200px;
+      height: 200px;
+      border-radius: 30px;
+      background-color: #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      color: #aaa;
+      text-align: center;
+      padding: 10px;
+    }
+
+    .skill-lvl {
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    .timer-circle {
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: #4CAF50;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      text-align: center;
+      margin-top: 40px;
+      transition: background 1s ease;
+    }
+
+
+    .reset-warning {
+      margin-top: 40px;
+      font-size: 1.3rem;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .reset-recommendation {
+      margin-top: 8px;
+      font-size: 1rem;
+      text-align: center;
+    }
+
+    @media (max-width: 700px) {
+      .main-area {
+        flex-direction: column;
+        align-items: center;
+        gap: 30px;
+      }
+
+      .header-group {
+        text-align: center;
+        align-items: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+
+    <div class="header-group">
+      <header>
+        “True power is built through focus. In the Pomodoro Tower, your time becomes your weapon, and your effort… your evolution.”
+      </header>
+      <div class="timer-group">
+        <div id="dailyCount">DailyPomodoros: 0</div>
+        <div class="timer" id="totalTimer">00:00 / <span id="targetTime">25:00</span></div>
+      </div>
+    </div>
+
+    <div class="main-area">
+      <div class="timer-circle" id="circle">
+        <div id="stepLabel">Focus</div>
+      </div>
+
+      <div class="skill-container">
+        <div class="skill-name" id="skillName">SkillName</div>
+        <div class="skill-box" id="skillBox">Skill Training 🛠️</div>
+        <div class="skill-lvl" id="skillLvl">Lvl: 1</div>
+      </div>
+    </div>
+
+    <div class="reset-warning">IF YOU PLAY IN THE APP THE POMODORO’S TIMER WILL RESET!</div>
+    <div class="reset-recommendation">Recommendation: Minimize the app or keep it on the same view.</div>
+  </div>
+
+  <script type="module">
+    const params = new URLSearchParams(location.search);
+    let sName = params.get('name');
+    let sLvl = params.get('level');
+    let sImg = params.get('img');
+    const key = params.get('key');
+    if (key) {
+      try {
+        const data = JSON.parse(sessionStorage.getItem('pomodoroTowerData-' + key));
+        if (data) {
+          if (!sName) sName = data.name;
+          if (!sLvl) sLvl = data.level;
+          if (!sImg) sImg = data.img;
+        }
+      } catch {}
+    }
+    if (sName) document.getElementById('skillName').textContent = sName;
+    if (sLvl) document.getElementById('skillLvl').textContent = 'Lvl: ' + sLvl;
+    if (sImg) {
+      const el = document.getElementById('skillBox');
+      el.style.backgroundImage = `url(${sImg})`;
+      el.style.backgroundSize = 'cover';
+      el.textContent = '';
+    }
+
+    const circle = document.getElementById("circle");
+    const stepLabel = document.getElementById("stepLabel");
+    const totalTimer = document.getElementById("totalTimer");
+    const dailyCount = document.getElementById("dailyCount");
+
+    const minutes = parseInt(params.get('minutes') || '25');
+    const totalDuration = minutes * 60;
+    document.getElementById('targetTime').textContent = formatTime(totalDuration);
+    let totalSeconds = 0;
+    let sessionCompleted = false;
+    const startTime = Date.now();
+    const dailyKey = 'pomodoroTowerDaily';
+    let dailyData;
+    try {
+      dailyData = JSON.parse(localStorage.getItem(dailyKey) || '{}');
+    } catch {
+      dailyData = {};
+    }
+    const todayStr = new Date().toDateString();
+    if (dailyData.date !== todayStr) {
+      dailyData = { date: todayStr, count: 0 };
+      localStorage.setItem(dailyKey, JSON.stringify(dailyData));
+    }
+    let dailyPomodoros = dailyData.count || 0;
+    dailyCount.textContent = `DailyPomodoros: ${dailyPomodoros}`;
+
+    function formatTime(sec) {
+      const m = String(Math.floor(sec / 60)).padStart(2, '0');
+      const s = String(sec % 60).padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    let timerId;
+    function updatePomodoroTimer() {
+      totalSeconds = Math.floor((Date.now() - startTime) / 1000);
+      totalTimer.textContent = `${formatTime(totalSeconds)} / ${formatTime(totalDuration)}`;
+      if (totalSeconds >= totalDuration && !sessionCompleted) {
+        sessionCompleted = true;
+        clearInterval(timerId);
+        dailyPomodoros++;
+        dailyData.count = dailyPomodoros;
+        localStorage.setItem(dailyKey, JSON.stringify(dailyData));
+        dailyCount.textContent = `DailyPomodoros: ${dailyPomodoros}`;
+        stepLabel.textContent = "Session Complete";
+        circle.style.background = "#666";
+        parent.postMessage({type:'pomodoroTowerComplete', elapsedSec: totalSeconds}, '*');
+      }
+    }
+
+    timerId = setInterval(updatePomodoroTimer, 1000); // Mantener 1 segundo para funcionalidad del minijuego
+    updatePomodoroTimer();
+  </script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Idle Boss Rush</title>
+  <link rel="stylesheet" href="idlebossrush.css">
+</head>
+<body>
+  <div class="top-bar">
+    <div class="top-left">
+      <span id="soundInfo">To activate sound click anywhere</span>
+      <button id="soundBtn">🔊 Sound ON</button>
+    </div>
+    <div class="hero-columns">
+      <div class="reward-text">Reward = 50 gold</div>
+      <div class="hero-column">🏹<br/>Archer 1<br/>(1 dex)</div>
+      <div class="hero-column">🏹<br/>Archer 2<br/>(1 dex)</div>
+      <div class="hero-column">🧙‍♂️<br/>Mage 1<br/>(1 int)</div>
+      <div class="hero-column">🧙‍♂️<br/>Mage 2<br/>(1 int)</div>
+      <div class="hero-column">⚔️<br/>Warrior 1<br/>(1 str)</div>
+      <div class="hero-column">⚔️<br/>Warrior 2<br/>(1 str)</div>
+    </div>
+  </div>
+
+  <div id="game">
+    <div class="giant-label">Giant: 1</div>
+    <div class="health-bar">
+      <div class="health-fill" id="bossHealthBar"></div>
+      <div id="bossHealthText">50 / 50</div>
+    </div>
+    <div class="timer" id="timer">25:00</div>
+    <div class="wall"></div>
+    <div class="boss" id="boss">👹</div>
+    <div class="message" id="defeatedText">Enemy Defeated!</div>
+  </div>
+
+  <!-- Sonidos -->
+  <audio id="arrowSound" src="arrow.mp3"></audio>
+  <audio id="fireballSound" src="fireball.mp3"></audio>
+  <audio id="swordSound" src="sword.mp3"></audio>
+  <audio id="vanishSound" src="vanish.mp3"></audio>
+  <audio id="victorySound" src="VictorySound.mp3"></audio>
+
+  <script type="module" src="idlebossrush.js"></script>
+</body>
+</html>

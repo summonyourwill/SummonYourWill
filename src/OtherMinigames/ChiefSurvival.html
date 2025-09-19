@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' data: https:;">
+  <title>Cursor Clash</title>
+  <style>
+    html, body {
+      margin: 0;
+      overflow: hidden;
+      background: #111;
+      color: white;
+      font-family: sans-serif;
+    }
+    canvas {
+      display: block;
+    }
+    #hud {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 18px;
+      z-index: 10;
+    }
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: grid;
+      place-items: center;
+      z-index: 9999;
+    }
+    .modal {
+      background: white;
+      color: black;
+      padding: 20px;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 200px;
+    }
+    .body--lock-scroll { overflow: hidden; }
+  </style>
+</head>
+<body>
+  <div id="hud">
+    ❤️ Life: <span id="life">100</span><br>
+    📈 Level: <span id="level">1</span><br>
+    ⏱️ Time: <span id="time">10s</span>
+  </div>
+  <canvas id="game"></canvas>
+
+  <script type="module">
+    function startGame(){
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    function setupCanvas(){
+      const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+    }
+    setupCanvas();
+    window.addEventListener('resize', setupCanvas);
+
+    const hudLife = document.getElementById("life");
+    const hudLevel = document.getElementById("level");
+    const hudTime = document.getElementById("time");
+
+    let pointerX = width / 2;
+    let pointerY = height / 2;
+    const params = new URLSearchParams(location.search);
+    const DEFAULT_IMG = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
+    const chiefImg = new Image();
+    let chiefLoaded = false;
+    chiefImg.onload = () => chiefLoaded = true;
+    chiefImg.onerror = () => { chiefImg.src = DEFAULT_IMG; chiefLoaded = true; };
+    if (params.get('img')) {
+      chiefImg.src = decodeURIComponent(params.get('img'));
+    } else {
+      chiefImg.src = DEFAULT_IMG;
+    }
+    let hero = { x: pointerX, y: pointerY, size: 80, life: 100 };
+    const SPEED = { HERO: 320, ENEMY: 200, BULLET: 1800 };
+    const startX = parseFloat(params.get('x'));
+    const startY = parseFloat(params.get('y'));
+    if (!isNaN(startX)) hero.x = startX;
+    if (!isNaN(startY)) hero.y = startY;
+    window.addEventListener('message', e => {
+      if (e.data && e.data.type === 'chiefAvatar') {
+        chiefLoaded = false;
+        chiefImg.src = e.data.src;
+        if (e.data.pos) {
+          if (typeof e.data.pos.x === 'number') hero.x = e.data.pos.x;
+          if (typeof e.data.pos.y === 'number') hero.y = e.data.pos.y;
+        }
+      }
+    });
+    const keys = {};
+    let enemies = [];
+    let bullets = [];
+    let level = 1;
+    let timeLeft = 10;
+    let enemyLife = 1;
+    let gameOver = false;
+    let frameCount = 0;
+
+    function appendOverlay(overlay) {
+      const root = document.getElementById('modal-root') || document.body;
+      root.appendChild(overlay);
+      document.body.classList.add('body--lock-scroll');
+    }
+
+    function removeOverlay(overlay) {
+      overlay.remove();
+      if (!document.querySelector('.modal-overlay')) {
+        document.body.classList.remove('body--lock-scroll');
+      }
+    }
+
+    canvas.addEventListener("pointermove", e => {
+      pointerX = e.clientX;
+      pointerY = e.clientY;
+    });
+    function clearKeys() {
+      for (const k in keys) keys[k] = false;
+    }
+    window.addEventListener("keydown", e => {
+      keys[e.key.toLowerCase()] = true;
+      if (["w","a","s","d"].includes(e.key.toLowerCase())) e.preventDefault();
+    }, {passive:false});
+    window.addEventListener("keyup", e => {
+      keys[e.key.toLowerCase()] = false;
+    }, {passive:false});
+    window.addEventListener("blur", clearKeys);
+    window.addEventListener("focus", clearKeys);
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) clearKeys();
+    });
+
+    function spawnEnemy() {
+      const angle = Math.random() * Math.PI * 2;
+      const distance = 300 + Math.random() * 300;
+      const x = hero.x + Math.cos(angle) * distance;
+      const y = hero.y + Math.sin(angle) * distance;
+      enemies.push({
+        x, y,
+        size: 20,
+        speed: SPEED.ENEMY,
+        life: enemyLife
+      });
+    }
+
+    function shoot() {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const mouseX = (pointerX - rect.left) * scaleX;
+      const mouseY = (pointerY - rect.top) * scaleY;
+      const dx = mouseX - hero.x;
+      const dy = mouseY - hero.y;
+      const len = Math.hypot(dx, dy) || 1;
+      bullets.push({
+        x: hero.x,
+        y: hero.y,
+        size: 5,
+        vx: dx / len,
+        vy: dy / len,
+        speed: SPEED.BULLET
+      });
+      if (parent.playSound) parent.playSound('src/arrow.mp3');
+    }
+
+    function update(dt) {
+      if (gameOver) return;
+
+      let vx = 0, vy = 0;
+      if(keys['w']) vy -= 1;
+      if(keys['s']) vy += 1;
+      if(keys['a']) vx -= 1;
+      if(keys['d']) vx += 1;
+      if (vx || vy) {
+        const len = Math.hypot(vx, vy);
+        vx /= len; vy /= len;
+        hero.x += vx * SPEED.HERO * dt;
+        hero.y += vy * SPEED.HERO * dt;
+      }
+      hero.x = Math.max(hero.size/2, Math.min(width - hero.size/2, hero.x));
+      hero.y = Math.max(hero.size/2, Math.min(height - hero.size/2, hero.y));
+
+      // Enemigos
+      const updateHeavy = frameCount % 2 === 0;
+      enemies.forEach((enemy, i) => {
+        const dx = hero.x - enemy.x;
+        const dy = hero.y - enemy.y;
+        const dist = Math.hypot(dx, dy);
+        enemy.x += (dx / dist) * enemy.speed * dt;
+        enemy.y += (dy / dist) * enemy.speed * dt;
+        if (updateHeavy && dist < enemy.size + hero.size) {
+          enemies.splice(i, 1);
+          hero.life -= 10;
+          if (hero.life <= 0) {
+            gameOver = true;
+            parent.postMessage({type:'chiefPos', x: hero.x, y: hero.y}, '*');
+            parent.postMessage({type:'chiefGameOver', pos:{x: hero.x, y: hero.y}}, '*');
+            const reward = level * 1000;
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.textContent = `You won: ${reward} Gold`;
+            overlay.appendChild(modal);
+            appendOverlay(overlay);
+            parent.postMessage({type:'chiefSurvivalWin', gold: reward}, '*');
+          }
+        }
+      });
+
+      // Balas
+      bullets.forEach(b => {
+        b.x += b.vx * b.speed * dt;
+        b.y += b.vy * b.speed * dt;
+      });
+      if (updateHeavy) {
+        bullets = bullets.filter(b => {
+          if (b.x < -50 || b.x > width + 50 || b.y < -50 || b.y > height + 50) {
+            return false;
+          }
+          for (const e of enemies) {
+            const dx = b.x - e.x;
+            const dy = b.y - e.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist < b.size + e.size) {
+              e.life -= 1;
+              if (e.life <= 0) e.remove = true;
+              return false;
+            }
+          }
+          return true;
+        });
+        enemies = enemies.filter(e => !e.remove);
+      } else {
+        bullets = bullets.filter(b => !(b.x < -50 || b.x > width + 50 || b.y < -50 || b.y > height + 50));
+      }
+
+      // HUD
+      if (hudLife.textContent !== String(hero.life)) hudLife.textContent = hero.life;
+      if (hudLevel.textContent !== String(level)) hudLevel.textContent = level;
+      const timeStr = timeLeft + "s";
+      if (hudTime.textContent !== timeStr) hudTime.textContent = timeStr;
+    }
+
+    function drawRoundedSquare(x, y, size, radius, fill = true) {
+      const r = Math.min(radius, size / 2);
+      ctx.beginPath();
+      ctx.moveTo(x - size / 2 + r, y - size / 2);
+      ctx.lineTo(x + size / 2 - r, y - size / 2);
+      ctx.quadraticCurveTo(x + size / 2, y - size / 2, x + size / 2, y - size / 2 + r);
+      ctx.lineTo(x + size / 2, y + size / 2 - r);
+      ctx.quadraticCurveTo(x + size / 2, y + size / 2, x + size / 2 - r, y + size / 2);
+      ctx.lineTo(x - size / 2 + r, y + size / 2);
+      ctx.quadraticCurveTo(x - size / 2, y + size / 2, x - size / 2, y + size / 2 - r);
+      ctx.lineTo(x - size / 2, y - size / 2 + r);
+      ctx.quadraticCurveTo(x - size / 2, y - size / 2, x - size / 2 + r, y - size / 2);
+      ctx.closePath();
+      if (fill) ctx.fill();
+    }
+
+
+    function draw() {
+      ctx.clearRect(0, 0, width, height);
+
+      // Héroe
+      if (chiefLoaded) {
+        ctx.save();
+        const r = 20;
+        ctx.beginPath();
+        ctx.moveTo(hero.x - hero.size / 2 + r, hero.y - hero.size / 2);
+        ctx.lineTo(hero.x + hero.size / 2 - r, hero.y - hero.size / 2);
+        ctx.quadraticCurveTo(hero.x + hero.size / 2, hero.y - hero.size / 2, hero.x + hero.size / 2, hero.y - hero.size / 2 + r);
+        ctx.lineTo(hero.x + hero.size / 2, hero.y + hero.size / 2 - r);
+        ctx.quadraticCurveTo(hero.x + hero.size / 2, hero.y + hero.size / 2, hero.x + hero.size / 2 - r, hero.y + hero.size / 2);
+        ctx.lineTo(hero.x - hero.size / 2 + r, hero.y + hero.size / 2);
+        ctx.quadraticCurveTo(hero.x - hero.size / 2, hero.y + hero.size / 2, hero.x - hero.size / 2, hero.y + hero.size / 2 - r);
+        ctx.lineTo(hero.x - hero.size / 2, hero.y - hero.size / 2 + r);
+        ctx.quadraticCurveTo(hero.x - hero.size / 2, hero.y - hero.size / 2, hero.x - hero.size / 2 + r, hero.y - hero.size / 2);
+        ctx.closePath();
+        ctx.clip();
+        ctx.drawImage(chiefImg, hero.x - hero.size/2, hero.y - hero.size/2, hero.size, hero.size);
+        ctx.restore();
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 2;
+        drawRoundedSquare(hero.x, hero.y, hero.size, 20, false);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = "white";
+        drawRoundedSquare(hero.x, hero.y, hero.size, 20);
+      }
+
+      // Enemigos
+      ctx.fillStyle = "red";
+      enemies.forEach(e => {
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Balas
+      ctx.fillStyle = "cyan";
+      bullets.forEach(b => {
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    let shootTimer = 0;
+    let spawnTimer = 0;
+    let timeTimer = 0;
+    function step(dt) {
+      update(dt);
+      shootTimer += dt;
+      spawnTimer += dt;
+      timeTimer += dt;
+      if (shootTimer >= 0.3) {
+        if (!gameOver) shoot();
+        shootTimer -= 0.3;
+      }
+      if (spawnTimer >= 0.6) {
+        if (!gameOver) spawnEnemy();
+        spawnTimer -= 0.6;
+      }
+      if (timeTimer >= 1) {
+        if (!gameOver) {
+          timeLeft--;
+          if (timeLeft <= 0) {
+            level++;
+            timeLeft = 10;
+            enemyLife++;
+          }
+        }
+        timeTimer -= 1;
+      }
+    }
+
+    let lastFrame = performance.now();
+    function gameLoop(now){
+      const delta = (now - lastFrame) / 1000;
+      if (delta > 0) {
+        frameCount++;
+        step(delta);
+        draw();
+        lastFrame = now;
+      }
+      requestAnimationFrame(gameLoop);
+    }
+    requestAnimationFrame(gameLoop);
+
+    window.addEventListener('beforeunload', () => {
+      parent.postMessage({type:'chiefPos', x: hero.x, y: hero.y}, '*');
+    });
+
+    window.addEventListener("resize", setupCanvas);
+  }
+  window.addEventListener('load', startGame, {once:true});
+  </script>
+  <div id="modal-root"></div>
+</body>
+</html>

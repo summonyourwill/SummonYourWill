@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; media-src 'self' data: https:;">
+    <title>ChiefCommand</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%; /* Ensure body takes full height for min-height 100vh to work */
+            width: 100%; /* Ensure body takes full width for max-width 95vw to work */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        canvas {
+            background-color: #e0e0e0;
+            border: 4px solid #333; /* This is the black border of the map */
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            background-color: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+            max-width: 95vw; /* Max width relative to viewport */
+            max-height: 95vh; /* Max height relative to viewport */
+            overflow: auto; /* Enable scrollbars */
+            padding: 0; /* No padding so canvas borders are fully visible */
+            box-sizing: content-box;
+            border: 2px dashed #999; /* Dashed border for the container itself */
+            cursor: grab; /* Cursor for dragging */
+        }
+        .game-container.dragging {
+            cursor: grabbing; /* Cursor when dragging */
+        }
+        .message-box {
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #333;
+            background-color: #f8f8f8;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            padding: 10px 20px;
+            width: 100%;
+            box-sizing: border-box;
+            flex-shrink: 0; /* Prevent shrinking in flex container */
+            order: -1; /* Place it above the canvas in flex flow */
+        }
+        .controls-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            flex-shrink: 0; /* Prevent shrinking in flex container */
+        }
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .game-button {
+            background-color: #4CAF50; /* Green */
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .game-button:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+        .game-button:active {
+            background-color: #3e8e41;
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .game-button.disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+        .pokemon-select-button {
+            background-color: #007bff; /* Blue */
+        }
+        .pokemon-select-button:hover {
+            background-color: #0056b3;
+        }
+        .action-button {
+            background-color: #ff9800; /* Orange */
+        }
+        .action-button:hover {
+            background-color: #e68a00;
+        }
+        .run-button {
+            background-color: #f44336; /* Red */
+        }
+        .run-button:hover {
+            background-color: #da190b;
+        }
+        .restart-button {
+            background-color: #673AB7; /* Purple */
+        }
+        .restart-button:hover {
+            background-color: #512DA8;
+        }
+        .catch-button {
+            background-color: #00bcd4; /* Cyan */
+        }
+        .catch-button:hover {
+            background-color: #0097a7;
+        }
+        /* Styles for the zoom button */
+        .zoom-button-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 10; /* Ensure it's above other elements */
+        }
+        .zoom-button {
+            background-color: #6c757d; /* Grey */
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .zoom-button:hover {
+            background-color: #5a6268;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+        .zoom-button:active {
+            background-color: #494f54;
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <!-- Message box is now first in the flex container -->
+        <div id="messageBox" class="message-box">
+            Welcome to ChiefCommand! Use WASD to move.
+        </div>
+        <!-- Canvas size adjusted for 40x40 grid with gridSize 20 -->
+        <canvas id="gameCanvas" width="800" height="800"></canvas>
+        <div id="controls" class="controls-panel">
+            <div id="battleActions" class="button-group hidden">
+                <button id="attackBasicBtn" class="game-button action-button">Basic Attack</button>
+                <button id="attackSpecialBtn" class="game-button action-button">Special Attack</button>
+                <button id="switchPokemonBtn" class="game-button pokemon-select-button">Switch ChiefCommand</button>
+                <button id="runBtn" class="game-button run-button">Run</button>
+            </div>
+            <div id="pokemonSelection" class="button-group hidden">
+                <!-- Pokémon selection buttons will be injected here -->
+            </div>
+            <div id="postBattleControls" class="button-group hidden">
+                <button id="catchBtn" class="game-button catch-button hidden">Try to Catch</button>
+                <button id="continueExplorationBtn" class="game-button action-button">Continue Exploring</button>
+            </div>
+            <div id="gameOverControls" class="button-group hidden">
+                <button id="restartBtn" class="game-button restart-button">Restart Game</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="zoom-button-container">
+        <button id="zoomBtn" class="zoom-button">
+            <!-- Magnifying glass icon (Font Awesome or simple SVG) -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-zoom-in">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" x2="16.65" y1="21" y2="16.65"/>
+                <line x1="11" x2="11" y1="8" y2="14"/>
+                <line x1="8" x2="14" y1="11" y2="11"/>
+            </svg>
+        </button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const messageBox = document.getElementById('messageBox');
+        const battleActionsDiv = document.getElementById('battleActions');
+        const pokemonSelectionDiv = document.getElementById('pokemonSelection');
+        const postBattleControlsDiv = document.getElementById('postBattleControls'); // New div for post-battle
+        const gameOverControlsDiv = document.getElementById('gameOverControls');
+        const gameContainer = document.querySelector('.game-container'); // Get reference to the scrollable container
+        const zoomBtn = document.getElementById('zoomBtn'); // Zoom button
+
+        // Buttons
+        const attackBasicBtn = document.getElementById('attackBasicBtn');
+        const attackSpecialBtn = document.getElementById('attackSpecialBtn');
+        const switchPokemonBtn = document.getElementById('switchPokemonBtn');
+        const runBtn = document.getElementById('runBtn');
+        const catchBtn = document.getElementById('catchBtn'); // New catch button
+        const continueExplorationBtn = document.getElementById('continueExplorationBtn'); // New continue button
+        const restartBtn = document.getElementById('restartBtn');
+
+        // Game settings
+        let gridSize = 20; // Initial size of each square (hero, pokemon, enemy)
+        const initialGridSize = 20; // Initial grid size
+        const zoomedGridSize = 40; // Size when zoomed in (2x initial)
+        let isZoomed = false;
+
+        const mapWidth = 40; // Fixed map dimensions in tiles
+        const mapHeight = 40;
+
+        const heroColor = '#3498db'; // Blue
+        const enemyColor = '#e74c3c'; // Red (for battle representation)
+        const trainerColor = '#00FF00'; // Lime green for trainer
+        const grassColor = '#8bc34a'; // Darker green for grass
+        const pathColor = '#aed581'; // Lighter green for empty path
+
+        // Game state variables
+        let gameState = 'exploration'; // 'exploration', 'battle', 'gameOver', 'postBattle'
+        // Hero starts at (1, 0) to avoid collision with trainer at (0,0)
+        let hero = { x: 1, y: 0, size: gridSize, color: heroColor };
+        let playerPokemons = [];
+        let enemyPokemon = null; // Wild Pokémon or Trainer's Pokémon encountered in battle
+        let activePokemonIndex = 0; // Index of the currently active Pokémon in battle
+        let battleMessage = '';
+        let currentTurn = 'player'; // 'player' or 'enemy'
+        let selectedAction = null; // 'basic', 'special', 'switch', 'run'
+        let mapGrid = []; // Stores 'empty' or 'grass' for each tile
+        const grassEncounterChance = 0.15; // 15% chance to encounter a Pokémon on grass
+        let encounterCooldown = 0; // Frames before next encounter can happen
+        const encounterCooldownInterval = 30; // Minimum frames between encounters
+
+        // Trainer object - now at (0, 0) for top-left visibility
+        let trainer = {
+            x: 0, // First column (0-indexed)
+            y: 0, // First row (0-indexed)
+            size: gridSize,
+            color: trainerColor,
+            defeated: false
+        };
+
+        // Drag-to-scroll variables
+        let isDragging = false;
+        let startX;
+        let startY;
+        let scrollLeft;
+        let scrollTop;
+
+        // --- Pokémon Data ---
+        const pokemonBaseStats = [
+            { name: 'Cuadrilla', color: '#2ecc71', hp: 100, attack: 15, specialUses: 2 }, // Green
+            { name: 'Bloqueo', color: '#9b59b6', hp: 90, attack: 18, specialUses: 2 }, // Purple
+            { name: 'Cubix', color: '#f1c40f', hp: 110, attack: 12, specialUses: 2 }, // Yellow
+            { name: 'Rectangulon', color: '#1abc9c', hp: 95, attack: 16, specialUses: 2 }, // Turquoise
+            { name: 'Geometron', color: '#e67e22', hp: 85, attack: 20, specialUses: 2 }, // Orange
+            { name: 'Pixelmon', color: '#34495e', hp: 120, attack: 10, specialUses: 2 }, // Dark Blue
+            { name: 'Triangulon', color: '#e74c3c', hp: 90, attack: 17, specialUses: 2 }, // Red (Good for trainer's pokemon)
+            { name: 'Circulon', color: '#f39c12', hp: 105, attack: 13, specialUses: 2 } // Gold
+        ];
+
+        // --- Image Placeholders (for future use) ---
+        let playerTrainerImage = new Image();
+        let enemyTrainerImage = new Image();
+        let heroImages = [];
+        let heroNames = [];
+        let heroImage = new Image();
+        let heroName = 'Cuadrilla';
+        let villainName = 'Villain';
+        const params = new URLSearchParams(location.search);
+        if (params.get('chief')) playerTrainerImage.src = decodeURIComponent(params.get('chief'));
+        if (params.get('villain')) enemyTrainerImage.src = decodeURIComponent(params.get('villain'));
+        if (params.get('villainName')) villainName = decodeURIComponent(params.get('villainName'));
+        for (let i = 0; params.get(`hero${i}`); i++) {
+            const img = new Image();
+            img.src = decodeURIComponent(params.get(`hero${i}`));
+            heroImages.push(img);
+            heroNames.push(params.get(`heroName${i}`) ? decodeURIComponent(params.get(`heroName${i}`)) : `Hero${i+1}`);
+        }
+        if (heroImages.length) chooseRandomHero();
+        window.addEventListener('message', e => {
+            if (e.data && e.data.type === 'chiefAvatar') {
+                playerTrainerImage.src = e.data.src;
+            } else if (e.data && e.data.type === 'villainImage') {
+                enemyTrainerImage.src = e.data.src;
+            } else if (e.data && e.data.type === 'villainName') {
+                villainName = e.data.name;
+            } else if (e.data && e.data.type === 'heroesData') {
+                heroImages = e.data.images.map(src => { const img = new Image(); img.src = src; return img; });
+                heroNames = e.data.names;
+                chooseRandomHero();
+            }
+        });
+
+        function chooseRandomHero() {
+            if (heroImages.length) {
+                const idx = Math.floor(Math.random() * heroImages.length);
+                heroImage = heroImages[idx];
+                heroName = heroNames[idx];
+            }
+        }
+
+        // --- Game Initialization ---
+        function initGame() {
+            // Set canvas dimensions based on current gridSize
+            canvas.width = mapWidth * gridSize; // 40 * 20 = 800
+            canvas.height = mapHeight * gridSize; // 40 * 20 = 800
+
+            // Hero starts at (1, 0) to avoid collision with trainer at (0,0)
+            hero = { x: 1, y: 0, size: gridSize, color: heroColor };
+            playerPokemons = [];
+            // Start with 6 Pokémon, represented by numbers
+            for (let i = 0; i < 6; i++) {
+                const base = pokemonBaseStats[i % pokemonBaseStats.length]; // Cycle through available base stats
+                playerPokemons.push({
+                    name: base.name,
+                    hp: base.hp,
+                    maxHp: base.hp,
+                    attack: base.attack,
+                    specialAttackUses: base.specialUses,
+                    color: base.color,
+                    isFainted: false,
+                    displayChar: String(i + 1) // Represent with numbers 1, 2, 3, 4, 5, 6
+                });
+            }
+
+
+            // Reset trainer state and position (trainer size updates with gridSize)
+            trainer.x = 0; // First column
+            trainer.y = 0; // First row
+            trainer.size = gridSize;
+            trainer.defeated = false;
+
+            // Generate map grid with grass
+            mapGrid = [];
+            const grassDensity = 0.4; // 40% of squares are grass
+            for (let y = 0; y < mapHeight; y++) {
+                mapGrid[y] = [];
+                for (let x = 0; x < mapWidth; x++) {
+                    mapGrid[y][x] = Math.random() < grassDensity ? 'grass' : 'empty';
+                }
+            }
+            // Ensure hero's starting position and trainer's position are empty paths
+            mapGrid[hero.y][hero.x] = 'empty';
+            mapGrid[trainer.y][trainer.x] = 'empty';
+
+
+            activePokemonIndex = 0;
+            enemyPokemon = null;
+            gameState = 'exploration';
+            battleMessage = 'Welcome to ChiefCommand! Use WASD or the arrow keys to move. Drag the map with the mouse or use the scroll bars to explore! Look for grass or the trainer (lime green square in the upper-left corner at position (0,0)).';
+            updateMessageBox(battleMessage);
+            hideAllControls();
+            gameLoop();
+
+            // Scroll to top-left corner to ensure trainer is visible after a short delay
+            setTimeout(() => {
+                gameContainer.scrollLeft = 0;
+                gameContainer.scrollTop = 0;
+            }, 100); // Small delay to ensure rendering is complete
+        }
+
+        // Function to center the view on the hero (used after movement)
+        function centerViewOnHero() {
+            // Calculate scroll position to center the hero
+            let scrollX = hero.x * gridSize - (gameContainer.clientWidth / 2) + (gridSize / 2);
+            let scrollY = hero.y * gridSize - (gameContainer.clientHeight / 2) + (gridSize / 2);
+
+            // Ensure scroll doesn't go out of bounds (0 to max scrollable area)
+            scrollX = Math.max(0, Math.min(scrollX, canvas.width - gameContainer.clientWidth));
+            scrollY = Math.max(0, Math.min(scrollY, canvas.height - gameContainer.clientHeight));
+
+            gameContainer.scrollLeft = scrollX;
+            gameContainer.scrollTop = scrollY;
+        }
+
+
+        // --- Drawing Functions ---
+        function drawSquare(x, y, size, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x * size, y * size, size, size);
+            ctx.strokeStyle = '#2c3e50'; // Dark border
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x * size, y * size, size, size);
+        }
+
+        function drawHpBar(currentHp, maxHp, x, y, width, height) {
+            const hpPercentage = currentHp / maxHp;
+            const barWidth = width * hpPercentage;
+            ctx.fillStyle = '#ccc'; // Background of HP bar
+            ctx.fillRect(x, y, width, height);
+            ctx.fillStyle = hpPercentage > 0.5 ? '#27ae60' : (hpPercentage > 0.2 ? '#f39c12' : '#c0392b'); // Green, Orange, Red
+            ctx.fillRect(x, y, barWidth, height);
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x, y, width, height);
+        }
+
+        function drawText(text, x, y, color = '#333', fontSize = '16px', align = 'left') {
+            ctx.fillStyle = color;
+            ctx.font = `${fontSize} 'Inter'`;
+            ctx.textAlign = align;
+            ctx.fillText(text, x, y);
+        }
+
+        function updateMessageBox(message) {
+            messageBox.textContent = message;
+        }
+
+        // --- Game Loop ---
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+
+            if (gameState === 'exploration') {
+                drawExplorationScene();
+                encounterCooldown++; // Increment cooldown
+            } else if (gameState === 'battle') {
+                drawBattleScene();
+            } else if (gameState === 'gameOver') {
+                drawGameOverScene();
+            } else if (gameState === 'postBattle') {
+                drawBattleScene(); // Still show battle scene for context
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function drawExplorationScene() {
+            // Draw map grid (path and grass)
+            for (let y = 0; y < mapHeight; y++) {
+                for (let x = 0; x < mapWidth; x++) {
+                    if (mapGrid[y][x] === 'grass') {
+                        drawSquare(x, y, gridSize, grassColor);
+                    } else {
+                        drawSquare(x, y, gridSize, pathColor);
+                    }
+                }
+            }
+            // Draw trainer if not defeated
+            if (!trainer.defeated) {
+                drawSquare(trainer.x, trainer.y, trainer.size, trainer.color);
+            }
+            // Draw hero on top
+            drawSquare(hero.x, hero.y, hero.size, hero.color);
+        }
+
+        function drawBattleScene() {
+            const playerPoke = playerPokemons[activePokemonIndex];
+            // New battle square dimensions: 4x width, 5x height of gridSize
+            const playerBattleWidth = gridSize * 4; // 20 * 4 = 80px
+            const playerBattleHeight = gridSize * 3; // Reduced height
+            const enemyBattleWidth = gridSize * 4;
+            const enemyBattleHeight = gridSize * 3;
+
+            // Player's active Pokémon (bottom-left)
+            if (playerPoke && !playerPoke.isFainted) {
+                // Player square position (pixel coordinates)
+                // Adjusted positions for closer view and left alignment
+                const playerSquarePxX = canvas.width * 0.1; // 10% from left
+                const playerSquarePxY = canvas.height * 0.35;
+
+                // Draw player's Pokémon square
+                ctx.fillStyle = playerPoke.color;
+                ctx.fillRect(playerSquarePxX, playerSquarePxY, playerBattleWidth, playerBattleHeight);
+                ctx.strokeStyle = '#2c3e50';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(playerSquarePxX, playerSquarePxY, playerBattleWidth, playerBattleHeight);
+
+                // Draw hero image and name
+                ctx.drawImage(heroImage, playerSquarePxX, playerSquarePxY, playerBattleWidth, playerBattleHeight);
+                drawText(heroName, playerSquarePxX + playerBattleWidth / 2, playerSquarePxY - 10, '#333', '20px', 'center');
+
+                // Draw player's HP bar and text
+                const hpBarWidth = 100;
+                const hpBarHeight = 15;
+                const playerHpBarX = playerSquarePxX + playerBattleWidth / 2 - hpBarWidth / 2; // Centered below square
+                const playerHpBarY = playerSquarePxY + playerBattleHeight + 10; // Below the square
+                drawHpBar(playerPoke.hp, playerPoke.maxHp, playerHpBarX, playerHpBarY, hpBarWidth, hpBarHeight);
+                drawText(`HP: ${playerPoke.hp}/${playerPoke.maxHp}`, playerHpBarX + hpBarWidth / 2, playerHpBarY + hpBarHeight + 15, '#333', '14px', 'center');
+
+                // Draw player's trainer image placeholder
+                ctx.drawImage(playerTrainerImage, playerHpBarX + (hpBarWidth - 80) / 2, playerHpBarY + hpBarHeight + 25, 80, 80);
+            } else {
+                drawText('ChiefCommand fainted', canvas.width * 0.1 + playerBattleWidth / 2, canvas.height * 0.55 + playerBattleHeight / 2, '#c0392b', '18px', 'center');
+            }
+
+            // Enemy Pokémon (top-right)
+            if (enemyPokemon) {
+                // Enemy square position (pixel coordinates)
+                // Adjusted positions for closer view
+                const enemySquarePxX = canvas.width * 0.9 - enemyBattleWidth; // 90% from left, adjusted for square width
+                const enemySquarePxY = canvas.height * 0.05;
+
+                // Draw enemy Pokémon square
+                ctx.fillStyle = enemyPokemon.color;
+                ctx.fillRect(enemySquarePxX, enemySquarePxY, enemyBattleWidth, enemyBattleHeight);
+                ctx.strokeStyle = '#2c3e50';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(enemySquarePxX, enemySquarePxY, enemyBattleWidth, enemyBattleHeight);
+
+                // Draw enemy's Pokémon name
+                drawText(villainName, enemySquarePxX + enemyBattleWidth / 2, enemySquarePxY - 10, '#333', '20px', 'center');
+
+                // Draw enemy's HP bar and text
+                const hpBarWidth = 100;
+                const hpBarHeight = 15;
+                const enemyHpBarX = enemySquarePxX + enemyBattleWidth / 2 - hpBarWidth / 2; // Centered below square
+                const enemyHpBarY = enemySquarePxY + enemyBattleHeight + 10; // Below the square
+                drawHpBar(enemyPokemon.hp, enemyPokemon.maxHp, enemyHpBarX, enemyHpBarY, hpBarWidth, hpBarHeight);
+                drawText(`HP: ${enemyPokemon.hp}/${enemyPokemon.maxHp}`, enemyHpBarX + hpBarWidth / 2, enemyHpBarY + hpBarHeight + 15, '#333', '14px', 'center');
+
+                // Draw villain image centered in the enemy square
+                ctx.drawImage(
+                    enemyTrainerImage,
+                    enemySquarePxX,
+                    enemySquarePxY,
+                    enemyBattleWidth,
+                    enemyBattleHeight
+                );
+            }
+        }
+
+        function drawGameOverScene() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            drawText('Game Over!', canvas.width / 2, canvas.height / 2 - 30, '#fff', '40px', 'center');
+            drawText(battleMessage, canvas.width / 2, canvas.height / 2 + 20, '#fff', '20px', 'center');
+        }
+
+        // --- Event Listeners ---
+        document.addEventListener('keydown', handleKeyDown);
+        attackBasicBtn.addEventListener('click', () => handleBattleAction('basic'));
+        attackSpecialBtn.addEventListener('click', () => handleBattleAction('special'));
+        switchPokemonBtn.addEventListener('click', () => handleBattleAction('switch'));
+        runBtn.addEventListener('click', () => handleBattleAction('run'));
+        catchBtn.addEventListener('click', tryCatchPokemon); // New listener for catch button
+        continueExplorationBtn.addEventListener('click', () => endBattle('continue')); // New listener for continue button
+        restartBtn.addEventListener('click', initGame);
+        zoomBtn.addEventListener('click', toggleZoom); // Zoom button listener
+
+        // Drag-to-scroll event listeners
+        gameContainer.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            gameContainer.classList.add('dragging');
+            startX = e.pageX - gameContainer.offsetLeft;
+            startY = e.pageY - gameContainer.offsetTop;
+            scrollLeft = gameContainer.scrollLeft;
+            scrollTop = gameContainer.scrollTop;
+            e.preventDefault(); // Prevent default drag behavior (e.g., image dragging)
+        });
+
+        gameContainer.addEventListener('mouseleave', () => {
+            isDragging = false;
+            gameContainer.classList.remove('dragging');
+        });
+
+        gameContainer.addEventListener('mouseup', () => {
+            isDragging = false;
+            gameContainer.classList.remove('dragging');
+        });
+
+        gameContainer.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            const x = e.pageX - gameContainer.offsetLeft;
+            const y = e.pageY - gameContainer.offsetTop;
+            const walkX = (x - startX); // How far the mouse has moved
+            const walkY = (y - startY);
+            gameContainer.scrollLeft = scrollLeft - walkX;
+            gameContainer.scrollTop = scrollTop - walkY;
+        });
+
+
+        function handleKeyDown(e) {
+            if (gameState === 'exploration') {
+                handleExplorationMovement(e.key);
+            }
+            // No keyboard control in battle or post-battle, only buttons
+        }
+
+        function handleExplorationMovement(key) {
+            let newX = hero.x;
+            let newY = hero.y;
+
+            switch (key.toLowerCase()) {
+                case 'w':
+                case 'arrowup':
+                    newY--;
+                    break;
+                case 'a':
+                case 'arrowleft':
+                    newX--;
+                    break;
+                case 's':
+                case 'arrowdown':
+                    newY++;
+                    break;
+                case 'd':
+                case 'arrowright':
+                    newX++;
+                    break;
+            }
+
+            // Keep hero within canvas bounds
+            newX = Math.max(0, Math.min(mapWidth - 1, newX));
+            newY = Math.max(0, Math.min(mapHeight - 1, newY));
+
+            hero.x = newX;
+            hero.y = newY;
+
+            checkEncounter();
+            centerViewOnHero(); // Keep the view centered on the hero as they move
+        }
+
+        // --- Zoom Functionality ---
+        function toggleZoom() {
+            isZoomed = !isZoomed;
+            gridSize = isZoomed ? zoomedGridSize : initialGridSize;
+
+            // Update canvas dimensions based on new gridSize
+            canvas.width = mapWidth * gridSize;
+            canvas.height = mapHeight * gridSize;
+
+            // Update hero and trainer size to match new gridSize
+            hero.size = gridSize;
+            trainer.size = gridSize;
+
+            // Redraw the scene with the new grid size
+            if (gameState === 'exploration') {
+                drawExplorationScene();
+            } else if (gameState === 'battle') {
+                drawBattleScene();
+            }
+
+            // After zooming, ensure the view is still sensible (e.g., centered on hero or top-left)
+            if (gameState === 'exploration') {
+                centerViewOnHero();
+            }
+        }
+
+        // --- Encounter Logic ---
+        function spawnWildPokemonForBattle() {
+            const base = pokemonBaseStats[Math.floor(Math.random() * pokemonBaseStats.length)];
+            const hpMultiplier = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
+            const atkMultiplier = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
+
+            enemyPokemon = {
+                name: villainName,
+                hp: Math.floor(base.hp * hpMultiplier),
+                maxHp: Math.floor(base.hp * hpMultiplier),
+                attack: Math.floor(base.attack * atkMultiplier),
+                color: enemyColor, // Use a generic enemy color for wild
+                originalBase: base, // Store original base stats for catching
+                isTrainerPokemon: false // Flag to indicate it's a wild pokemon
+            };
+        }
+
+        function spawnTrainerPokemonForBattle() {
+            // For simplicity, trainer always has 'Triangulon'
+            const base = pokemonBaseStats.find(p => p.name === 'Triangulon');
+            enemyPokemon = {
+                name: 'Triangulon del Entrenador',
+                hp: base.hp,
+                maxHp: base.hp,
+                attack: base.attack,
+                color: trainerColor, // Use trainer's color for their pokemon
+                originalBase: base,
+                isTrainerPokemon: true // Flag to indicate it's a trainer's pokemon
+            };
+        }
+
+        function checkEncounter() {
+            // Check for trainer encounter first
+            if (!trainer.defeated && hero.x === trainer.x && hero.y === trainer.y) {
+                spawnTrainerPokemonForBattle();
+                startBattle('trainer');
+                return; // Stop checking for grass encounters
+            }
+
+            // Only check for grass encounters if on a grass tile and cooldown is over
+            if (mapGrid[hero.y][hero.x] === 'grass' && Math.random() < grassEncounterChance && encounterCooldown >= encounterCooldownInterval) {
+                spawnWildPokemonForBattle();
+                startBattle('wild');
+                encounterCooldown = 0; // Reset cooldown after an encounter
+            }
+        }
+
+        // --- Battle Logic ---
+        function startBattle(type) {
+            gameState = 'battle';
+            currentTurn = 'player';
+            if (type === 'trainer') {
+                updateMessageBox(`The Trainer challenges you with their ${enemyPokemon.name}!`);
+            } else {
+                updateMessageBox(`A ${enemyPokemon.name} appeared!`);
+            }
+            showBattleControls();
+            // Reset special attack uses for all player pokemons at the start of battle
+            playerPokemons.forEach(p => {
+                const base = pokemonBaseStats.find(b => b.name === p.name.replace(' Salvaje', '').replace(' del Entrenador', ''));
+                if (base) p.specialAttackUses = base.specialUses;
+            });
+            // Ensure active Pokemon is not fainted, if so, find next
+            if (playerPokemons[activePokemonIndex].isFainted) {
+                findNextActivePokemon();
+            }
+        }
+
+        function showBattleControls() {
+            battleActionsDiv.classList.remove('hidden');
+            pokemonSelectionDiv.classList.add('hidden');
+            postBattleControlsDiv.classList.add('hidden');
+            gameOverControlsDiv.classList.add('hidden');
+            updateActionButtonsState();
+        }
+
+        function showPokemonSelectionControls() {
+            battleActionsDiv.classList.add('hidden');
+            pokemonSelectionDiv.classList.remove('hidden');
+            postBattleControlsDiv.classList.add('hidden');
+            gameOverControlsDiv.classList.add('hidden');
+            renderPokemonSelectionButtons();
+        }
+
+        function showPostBattleControls() {
+            battleActionsDiv.classList.add('hidden');
+            pokemonSelectionDiv.classList.add('hidden');
+            postBattleControlsDiv.classList.remove('hidden');
+            gameOverControlsDiv.classList.add('hidden');
+        }
+
+        function hideAllControls() {
+            battleActionsDiv.classList.add('hidden');
+            pokemonSelectionDiv.classList.add('hidden');
+            postBattleControlsDiv.classList.add('hidden');
+            gameOverControlsDiv.classList.add('hidden');
+        }
+
+        function updateActionButtonsState() {
+            const activePoke = playerPokemons[activePokemonIndex];
+            attackSpecialBtn.disabled = activePoke.specialAttackUses <= 0;
+            switchPokemonBtn.disabled = playerPokemons.filter(p => !p.isFainted).length <= 1; // Can't switch if only one alive
+        }
+
+        function renderPokemonSelectionButtons() {
+            pokemonSelectionDiv.innerHTML = ''; // Clear previous buttons
+            playerPokemons.forEach((poke, index) => {
+                const button = document.createElement('button');
+                button.classList.add('game-button', 'pokemon-select-button');
+                button.textContent = `${poke.name} (${poke.hp}/${poke.maxHp})`;
+                if (poke.isFainted || index === activePokemonIndex) {
+                    button.disabled = true;
+                    button.classList.add('disabled');
+                }
+                button.addEventListener('click', () => selectPokemonForSwitch(index));
+                pokemonSelectionDiv.appendChild(button);
+            });
+        }
+
+        function handleBattleAction(action) {
+            selectedAction = action;
+            if (currentTurn === 'player') {
+                if (action === 'switch') {
+                    updateMessageBox('Choose a ChiefCommand to switch.');
+                    showPokemonSelectionControls();
+                } else {
+                    playerTurn();
+                }
+            }
+        }
+
+        function selectPokemonForSwitch(index) {
+            if (index === activePokemonIndex || playerPokemons[index].isFainted) {
+                updateMessageBox('You cannot switch to this ChiefCommand.');
+                return;
+            }
+            activePokemonIndex = index;
+            updateMessageBox(`${playerPokemons[activePokemonIndex].name} entró en combate.`);
+            showBattleControls(); // Go back to battle actions
+            setTimeout(enemyTurn, 1000); // Enemy turn after switch
+        }
+
+        function playerTurn() {
+            const playerPoke = playerPokemons[activePokemonIndex];
+
+            if (playerPoke.isFainted) {
+                updateMessageBox(`${playerPoke.name} has fainted. You must switch ChiefCommand!`);
+                findNextActivePokemon();
+                if (gameState === 'battle') { // If still in battle after finding next
+                    showPokemonSelectionControls();
+                }
+                return;
+            }
+
+            let damage = 0;
+            let message = '';
+
+            switch (selectedAction) {
+                case 'basic':
+                    damage = playerPoke.attack;
+                    enemyPokemon.hp -= damage;
+                    message = `${playerPoke.name} used Basic Attack. It dealt ${damage} damage!`;
+                    break;
+                case 'special':
+                    if (playerPoke.specialAttackUses > 0) {
+                        damage = playerPoke.attack * 2;
+                        enemyPokemon.hp -= damage;
+                        playerPoke.specialAttackUses--;
+                        message = `${playerPoke.name} used Special Attack. It dealt ${damage} damage!`;
+                    } else {
+                        updateMessageBox('No Special Attack uses left for this ChiefCommand.');
+                        showBattleControls(); // Stay in player turn to choose another action
+                        return;
+                    }
+                    break;
+                case 'run':
+                    // Cannot run from trainer battles
+                    if (enemyPokemon.isTrainerPokemon) {
+                        updateMessageBox('You cannot run from a Trainer battle!');
+                        showBattleControls(); // Stay in player turn
+                        return;
+                    }
+                    if (Math.random() < 0.5) { // 50% chance to run
+                        updateMessageBox('You successfully ran from the battle!');
+                        endBattle('run');
+                        return;
+                    } else {
+                        message = 'You failed to run away!';
+                    }
+                    break;
+            }
+
+            enemyPokemon.hp = Math.max(0, enemyPokemon.hp); // Ensure HP doesn't go below 0
+            updateMessageBox(message);
+
+            checkBattleEnd();
+            if (gameState === 'battle') {
+                currentTurn = 'enemy';
+                setTimeout(enemyTurn, 1500); // Delay for enemy turn
+            }
+            updateActionButtonsState(); // Update button states after player action
+        }
+
+        function enemyTurn() {
+            if (gameState !== 'battle') return;
+
+            const playerPoke = playerPokemons[activePokemonIndex];
+            if (playerPoke.isFainted) {
+                updateMessageBox('The enemy waits while you switch ChiefCommand...');
+                findNextActivePokemon();
+                if (gameState === 'battle') {
+                    showPokemonSelectionControls();
+                }
+                return;
+            }
+
+            const damage = enemyPokemon.attack;
+            playerPoke.hp -= damage;
+            playerPoke.hp = Math.max(0, playerPoke.hp); // Ensure HP doesn't go below 0
+
+            updateMessageBox(`${enemyPokemon.name} attacked and dealt ${damage} damage to ${playerPoke.name}!`);
+
+            checkBattleEnd();
+            if (gameState === 'battle') {
+                currentTurn = 'player';
+                showBattleControls(); // Show player controls again
+            }
+        }
+
+        function checkBattleEnd() {
+            if (enemyPokemon.hp <= 0) {
+                updateMessageBox(`You defeated ${enemyPokemon.name}!`);
+                endBattle('win');
+            } else if (playerPokemons.every(p => p.isFainted)) {
+                updateMessageBox('All your ChiefCommands have fainted! You lost the battle.');
+                endBattle('lose');
+            } else if (playerPokemons[activePokemonIndex].hp <= 0) {
+                playerPokemons[activePokemonIndex].isFainted = true;
+                updateMessageBox(`${playerPokemons[activePokemonIndex].name} has fainted.`);
+                findNextActivePokemon();
+                if (gameState === 'battle') { // If still in battle
+                    showPokemonSelectionControls(); // Force player to switch
+                }
+            }
+        }
+
+        function findNextActivePokemon() {
+            const livingPokemons = playerPokemons.filter(p => !p.isFainted);
+            if (livingPokemons.length > 0) {
+                // Find the index of the first living Pokémon
+                activePokemonIndex = playerPokemons.indexOf(livingPokemons[0]);
+                updateMessageBox(`${playerPokemons[activePokemonIndex].name} entered the battle.`);
+            } else {
+                // All Pokémon are fainted, game over
+                gameState = 'gameOver';
+                battleMessage = 'All your ChiefCommands have fainted. Game Over!';
+                updateMessageBox(battleMessage);
+                showGameOverControls();
+            }
+        }
+
+        function endBattle(result) {
+            // If it was a trainer battle and player won, mark trainer as defeated
+            if (result === 'win' && enemyPokemon && enemyPokemon.isTrainerPokemon) {
+                trainer.defeated = true;
+                updateMessageBox('You defeated the Trainer! They will not challenge you again.');
+            }
+
+            enemyPokemon = null; // Clear enemy after battle
+
+            if (result === 'win') {
+                gameState = 'postBattle'; // Transition to post-battle state
+                updateMessageBox('You won the battle! What do you want to do now?');
+                showPostBattleControls();
+
+                // Level up the active Pokémon
+                const activePoke = playerPokemons[activePokemonIndex];
+                if (activePoke && !activePoke.isFainted) {
+                    activePoke.maxHp += 5; // Increase max HP
+                    activePoke.hp = activePoke.maxHp; // Heal to new max HP
+                    activePoke.attack += 2; // Increase attack
+                    updateMessageBox(messageBox.textContent + ` ${activePoke.name} leveled up!`);
+                }
+
+                // Show catch button only if team is not full and it was a wild pokemon (not trainer's)
+                if (playerPokemons.length < 6 && !enemyPokemon?.isTrainerPokemon) { // Use optional chaining for safety
+                    catchBtn.classList.remove('hidden');
+                } else {
+                    catchBtn.classList.add('hidden');
+                }
+            } else if (result === 'run' || result === 'continue') {
+                gameState = 'exploration';
+                hideAllControls();
+                updateMessageBox('Keep exploring with WASD or the arrow keys.');
+            } else if (result === 'lose') {
+                gameState = 'gameOver';
+                battleMessage = 'All your ChiefCommands have fainted. Game Over!';
+                updateMessageBox(battleMessage);
+                showGameOverControls();
+            }
+
+            // Heal player pokemons slightly after winning or continuing (not on lose or run)
+            if (result === 'win' || result === 'continue') {
+                playerPokemons.forEach(p => {
+                    p.hp = Math.min(p.maxHp, p.hp + 10); // Heal 10 HP
+                    p.isFainted = false; // Revive if fainted
+                    const base = pokemonBaseStats.find(b => b.name === p.name);
+                    if (base) p.specialAttackUses = base.specialUses; // Restore special uses
+                });
+            }
+        }
+
+        function tryCatchPokemon() {
+            if (playerPokemons.length >= 6) {
+                updateMessageBox('Your team is full! You cannot catch more ChiefCommands.');
+                catchBtn.classList.add('hidden'); // Hide catch button if team is full
+                return;
+            }
+
+            // Cannot catch trainer's pokemon
+            if (enemyPokemon && enemyPokemon.isTrainerPokemon) {
+                updateMessageBox("You can't catch the Trainer's ChiefCommand.");
+                catchBtn.classList.add('hidden');
+                return;
+            }
+
+            // Simulate catch chance (e.g., 50% chance)
+            if (Math.random() < 0.5) {
+                // Create a new Pokémon object from the defeated enemy's original base stats
+                const caughtPokemonBase = enemyPokemon.originalBase;
+                playerPokemons.push({
+                    name: caughtPokemonBase.name,
+                    hp: caughtPokemonBase.hp,
+                    maxHp: caughtPokemonBase.hp,
+                    attack: caughtPokemonBase.attack,
+                    specialAttackUses: caughtPokemonBase.specialUses,
+                    color: caughtPokemonBase.color,
+                    isFainted: false,
+                    displayChar: String(playerPokemons.length + 1) // Assign next number
+                });
+                updateMessageBox(`You caught ${caughtPokemonBase.name}! You now have ${playerPokemons.length} ChiefCommands.`);
+            } else {
+                updateMessageBox('The wild ChiefCommand escaped!');
+            }
+            catchBtn.classList.add('hidden'); // Hide catch button after attempt
+            // Automatically transition back to exploration after catch attempt
+            setTimeout(() => endBattle('continue'), 1500);
+        }
+
+        function showGameOverControls() {
+            hideAllControls();
+            gameOverControlsDiv.classList.remove('hidden');
+        }
+
+        // Initial game setup
+        window.addEventListener('load', initGame);
+        initGame();
+
+    </script>
+</body>
+</html>

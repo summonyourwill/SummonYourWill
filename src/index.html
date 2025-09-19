@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="
+    default-src 'self';
+    connect-src 'self';
+    script-src 'self' 'unsafe-inline';
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    font-src 'self' https://fonts.gstatic.com;
+    img-src 'self' data: https:;
+    media-src 'self' data: https:;
+    frame-src 'self';
+  "
+  />
+  <title>SummonYourWill</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="renderer/styles/scrollFix.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "idb": "./node_modules/idb/build/index.js"
+      }
+    }
+  </script>
+</head>
+<body class="loading">
+
+  <div id="login-container" style="display:none;">
+    <h2>Offline Version</h2>
+    <button id="offline-enter-btn" class="btn btn-blue white-bold">Login</button>
+    <p id="error" class="error" style="color:red"></p>
+  </div>
+
+  <div class="app">
+    <div class="sidebar">
+      <button data-view="home">Home</button>
+      <button data-view="village">Village</button>
+      <button data-view="games">Games</button>
+      <button data-view="missions">Missions</button>
+      <button data-view="villains">Villains</button>
+      <button data-view="pets">Pets</button>
+      <button data-view="heroes">Heroes</button>
+      <button data-view="profiles" class="small-text" disabled title="Coming soon?">Social</button>
+      <button data-view="tutorial">Tutorial</button>
+      <button data-view="settings">Settings</button>
+    </div>
+      <div class="content">
+        <!-- Top section with buttons and counters -->
+        <div class="header">
+          <button class="btn btn-blue header-button white-bold" id="export-btn">Export</button>
+          <button class="btn btn-blue header-button white-bold" id="import-btn">Import</button>
+          <button class="btn btn-blue header-button white-bold" id="reset-btn">Reset</button>
+          <div id="resources-grid" class="resources-grid">
+            <div class="res res-gold">💰 <strong>Gold:</strong> <span id="gold-val">0</span></div>
+            <div class="res res-food">🍖 <strong>Food:</strong> <span id="food-val">0/0</span></div>
+            <div class="res res-wood">🪵 <strong>Wood:</strong> <span id="wood-val">0/0</span></div>
+            <div class="res res-stone">🪨 <strong>Stone:</strong> <span id="stone-val">0/0</span></div>
+          </div>
+        </div>
+        <div id="share-wrap" class="header-column" style="display:none;align-items:center;">
+          <button class="btn btn-blue header-button white-bold" id="logout-btn-share" style="display:none;">Logout</button>
+          <button class="btn btn-blue header-button white-bold" id="share-btn">Share</button>
+          <div id="share-status">Private</div>
+        </div>
+
+      <section id="profiles-section" style="display:none;">
+        <h1>Public Profiles</h1>
+        <div class="public-profile-card card">
+          <div style="display:flex;gap:6px;">
+          <button class="btn btn-yellow">View Profile</button>
+          <button class="btn btn-yellow">Chat</button>
+          </div>
+        </div>
+        <div id="profiles-list"></div>
+      </section>
+
+      <section id="village-chief-section">
+        <h1>Village Chief</h1>
+        <div id="village-chief" class="village-chief card"></div>
+      </section>
+
+      <section id="terrain-section">
+        <h1>My Terrains (1/30)</h1>
+        <div id="terrain-card" class="chief-card card"></div>
+        <div id="terrain-card-2" class="chief-card card"></div>
+      </section>
+
+      <section id="village-section">
+        <h1>My Village</h1>
+        <div id="village-overview-card" class="chief-card card"></div>
+        <div id="build-house-card" class="chief-card card"></div>
+        <div id="build-select-card" class="chief-card card" style="display:none;"></div>
+      </section>
+
+      <section id="special-builder-assignment" style="display:none;"></section>
+
+      <section id="games-section" style="display:none;">
+        <div id="games-card" class="chief-card card"></div>
+        <h1>My Games</h1>
+        <div id="games-buttons-card" class="chief-card card"></div>
+      </section>
+      <section id="missions-section">
+        <h1>Daily Missions</h1>
+        <div id="daily-missions-card" class="chief-card card"></div>
+        <div id="daily-missions-card-2" class="chief-card card" style="display:none;"></div>
+        <h1>Missions</h1>
+        <div id="missions" class="missions"></div>
+        <section id="group-mission-section">
+          <h2>GroupMission</h2>
+          <div id="group-mission-grid"></div>
+        </section>
+      </section>
+
+
+      
+      <section id="pet-management-section" style="display:none;">
+        <h1>Pets Management</h1>
+        <div id="pet-management-card" class="chief-card card"></div>
+      </section>
+
+      <section id="villain-section">
+        <h1>My Villains (0/20)</h1>
+        <div class="hero-controls" id="villain-controls">
+          <label><input type="checkbox" id="villain-favorite-check"> Favorites</label>
+          <input type="text" id="villain-search" list="villain-search-list" placeholder="Search villain">
+          <datalist id="villain-search-list"></datalist>
+          <button id="villain-sort-name-btn" class="btn btn-green">Order by Name</button>
+          <button id="villain-sort-floor-btn" class="btn btn-green">Order by Floor</button>
+          <select id="villain-origin-filter"></select>
+          <button id="villain-remove-filter-btn" class="btn btn-green" style="display:none;">-&gt; RemoveFilter</button>
+        </div>
+        <div id="villains"></div>
+        <div id="villain-pagination" class="pagination"></div>
+      </section>
+
+      <section id="pets-section" style="display:none;">
+        <h1>My Pets (0/5)</h1>
+        <div class="hero-controls" id="pet-controls">
+          <label><input type="checkbox" id="pet-favorite-check"> Favorites</label>
+          <button id="pet-sort-name-btn" class="btn btn-green">Order by Name</button>
+          <button id="pet-sort-level-btn" class="btn btn-green">Order by Level</button>
+          <input type="text" id="pet-search" list="pet-search-list" placeholder="Search pet">
+          <datalist id="pet-search-list"></datalist>
+          <select id="pet-origin-filter"></select>
+          <button id="pet-remove-filter-btn" class="btn btn-green" style="display:none;">-> RemoveFilter</button>
+        </div>
+        <div id="pets"></div>
+        <div id="pet-pagination" class="pagination"></div>
+      </section>
+
+      <section id="heroes-section">
+        <h1>My Heroes</h1>
+        <div class="hero-controls">
+          <label><input type="checkbox" id="favorite-check"> Favorites</label>
+          <label><input type="checkbox" id="ready-check"> Ready</label>
+          <button id="sort-name-btn" class="btn btn-green">Order by Name</button>
+          <button id="sort-level-btn" class="btn btn-green">Order by Level</button>
+          <input type="text" id="hero-search" list="hero-search-list" placeholder="Search hero">
+          <datalist id="hero-search-list"></datalist>
+          <select id="sex-filter"></select>
+          <select id="origin-filter"></select>
+          <select id="profession-filter"></select>
+          <button id="remove-filter-btn" class="btn btn-green" style="display:none;">-&gt; RemoveFilter</button>
+        </div>
+        <div id="heroes" class="virtual-section"></div>
+        <div id="hero-pagination" class="pagination"></div>
+      </section>
+
+      <section id="tutorial-section" style="display:none;">
+        <h1>Tutorial</h1>
+        <div id="tutorial-buttons" class="chief-card card">
+          <button id="next-level-table-btn" class="btn btn-green" title="Exp needed for level">NextLevelTable</button>
+          <button id="acumulated-level-table-btn" class="btn btn-green" title="Total exp needed">AcumulatedLevelTable</button>
+        </div>
+        <div id="next-level-table-card" class="chief-card card" style="display:none;"></div>
+        <div id="acumulated-level-table-card" class="chief-card card" style="display:none;"></div>
+        <div id="tutorial-info-card" class="chief-card card"></div>
+      </section>
+
+      <section id="settings-section" style="display:none;">
+        <h1>Settings</h1>
+        <div id="sound-card" class="chief-card card">
+          <h2>Sound</h2>
+          <input id="volume-slider" type="range" min="0" max="100">
+        </div>
+        <div id="save-images-card" class="chief-card card">
+          <h2>SaveAllImages</h2>
+          <p>All images Will be saved on users…/images/SummonYourWillImages. </p>
+          <button id="export-images-btn" class="btn btn-yellow">Export</button>
+        </div>
+      </section>
+
+
+    </div>
+  </div>
+
+  <script type="module">
+    let offlineMode = localStorage.getItem('offlineMode') === '1';
+
+    const initApp = async () => {
+      const login = document.getElementById('login-container');
+      const app = document.querySelector('.app');
+      if (location.protocol === 'file:' && !window.isElectron) {
+        document.body.innerHTML = '<p style="font-family:sans-serif;padding:20px">This application must be served over HTTP. Run <code>npm run serve</code> and open <a href="http://localhost:8080">http://localhost:8080</a>.</p>';
+        return;
+      }
+  if (offlineMode) {
+        if (login) login.style.display = 'none';
+        if (app) app.style.display = 'flex';
+        document.body.classList.remove('login-view');
+        try {
+          const { default: api } = await import('./script.js');
+          api.init();
+          document.querySelectorAll('.sidebar button').forEach(btn => {
+            btn.addEventListener('click', () => {
+              api.showView(btn.dataset.view);
+            });
+          });
+        } catch (err) {
+          document.body.innerHTML = '<p style="font-family:sans-serif;padding:20px">Failed to load modules. Run <code>npm run serve</code> and open <a href="http://localhost:8080">http://localhost:8080</a>.</p>';
+          console.error(err);
+        }
+      } else {
+        if (app) app.style.display = 'none';
+        if (login) login.style.display = 'block';
+        document.body.classList.add('login-view');
+      }
+    };
+
+    initApp();
+
+    const offlineBtn = document.getElementById('offline-enter-btn');
+    if (offlineBtn) {
+      offlineBtn.addEventListener('click', () => {
+        try { localStorage.setItem('offlineMode', '1'); } catch {}
+        offlineMode = true;
+        initApp();
+      });
+    }
+  </script>
+  <div id="hero-chooser-modal" class="modal hidden">
+    <button class="close-btn">✖</button>
+    <input type="search" placeholder="Search hero" />
+    <div class="hero-list"></div>
+  </div>
+  <div id="modal-root"></div>
+</body>
+</html>

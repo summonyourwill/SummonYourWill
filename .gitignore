@@ -1,0 +1,9 @@
+node_modules/
+dist/
+build-src/
+.obf/
+
+# Ignore saved game data
+assets/data/save.json
+assets/data/lastsave.json
+
