@@ -11,14 +11,14 @@ A desktop incremental RPG built with Electron. Manage heroes, gather resources a
 ## 🎮 About the Game
 SummonYourWill is an idle, motivational experience designed to help you stay on track with your daily goals while enjoying a fantasy world full of heroes, pets, and exciting battles.
 
-✅ Habit Calendar: Complete your daily tasks, track your progress, and keep your motivation high.
-✅ Goal Checklist: Every milestone you reach strengthens your heroes and your village.
-✅ Quests & Rewards: Turn your real-life achievements into gold, food, wood, and stone to expand your settlement.
-✅ Fun Minigames: Challenge yourself with battles, defeat the Village Chief, and even meet their Partner in unique story events.
-✅ Customizable Heroes: Collect unique heroes and use personalized images to make them truly yours.
-✅ Resourceful Pets: They gather materials for you while you focus on your real-life goals.
-✅ Strategic Resource Management: Decide how to spend your gold and materials to unlock skills, summon new heroes, and improve your constructions.
-✅ Idle System: Even when you’re away, your heroes keep fighting and gathering resources for you.
+1. ✅ Habit Calendar: Complete your daily tasks, track your progress, and keep your motivation high.
+2. ✅ Goal Checklist: Every milestone you reach strengthens your heroes and your village.
+3. ✅ Quests & Rewards: Turn your real-life achievements into gold, food, wood, and stone to expand your settlement.
+4. ✅ Fun Minigames: Challenge yourself with battles, defeat the Village Chief, and even meet their Partner in unique story events.
+5. ✅ Customizable Heroes: Collect unique heroes and use personalized images to make them truly yours.
+6. ✅ Resourceful Pets: They gather materials for you while you focus on your real-life goals.
+7. ✅ Strategic Resource Management: Decide how to spend your gold and materials to unlock skills, summon new heroes, and improve your constructions.
+8. ✅ Idle System: Even when you’re away, your heroes keep fighting and gathering resources for you.
 
 ## Save files and user music
 
