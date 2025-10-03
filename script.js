@@ -2643,6 +2643,33 @@ async function loadGame() {
 
   if (offlineSeconds > 0) applyHiddenTime(offlineSeconds);
 
+  // Initialize special units arrays (map from persisted level_quantity to runtime Level/Quantity)
+  const toArray = a => (Array.isArray(a) ? a : []);
+  window.Elites = toArray(data.Elites).map(u => ({
+    id: u.id ?? u.name,
+    name: u.name,
+    img: u.img,
+    desc: u.desc,
+    Level: u.level_quantity ?? u.Level ?? 1,
+    type: 'Elite'
+  }));
+  window.SpecialCitizens = toArray(data.SpecialCitizens).map(u => ({
+    id: u.id ?? u.name,
+    name: u.name,
+    img: u.img,
+    desc: u.desc,
+    Quantity: u.level_quantity ?? u.Quantity ?? 1,
+    type: 'SpecialCitizen'
+  }));
+  window.SpecialSoldiers = toArray(data.SpecialSoldiers).map(u => ({
+    id: u.id ?? u.name,
+    name: u.name,
+    img: u.img,
+    desc: u.desc,
+    Quantity: u.level_quantity ?? u.Quantity ?? 1,
+    type: 'SpecialSoldier'
+  }));
+
   if (migrated) saveGame();
 
   // Ejecutar migración de compresión de imágenes
@@ -4264,7 +4291,32 @@ export function saveGame() {
 
     projects: (()=>{ try{ return JSON.parse(localStorage.getItem('syw_projects_v1')||'[]'); }catch{ return []; } })(),
 
-    projectPoints: Number(localStorage.getItem('syw_points')||0)
+    projectPoints: Number(localStorage.getItem('syw_points')||0),
+
+    // Persist Special Units using compact level_quantity field
+    Elites: (Array.isArray(window.Elites) ? window.Elites : []).map(u => ({
+      id: u.id ?? u.name,
+      name: u.name,
+      img: u.img,
+      desc: u.desc,
+      level_quantity: u.Level ?? 1
+    })),
+
+    SpecialSoldiers: (Array.isArray(window.SpecialSoldiers) ? window.SpecialSoldiers : []).map(u => ({
+      id: u.id ?? u.name,
+      name: u.name,
+      img: u.img,
+      desc: u.desc,
+      level_quantity: u.Quantity ?? 1
+    })),
+
+    SpecialCitizens: (Array.isArray(window.SpecialCitizens) ? window.SpecialCitizens : []).map(u => ({
+      id: u.id ?? u.name,
+      name: u.name,
+      img: u.img,
+      desc: u.desc,
+      level_quantity: u.Quantity ?? 1
+    }))
 
   };
 
@@ -8248,6 +8300,11 @@ function toggleAutoClick() {
   state.autoClickActive = !state.autoClickActive;
 
   if (state.autoClickActive) {
+    // Ocultar Population si está abierto para facilitar ver Autoclic
+    if (openChiefPopulation) {
+      openChiefPopulation = false;
+      renderVillageChief();
+    }
 
     startAutoClick();
 
@@ -9537,6 +9594,7 @@ function renderVillageChief() {
   autoBtn.id = "auto-click-btn";
 
   autoBtn.textContent = state.autoClickActive ? "Disable autoclick" : "Enable autoclick";
+  autoBtn.title = "1m => -20%Energy+1Exp+1Resource";
 
   autoBtn.className = "btn btn-lightyellow";
 
@@ -9612,6 +9670,12 @@ function renderVillageChief() {
 
       if (currentChiefExtra !== "Autoclick enabled") {
 
+        // Si Population está abierto, ocultarlo para ver Autoclic cómodamente
+        if (openChiefPopulation) {
+          openChiefPopulation = false;
+          renderVillageChief();
+        }
+
         showChiefExtra("Autoclick enabled");
 
       } else {
@@ -9621,6 +9685,12 @@ function renderVillageChief() {
         if (card) { card.innerHTML = ""; card.style.display = "none"; }
 
         currentChiefExtra = "";
+
+        // También ocultar Population si está abierto
+        if (openChiefPopulation) {
+          openChiefPopulation = false;
+          renderVillageChief();
+        }
 
         updateAutoClickButtonHeight();
 
@@ -10611,12 +10681,617 @@ function renderVillageChief() {
 
     popCard.className = "card";
 
+    // Agregar título "Population" centrado con estilo Celtic/medieval
+    const titleElement = document.createElement("h2");
+    titleElement.textContent = "Population";
+    titleElement.style.textAlign = "center";
+    titleElement.style.color = "#8B4513";
+    titleElement.style.fontSize = "32px";
+    titleElement.style.fontWeight = "bold";
+    titleElement.style.margin = "15px 0 20px 0";
+    titleElement.style.textShadow = "3px 3px 6px rgba(0,0,0,0.5), 1px 1px 2px rgba(139,69,19,0.3)";
+    titleElement.style.fontFamily = "Cinzel, 'Times New Roman', serif";
+    titleElement.style.letterSpacing = "2px";
+    titleElement.style.textDecoration = "none";
+    titleElement.style.background = "linear-gradient(135deg, #D4AF37, #B8860B)";
+    titleElement.style.webkitBackgroundClip = "text";
+    titleElement.style.webkitTextFillColor = "transparent";
+    titleElement.style.backgroundClip = "text";
+    // remove borders as requested
+    titleElement.style.border = "none";
+    titleElement.style.borderRadius = "0";
+    titleElement.style.padding = "0";
+    titleElement.style.backgroundColor = "transparent";
+    popCard.appendChild(titleElement);
+
     // Agregar botones SummonCitizen y SummonSoldier en una misma fila dentro de la tarjeta
     const summonButtonsRow = document.createElement("div");
     summonButtonsRow.style.display = "flex";
     summonButtonsRow.style.gap = "10px";
     summonButtonsRow.style.justifyContent = "center";
     summonButtonsRow.style.marginTop = "10px";
+
+    // Agregar el botón Summon SpecialUnits al inicio de la fila
+    const specialUnitsBtn = document.createElement("button");
+    specialUnitsBtn.id = "special-units-btn";
+    specialUnitsBtn.textContent = "🃏Summon SpecialUnits (5000 Gold)🃏";
+    specialUnitsBtn.className = "btn btn-gold";
+    specialUnitsBtn.title = "5 Random Units (Elites/Sp.Citizen/Sp.Soldier)";
+    specialUnitsBtn.onclick = () => {
+      // Verificar si ya existe el minijuego
+      const existingMinigame = document.getElementById("special-units-minigame");
+      
+      if (existingMinigame) {
+        // Si existe, ocultarlo
+        existingMinigame.remove();
+        return;
+      }
+      
+      if (state.money < 5000) {
+        console.log("Not enough gold to summon special units");
+        return;
+      }
+      
+      // Crear el minijuego card
+      const minigameCard = document.createElement("div");
+      minigameCard.className = "card";
+      minigameCard.id = "special-units-minigame";
+      minigameCard.style.marginTop = "15px";
+      minigameCard.style.border = "2px solid gold";
+      minigameCard.style.backgroundColor = "#fffacd";
+      
+      const minigameHeader = document.createElement("div");
+      minigameHeader.style.display = "flex";
+      minigameHeader.style.justifyContent = "space-between";
+      minigameHeader.style.alignItems = "center";
+      minigameHeader.style.marginBottom = "15px";
+      minigameHeader.style.padding = "10px";
+      minigameHeader.style.backgroundColor = "#ffd700";
+      minigameHeader.style.borderRadius = "5px";
+      
+      const minigameTitle = document.createElement("h3");
+      minigameTitle.textContent = "🎴 Special Units Pack Opening 🎴";
+      minigameTitle.style.margin = "0";
+      minigameTitle.style.color = "#333";
+      
+      const closeMinigameBtn = document.createElement("button");
+      closeMinigameBtn.textContent = "✕";
+      closeMinigameBtn.className = "close-btn";
+      closeMinigameBtn.style.padding = "5px 10px";
+      closeMinigameBtn.onclick = () => {
+        minigameCard.remove();
+      };
+      
+      minigameHeader.appendChild(minigameTitle);
+      minigameHeader.appendChild(closeMinigameBtn);
+      
+      const minigameContent = document.createElement("div");
+      minigameContent.style.padding = "20px";
+      minigameContent.style.textAlign = "center";
+      minigameContent.style.position = "relative";
+      
+      const packContainer = document.createElement("div");
+      packContainer.style.marginBottom = "20px";
+      
+      const packCard = document.createElement("div");
+      packCard.style.width = "150px";
+      packCard.style.height = "200px";
+      packCard.style.margin = "0 auto";
+      packCard.style.backgroundColor = "#ffd700";
+      packCard.style.border = "3px solid #b8860b";
+      packCard.style.borderRadius = "10px";
+      packCard.style.display = "flex";
+      packCard.style.flexDirection = "column";
+      packCard.style.alignItems = "center";
+      packCard.style.justifyContent = "center";
+      packCard.style.cursor = "pointer";
+      packCard.style.transition = "transform 0.2s";
+      packCard.innerHTML = `
+        <div style="font-size: 24px; margin-bottom: 10px;">🎴</div>
+        <div style="font-weight: bold; font-size: 14px; text-align: center; color: #333;">
+          MAGIC PACK<br>
+          <span style="font-size: 12px;">Contains 5 cards!</span>
+        </div>
+        <div style="margin-top: 10px; font-size: 16px;">⭐⭐⭐</div>
+      `;
+      
+      packCard.onmouseover = () => packCard.style.transform = "scale(1.05)";
+      packCard.onmouseout = () => packCard.style.transform = "scale(1)";
+      
+      const openPackBtn = document.createElement("button");
+      openPackBtn.textContent = "OPEN PACK (5000 Gold)";
+      openPackBtn.className = "btn btn-gold";
+      openPackBtn.style.marginBottom = "20px";
+      openPackBtn.disabled = state.money < 5000;
+      
+      const cardsContainer = document.createElement("div");
+      cardsContainer.id = "cards-container";
+      cardsContainer.style.display = "none";
+      cardsContainer.style.gridTemplateColumns = "repeat(auto-fit, minmax(180px, 1fr))";
+      cardsContainer.style.gap = "20px";
+      cardsContainer.style.marginTop = "20px";
+      cardsContainer.style.justifyContent = "center";
+      cardsContainer.style.alignItems = "start";
+      
+      let packOpened = false;
+      
+      openPackBtn.onclick = async () => {
+        if (state.money < 5000) return;
+        
+        // Preserve scroll position to avoid page jump during updates
+        const savedScrollX = window.scrollX;
+        const savedScrollY = window.scrollY;
+        const keepScroll = () => window.scrollTo(savedScrollX, savedScrollY);
+        keepScroll();
+        
+        // IMMEDIATELY deduct money and disable button
+        console.log("💰 IMMEDIATELY deducting 5000 gold...");
+        state.money -= 5000;
+        // Update gold display consistently
+        if (typeof updateResourcesDisplay === 'function') {
+          updateResourcesDisplay();
+        } else {
+          const moneyEl = document.getElementById("money-display");
+          if (moneyEl) moneyEl.innerHTML = `💰 <b>Gold:</b><br>${state.money}`;
+          const goldVal = document.getElementById("gold-val");
+          if (goldVal) goldVal.textContent = state.money;
+        }
+        
+        openPackBtn.disabled = true;
+        openPackBtn.textContent = "OPENING...";
+        keepScroll();
+        
+        // IMMEDIATELY generate and add units (before animation)
+        console.log("🎴 IMMEDIATELY generating units...");
+        
+        // Generate 5 random units from available data
+        let drawnUnits = [];
+        try {
+          // Load available units from JSON files
+          const [elitesResponse, citizensResponse, soldiersResponse] = await Promise.all([
+            fetch('src/Population/allelites.json').then(r => r.json()).catch(() => []),
+            fetch('src/Population/allspecialcitizens.json').then(r => r.json()).catch(() => []),
+            fetch('src/Population/allspecialsoldiers.json').then(r => r.json()).catch(() => [])
+          ]);
+          
+          console.log("📊 Loaded units:", { elites: elitesResponse.length, citizens: citizensResponse.length, soldiers: soldiersResponse.length });
+          
+          // Create weighted pools for each unit type
+          const elites = elitesResponse.map(unit => ({...unit, type: 'Elite'}));
+          const citizens = citizensResponse.map(unit => ({...unit, type: 'SpecialCitizen'}));
+          const soldiers = soldiersResponse.map(unit => ({...unit, type: 'SpecialSoldier'}));
+          
+          // Generate 5 units with weighted probabilities
+          for (let i = 0; i < 5; i++) {
+            const random = Math.random();
+            let selectedUnit = null;
+            
+            if (random < 0.05 && elites.length > 0) {
+              // 5% chance for Elite
+              const randomIndex = Math.floor(Math.random() * elites.length);
+              selectedUnit = elites[randomIndex];
+            } else if (random < 0.5 && citizens.length > 0) {
+              // 45% chance for SpecialCitizen (0.05 to 0.5 = 45%)
+              const randomIndex = Math.floor(Math.random() * citizens.length);
+              selectedUnit = citizens[randomIndex];
+            } else if (soldiers.length > 0) {
+              // 50% chance for SpecialSoldier (0.5 to 1.0 = 50%)
+              const randomIndex = Math.floor(Math.random() * soldiers.length);
+              selectedUnit = soldiers[randomIndex];
+            }
+            
+            if (selectedUnit) {
+              drawnUnits.push(selectedUnit);
+            } else {
+              // Fallback if no units available
+              drawnUnits.push({
+                name: 'Mystery Unit',
+                desc: 'A mysterious unit appeared',
+                type: 'SpecialCitizen'
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error loading unit data:', error);
+          // Fallback: create some dummy units
+          drawnUnits = [
+            { name: 'Mystery Elite', desc: 'A powerful elite unit', type: 'Elite' },
+            { name: 'Special Citizen', desc: 'A unique citizen', type: 'SpecialCitizen' },
+            { name: 'Elite Soldier', desc: 'A skilled soldier', type: 'SpecialSoldier' },
+            { name: 'Rare Unit', desc: 'A rare find', type: 'Elite' },
+            { name: 'Legendary Hero', desc: 'A legendary hero', type: 'SpecialSoldier' }
+          ];
+        }
+        
+        console.log("🎯 Generated units:", drawnUnits);
+        console.log("📈 Unit type distribution:", {
+          elites: drawnUnits.filter(u => u.type === 'Elite').length,
+          citizens: drawnUnits.filter(u => u.type === 'SpecialCitizen').length,
+          soldiers: drawnUnits.filter(u => u.type === 'SpecialSoldier').length
+        });
+        
+        // IMMEDIATELY add units to collections and update UI
+        console.log("📦 IMMEDIATELY adding units to collections...");
+        drawnUnits.forEach(unit => {
+          const unitName = unit.name;
+          
+          if (unit.type === 'Elite') {
+            if (!window.Elites) window.Elites = [];
+            
+            // Check if elite already exists
+            const existingElite = window.Elites.find(e => e.name === unitName);
+            if (existingElite) {
+              // Increment level
+              existingElite.Level = (existingElite.Level || 1) + 1;
+              console.log(`📈 Elite ${unitName} level increased to ${existingElite.Level}`);
+            } else {
+              // Add new elite
+              const newElite = {
+                ...unit,
+                id: Date.now() + Math.random(),
+                Level: 1
+              };
+              window.Elites.push(newElite);
+              console.log(`✨ New Elite added: ${unitName}`);
+            }
+          } else if (unit.type === 'SpecialCitizen') {
+            if (!window.SpecialCitizens) window.SpecialCitizens = [];
+            
+            // Check if citizen already exists
+            const existingCitizen = window.SpecialCitizens.find(c => c.name === unitName);
+            if (existingCitizen) {
+              // Increment quantity
+              existingCitizen.Quantity = (existingCitizen.Quantity || 1) + 1;
+              console.log(`📈 SpecialCitizen ${unitName} quantity increased to ${existingCitizen.Quantity}`);
+            } else {
+              // Add new citizen
+              const newCitizen = {
+                ...unit,
+                id: Date.now() + Math.random(),
+                Quantity: 1
+              };
+              window.SpecialCitizens.push(newCitizen);
+              console.log(`✨ New SpecialCitizen added: ${unitName}`);
+            }
+          } else if (unit.type === 'SpecialSoldier') {
+            if (!window.SpecialSoldiers) window.SpecialSoldiers = [];
+            
+            // Check if soldier already exists
+            const existingSoldier = window.SpecialSoldiers.find(s => s.name === unitName);
+            if (existingSoldier) {
+              // Increment quantity
+              existingSoldier.Quantity = (existingSoldier.Quantity || 1) + 1;
+              console.log(`📈 SpecialSoldier ${unitName} quantity increased to ${existingSoldier.Quantity}`);
+            } else {
+              // Add new soldier
+              const newSoldier = {
+                ...unit,
+                id: Date.now() + Math.random(),
+                Quantity: 1
+              };
+              window.SpecialSoldiers.push(newSoldier);
+              console.log(`✨ New SpecialSoldier added: ${unitName}`);
+            }
+          }
+        });
+        
+        // IMMEDIATELY update counters and sections
+        console.log("🔄 IMMEDIATELY updating counters and sections...");
+        if (elitesCounter) elitesCounter.textContent = `Elites: ${window.Elites.length}`;
+        if (specialCitizensCounter) specialCitizensCounter.textContent = `SpecialCitizens: ${window.SpecialCitizens.length}`;
+        if (specialSoldiersCounter) specialSoldiersCounter.textContent = `SpecialSoldiers: ${window.SpecialSoldiers.length}`;
+        
+        // IMMEDIATELY force UI update
+        console.log("🚀 IMMEDIATELY force re-rendering all sections...");
+        forceRerenderSections();
+        updatePaginatedSections();
+        if (typeof keepScroll === 'function') keepScroll();
+        
+        // IMMEDIATELY force content update (NOT rebuild)
+        console.log("🔧 IMMEDIATELY updating existing sections...");
+        updateExistingSections();
+        
+        // Save game immediately
+        console.log("💾 IMMEDIATELY saving game...");
+        saveGame();
+        if (typeof keepScroll === 'function') keepScroll();
+        
+        // Force additional UI updates with small delays to ensure they work
+        setTimeout(() => {
+          console.log("🔄 Additional UI update...");
+          forceRerenderSections();
+          updatePaginatedSections();
+          updateExistingSections();
+          if (typeof keepScroll === 'function') keepScroll();
+        }, 50);
+        
+        setTimeout(() => {
+          console.log("🔄 Final UI update...");
+          forceRerenderSections();
+          updatePaginatedSections();
+          updateExistingSections();
+          if (typeof keepScroll === 'function') keepScroll();
+        }, 200);
+        
+        // Animate pack opening
+        packCard.style.transform = "rotateY(180deg)";
+        packCard.style.transition = "transform 0.5s";
+        
+        setTimeout(async () => {
+          // Hide pack but keep button visible
+          packCard.style.display = "none";
+          
+          console.log("🎴 Displaying cards...");
+          
+          // Display cards with staggered animation
+          cardsContainer.innerHTML = drawnUnits.map((unit, index) => {
+            const cardColor = unit.type === 'Elite' ? '#ffd700' : '#c0c0c0';
+            const cardBorder = unit.type === 'Elite' ? '#b8860b' : '#808080';
+            const imageBg = unit.type === 'Elite' ? '#b8860b' : '#808080';
+            const imageBorder = unit.type === 'Elite' ? '#996f00' : '#666';
+            
+            // Determine image path based on type
+            let imagePath = '';
+            if (unit.img) {
+              // Use the image path from the JSON file
+              imagePath = `src/Population/${unit.img}`;
+            } else {
+              // Fallback image paths
+              imagePath = `src/Population/${unit.type}/${unit.name || 'default'}.png`;
+            }
+            
+            console.log(`🖼️ Image path for ${unit.name}:`, imagePath);
+            
+            // Create a unique ID for this image container
+            const imageId = `card-image-${index}-${Date.now()}`;
+            
+            return `
+              <div class="card-item" style="
+                background: linear-gradient(135deg, ${cardColor}, ${cardColor}dd);
+                border: 2px solid ${cardBorder};
+                border-radius: 12px;
+                padding: 15px;
+                text-align: center;
+                opacity: 0;
+                transform: translateY(30px) scale(0.8);
+                animation: cardReveal 0.8s ease-out ${index * 0.15}s forwards;
+                box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+                height: 280px;
+                position: relative;
+                width: 160px;
+                margin: 0 auto;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+              ">
+                <!-- Card Type (top left) -->
+                <div style="
+                  position: absolute;
+                  top: 8px;
+                  left: 8px;
+                  font-size: 10px;
+                  font-weight: bold;
+                  color: #333;
+                  background: rgba(255,255,255,0.9);
+                  padding: 3px 8px;
+                  border-radius: 4px;
+                  border: 1px solid rgba(0,0,0,0.2);
+                ">${unit.type === 'Elite' ? 'Elite' : unit.type === 'SpecialCitizen' ? 'Special Citizen' : 'Special Soldier'}</div>
+                
+                
+                
+                <!-- Card Name -->
+                <div style="
+                  font-weight: bold;
+                  font-size: 16px;
+                  margin: 30px 0 0 0;
+                  color: #333;
+                  text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+                  height: 48px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  text-align: center;
+                  line-height: 1.2;
+                ">${unit.name || 'Mystery Unit'}</div>
+                
+                <!-- Image -->
+                <div id="${imageId}" style="
+                  width: 120px;
+                  height: 120px;
+                  background: ${imageBg};
+                  border-radius: 10px;
+                  margin: 10px auto;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  border: 3px solid ${imageBorder};
+                  overflow: hidden;
+                  position: relative;
+                  flex-shrink: 0;
+                ">
+                  <img src="${imagePath}" 
+                       style="width: 100%; height: 100%; object-fit: cover; border-radius: 7px;"
+                       onload="
+                         this.style.display='block'; 
+                         this.nextElementSibling.style.display='none'; 
+                         console.log('✅ Image loaded successfully:', '${imagePath}');
+                       "
+                       onerror="
+                         this.style.display='none'; 
+                         this.nextElementSibling.style.display='flex'; 
+                         console.log('❌ Failed to load image:', '${imagePath}');
+                       " />
+                  <div style="
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 32px;
+                    color: rgba(255,255,255,0.8);
+                    background: linear-gradient(45deg, ${imageBg}80, ${imageBg}40);
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                  ">🎴</div>
+                </div>
+                
+                <!-- Bottom section with fixed height -->
+                <div style="
+                  display: flex;
+                  flex-direction: column;
+                  justify-content: space-between;
+                  height: 80px;
+                ">
+                  <!-- Quantity or Level -->
+                  <div style="
+                    font-size: 13px;
+                    color: #ffd700;
+                    font-weight: bold;
+                    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+                    height: 20px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                  "></div>
+                  
+                  <!-- Description -->
+                  <div style="
+                    font-size: 11px;
+                    color: #555;
+                    line-height: 1.4;
+                    text-align: left;
+                    height: 60px;
+                    overflow: hidden;
+                    display: -webkit-box;
+                    -webkit-line-clamp: 4;
+                    -webkit-box-orient: vertical;
+                  ">${unit.desc || 'No description available'}</div>
+                </div>
+              </div>
+            `;
+          }).join('');
+          
+          console.log("🎨 Cards HTML generated, showing container...");
+          
+          // Show cards container immediately
+          cardsContainer.style.display = "grid";
+          cardsContainer.style.visibility = "visible";
+          
+          // Preload images for better performance
+          drawnUnits.forEach((unit, index) => {
+            const img = new Image();
+            img.onload = () => {
+              console.log(`🖼️ Preloaded image for ${unit.name}`);
+            };
+            img.onerror = () => {
+              console.log(`❌ Failed to preload image for ${unit.name}`);
+            };
+            if (unit.img) {
+              img.src = `src/Population/${unit.img}`;
+            }
+          });
+          
+          // Add celebration effect
+          const celebrationDiv = document.createElement("div");
+          celebrationDiv.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            animation: celebration 1s ease-out;
+            pointer-events: none;
+            z-index: 1000;
+          `;
+          celebrationDiv.textContent = "🎉 PACK OPENED! 🎉";
+          minigameContent.appendChild(celebrationDiv);
+          
+          // Remove celebration after animation
+          setTimeout(() => {
+            if (celebrationDiv.parentNode) {
+              celebrationDiv.parentNode.removeChild(celebrationDiv);
+            }
+          }, 2000);
+          
+          // Re-enable button after a delay
+          setTimeout(() => {
+            console.log("🎯 Pack opening completed - re-enabling button...");
+            
+            // Re-enable the button
+            openPackBtn.disabled = state.money < 5000;
+            openPackBtn.textContent = "OPEN PACK (5000 Gold)";
+            if (openPackBtn.disabled) {
+              openPackBtn.title = "Not enough Gold";
+            } else {
+              openPackBtn.title = "5 Random Units (Elites/Sp.Citizen/Sp.Soldier)";
+            }
+            
+            console.log("✅ Pack opening process completed!");
+          }, 3000);
+          
+        }, 500);
+      };
+      
+      packContainer.appendChild(packCard);
+      minigameContent.appendChild(packContainer);
+      minigameContent.appendChild(openPackBtn);
+      minigameContent.appendChild(cardsContainer);
+      
+      minigameCard.appendChild(minigameHeader);
+      minigameCard.appendChild(minigameContent);
+      
+      // Add CSS animation for card reveal
+      const style = document.createElement("style");
+      style.textContent = `
+        @keyframes cardReveal {
+          0% {
+            opacity: 0;
+            transform: translateY(30px) scale(0.8) rotateX(90deg);
+          }
+          50% {
+            opacity: 0.7;
+            transform: translateY(15px) scale(0.9) rotateX(45deg);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1) rotateX(0deg);
+          }
+        }
+        
+        .card-item:hover {
+          transform: translateY(-5px) scale(1.05);
+          transition: transform 0.3s ease;
+          box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+        }
+        
+        @keyframes celebration {
+          0% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.5);
+          }
+          50% {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.2);
+          }
+          100% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(1);
+          }
+        }
+      `;
+      document.head.appendChild(style);
+      
+      // Insert after summon buttons row
+      popCard.insertBefore(minigameCard, popCard.children[popCard.children.length - 1]);
+    };
+    specialUnitsBtn.disabled = state.money < 5000;
+    if (specialUnitsBtn.disabled) specialUnitsBtn.title = "Not enough Gold";
+    summonButtonsRow.appendChild(specialUnitsBtn);
 
     const citizenBtn = document.createElement("button");
     citizenBtn.id = "citizen-btn";
@@ -10647,43 +11322,6 @@ function renderVillageChief() {
     soldierBtn.disabled = soldiers >= state.terrain * 50 || state.money < 200;
     if (soldierBtn.disabled && state.money < 200) soldierBtn.title = "Not enough Gold";
     summonButtonsRow.appendChild(soldierBtn);
-
-    // Agregar los tres nuevos botones a la derecha del botón SummonSoldier
-    const eliteBtn = document.createElement("button");
-    eliteBtn.id = "elite-btn";
-    eliteBtn.textContent = "Summon Elite (1500 Gold)";
-    eliteBtn.className = "btn btn-blue";
-    eliteBtn.onclick = () => {
-      // Por ahora no hace nada
-      console.log("Summon Elite clicked");
-    };
-    eliteBtn.disabled = state.money < 1500;
-    if (eliteBtn.disabled) eliteBtn.title = "Not enough Gold";
-    summonButtonsRow.appendChild(eliteBtn);
-
-    const specialCitizenBtn = document.createElement("button");
-    specialCitizenBtn.id = "special-citizen-btn";
-    specialCitizenBtn.textContent = "Summon SpecialCitizen (300 Gold)";
-    specialCitizenBtn.className = "btn btn-blue";
-    specialCitizenBtn.onclick = () => {
-      // Por ahora no hace nada
-      console.log("Summon SpecialCitizen clicked");
-    };
-    specialCitizenBtn.disabled = state.money < 300;
-    if (specialCitizenBtn.disabled) specialCitizenBtn.title = "Not enough Gold";
-    summonButtonsRow.appendChild(specialCitizenBtn);
-
-    const specialSoldierBtn = document.createElement("button");
-    specialSoldierBtn.id = "special-soldier-btn";
-    specialSoldierBtn.textContent = "Summon SpecialSoldier (600 Gold)";
-    specialSoldierBtn.className = "btn btn-blue";
-    specialSoldierBtn.onclick = () => {
-      // Por ahora no hace nada
-      console.log("Summon SpecialSoldier clicked");
-    };
-    specialSoldierBtn.disabled = state.money < 600;
-    if (specialSoldierBtn.disabled) specialSoldierBtn.title = "Not enough Gold";
-    summonButtonsRow.appendChild(specialSoldierBtn);
 
     popCard.appendChild(summonButtonsRow);
 
@@ -10750,6 +11388,8 @@ function renderVillageChief() {
 
     // Agregar subtítulos debajo de los contadores
     const subtitlesContainer = document.createElement("div");
+    subtitlesContainer.id = "subtitles-container"; // Agregar ID para identificación
+    subtitlesContainer.className = "subtitles-container"; // Agregar clase para identificación
     subtitlesContainer.style.display = "flex";
     subtitlesContainer.style.flexDirection = "column";
     subtitlesContainer.style.alignItems = "flex-start";
@@ -10757,62 +11397,677 @@ function renderVillageChief() {
     subtitlesContainer.style.marginTop = "15px";
     subtitlesContainer.style.gap = "15px";
 
-    // Elites section
-    const elitesSection = document.createElement("div");
-    elitesSection.style.width = "100%";
+    // Function to update paginated sections with new data
+    function updatePaginatedSections() {
+      console.log("🔄 updatePaginatedSections called");
+      
+      // Trigger the search/sort functions to refresh pagination and show only current page
+      const elitesSection = document.getElementById('elites');
+      const citizensSection = document.getElementById('special-citizens');
+      const soldiersSection = document.getElementById('special-soldiers');
+      
+      console.log("🔍 Sections found:", { elites: !!elitesSection, citizens: !!citizensSection, soldiers: !!soldiersSection });
+      console.log("📊 Current data:", { 
+        elites: window.Elites ? window.Elites.length : 0, 
+        citizens: window.SpecialCitizens ? window.SpecialCitizens.length : 0, 
+        soldiers: window.SpecialSoldiers ? window.SpecialSoldiers.length : 0 
+      });
+      
+      // Force re-render of each section using multiple methods
+      if (elitesSection) {
+        console.log("🔄 Refreshing Elites section");
+        const searchInput = elitesSection.querySelector('input[type="text"]');
+        if (searchInput) {
+          // Method 1: Trigger input event
+          searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+          searchInput.dispatchEvent(new Event('change', { bubbles: true }));
+          
+          // Method 2: Force focus and blur to trigger any listeners
+          searchInput.focus();
+          searchInput.blur();
+        }
+        
+        // Method 3: Force re-render by temporarily changing and restoring content
+        const contentArea = elitesSection.querySelector('#elites-content');
+        if (contentArea) {
+          const originalContent = contentArea.innerHTML;
+          contentArea.innerHTML = '<div style="text-align: center; color: #666;">Updating...</div>';
+          setTimeout(() => {
+            contentArea.innerHTML = originalContent;
+            // Trigger input event again after content restoration
+            if (searchInput) {
+              searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          }, 50);
+        }
+      }
+      
+      if (citizensSection) {
+        console.log("🔄 Refreshing Special Citizens section");
+        const searchInput = citizensSection.querySelector('input[type="text"]');
+        if (searchInput) {
+          searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+          searchInput.dispatchEvent(new Event('change', { bubbles: true }));
+          searchInput.focus();
+          searchInput.blur();
+        }
+        
+        const contentArea = citizensSection.querySelector('#special-citizens-content');
+        if (contentArea) {
+          const originalContent = contentArea.innerHTML;
+          contentArea.innerHTML = '<div style="text-align: center; color: #666;">Updating...</div>';
+          setTimeout(() => {
+            contentArea.innerHTML = originalContent;
+            if (searchInput) {
+              searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          }, 50);
+        }
+      }
+      
+      if (soldiersSection) {
+        console.log("🔄 Refreshing Special Soldiers section");
+        const searchInput = soldiersSection.querySelector('input[type="text"]');
+        if (searchInput) {
+          searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+          searchInput.dispatchEvent(new Event('change', { bubbles: true }));
+          searchInput.focus();
+          searchInput.blur();
+        }
+        
+        const contentArea = soldiersSection.querySelector('#special-soldiers-content');
+        if (contentArea) {
+          const originalContent = contentArea.innerHTML;
+          contentArea.innerHTML = '<div style="text-align: center; color: #666;">Updating...</div>';
+          setTimeout(() => {
+            contentArea.innerHTML = originalContent;
+            if (searchInput) {
+              searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          }, 50);
+        }
+      }
+      
+      // Force a global UI refresh
+      console.log("🔄 Forcing global UI refresh...");
+      document.dispatchEvent(new CustomEvent('dataUpdated', { 
+        detail: { 
+          elites: window.Elites || [], 
+          citizens: window.SpecialCitizens || [], 
+          soldiers: window.SpecialSoldiers || [] 
+        } 
+      }));
+    }
     
-    const elitesSubtitle = document.createElement("div");
-    elitesSubtitle.style.fontWeight = "bold";
-    elitesSubtitle.style.fontSize = "1.1em";
-    elitesSubtitle.style.color = "#333";
-    elitesSubtitle.style.marginBottom = "5px";
-    elitesSubtitle.textContent = "Elites";
+    // Function to force complete re-render of paginated sections
+    function forceRerenderSections() {
+      console.log("🚀 Force re-rendering all sections...");
+      
+      // Get current data
+      const elitesData = window.Elites || [];
+      const citizensData = window.SpecialCitizens || [];
+      const soldiersData = window.SpecialSoldiers || [];
+      
+      console.log("📊 Force render data:", { 
+        elites: elitesData.length, 
+        citizens: citizensData.length, 
+        soldiers: soldiersData.length 
+      });
+      
+      // Force re-render each section by directly manipulating content
+      const sections = [
+        { id: 'elites', data: elitesData, title: 'Elites' },
+        { id: 'special-citizens', data: citizensData, title: 'Special Citizens' },
+        { id: 'special-soldiers', data: soldiersData, title: 'Special Soldiers' }
+      ];
+      
+      sections.forEach(({ id, data, title }) => {
+        const section = document.getElementById(id);
+        if (section) {
+          console.log(`🚀 Force re-rendering ${title} section with ${data.length} items`);
+          
+          // Get content area
+          const contentArea = section.querySelector(`#${id}-content`);
+          if (contentArea) {
+            // Force re-render by temporarily clearing and rebuilding content
+            contentArea.innerHTML = '<div style="text-align: center; color: #666; font-style: italic;">Loading...</div>';
+            
+            setTimeout(() => {
+              // Rebuild content with current data
+              if (data.length === 0) {
+                contentArea.innerHTML = `<div style="text-align: center; color: #666; font-style: italic;">No ${title.toLowerCase()} found</div>`;
+              } else {
+                // Show first 5 items in a grid
+                const displayData = data.slice(0, 5);
+                contentArea.innerHTML = `
+                  <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; justify-items: center; align-items: start;">
+                    ${displayData.map(unit => {
+                      const isElite = id === 'elites';
+                      const bgColor = isElite ? '#ffd700' : '#c0c0c0';
+                      const borderColor = isElite ? '#ffb347' : '#a0a0a0';
+                      const levelOrQuantity = isElite ? unit.Level : unit.Quantity;
+                      const labelText = isElite ? 'Level' : 'Quantity';
+                      
+                      return `
+                        <div style="
+                          width: 160px; height: 280px; 
+                          background: linear-gradient(135deg, ${bgColor}, ${borderColor});
+                          border: 2px solid ${borderColor};
+                          border-radius: 10px;
+                          padding: 8px;
+                          display: flex;
+                          flex-direction: column;
+                          box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                          position: relative;
+                        ">
+                          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px;">
+                            <span style="font-size: 10px; font-weight: bold; color: #333; background: rgba(255,255,255,0.8); padding: 2px 4px; border-radius: 3px;">
+                              ${id === 'elites' ? 'Elite' : id === 'special-citizens' ? 'Special Citizen' : 'Special Soldier'}
+                            </span>
+                            
+                          </div>
+                          
+                          <div style="
+                            height: 48px; display: flex; align-items: center; justify-content: center;
+                            font-weight: bold; font-size: 16px; text-align: center;
+                            color: #333; line-height: 1.2; overflow: hidden;
+                          ">
+                            ${unit.name}
+                          </div>
+                          
+                          <div style="
+                            width: 120px; height: 120px; display: flex; align-items: center; justify-content: center;
+                            background: #808080; border: 1px solid #666; border-radius: 12px; margin: 5px auto; overflow: hidden;
+                          ">
+                            <img src="src/Population/${unit.img}" 
+                                 style="width: 100%; height: 100%; object-fit: contain;"
+                                 onerror="this.src='src/Population/placeholder.png'">
+                          </div>
+                          
+                          <div style="
+                            display: flex; flex-direction: column; gap: 6px;
+                            font-size: 11px; color: #333;
+                          ">
+                            <div style="font-weight: bold; text-align: center; background: rgba(255,255,255,0.8); padding: 2px; border-radius: 3px;">
+                              ${isElite ? `Level: ${levelOrQuantity || 1}` : `Quantity: ${levelOrQuantity || 1}`}
+                            </div>
+                            <div style="text-align: center; line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;">
+                              ${unit.desc}
+                            </div>
+                          </div>
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                `;
+              }
+              
+              console.log(`✅ ${title} section force re-rendered with ${data.length} items`);
+            }, 100);
+          }
+        }
+      });
+    }
     
-    const elitesContent = document.createElement("div");
-    elitesContent.style.color = "#666";
-    elitesContent.style.fontStyle = "italic";
-    elitesContent.textContent = "Coming soon...";
+    // Function to update existing sections without creating duplicates
+    function updateExistingSections() {
+      console.log("🔧 Updating existing sections without rebuilding...");
+      
+      // Get current data
+      const elitesData = window.Elites || [];
+      const citizensData = window.SpecialCitizens || [];
+      const soldiersData = window.SpecialSoldiers || [];
+      
+      console.log("📊 Current data for sections:", { 
+        elites: elitesData.length, 
+        citizens: citizensData.length, 
+        soldiers: soldiersData.length 
+      });
+      
+      // Update each section directly
+      const sections = [
+        { id: 'elites', data: elitesData, title: 'Elites' },
+        { id: 'special-citizens', data: citizensData, title: 'Special Citizens' },
+        { id: 'special-soldiers', data: soldiersData, title: 'Special Soldiers' }
+      ];
+      
+      sections.forEach(({ id, data, title }) => {
+        const section = document.getElementById(id);
+        if (section) {
+          console.log(`🔧 Updating existing ${title} section with ${data.length} items`);
+          
+          // Get content area
+          const contentArea = section.querySelector(`#${id}-content`);
+          if (contentArea) {
+            // Update content directly
+            if (data.length === 0) {
+              contentArea.innerHTML = `<div style="text-align: center; color: #666; font-style: italic;">No ${title.toLowerCase()} found</div>`;
+            } else {
+              // Show first 5 items in a grid
+              const displayData = data.slice(0, 5);
+              contentArea.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; justify-items: center; align-items: start;">
+                  ${displayData.map(unit => {
+                    const isElite = id === 'elites';
+                    const bgColor = isElite ? '#ffd700' : '#c0c0c0';
+                    const borderColor = isElite ? '#ffb347' : '#a0a0a0';
+                    const levelOrQuantity = isElite ? unit.Level : unit.Quantity;
+                    
+                    return `
+                      <div style="
+                        width: 160px; height: 280px; 
+                        background: linear-gradient(135deg, ${bgColor}, ${borderColor});
+                        border: 2px solid ${borderColor};
+                        border-radius: 10px;
+                        padding: 8px;
+                        display: flex;
+                        flex-direction: column;
+                        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                        position: relative;
+                      ">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px;">
+                          <span style="font-size: 10px; font-weight: bold; color: #333; background: rgba(255,255,255,0.8); padding: 2px 4px; border-radius: 3px;">
+                            ${id === 'elites' ? 'Elite' : id === 'special-citizens' ? 'Special Citizen' : 'Special Soldier'}
+                          </span>
+                          
+                        </div>
+                        
+                        <div style="
+                          height: 48px; display: flex; align-items: center; justify-content: center;
+                          font-weight: bold; font-size: 16px; text-align: center;
+                          color: #333; line-height: 1.2; overflow: hidden;
+                        ">
+                          ${unit.name}
+                        </div>
+                        
+                        <div style="
+                          width: 120px; height: 120px; display: flex; align-items: center; justify-content: center;
+                          background: #808080; border: 1px solid #666; border-radius: 12px; margin: 5px auto; overflow: hidden;
+                        ">
+                          <img src="src/Population/${unit.img}" 
+                               style="width: 100%; height: 100%; object-fit: contain;"
+                               onerror="this.src='src/Population/placeholder.png'">
+                        </div>
+                        
+                        <div style="
+                          display: flex; flex-direction: column; gap: 6px;
+                          font-size: 11px; color: #333;
+                        ">
+                          <div style="font-weight: bold; text-align: center; background: rgba(255,255,255,0.8); padding: 2px; border-radius: 3px;">
+                            ${isElite ? `Level: ${levelOrQuantity || 1}` : `Quantity: ${levelOrQuantity || 1}`}
+                          </div>
+                          <div style="text-align: center; line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;">
+                            ${unit.desc}
+                          </div>
+                        </div>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              `;
+            }
+            
+            console.log(`✅ ${title} section updated with ${data.length} items`);
+          } else {
+            console.log(`❌ Content area not found for ${title} section`);
+          }
+        } else {
+          console.log(`❌ Section ${id} not found`);
+        }
+      });
+      
+      console.log("✅ All existing sections updated successfully");
+    }
     
-    elitesSection.appendChild(elitesSubtitle);
-    elitesSection.appendChild(elitesContent);
+    // Function to completely rebuild paginated sections
+    function rebuildPaginatedSections() {
+      console.log("🔧 Rebuilding paginated sections from scratch...");
+      
+      // Get the subtitles container (try multiple selectors)
+      let subtitlesContainer = document.querySelector('#subtitles-container');
+      if (!subtitlesContainer) {
+        subtitlesContainer = document.querySelector('.subtitles-container');
+      }
+      if (!subtitlesContainer) {
+        // If still not found, search for any container with the sections
+        const elitesSection = document.getElementById('elites');
+        if (elitesSection) {
+          subtitlesContainer = elitesSection.parentElement;
+        }
+      }
+      
+      if (!subtitlesContainer) {
+        console.log("❌ Subtitles container not found");
+        return;
+      }
+      
+      console.log("✅ Found subtitles container:", subtitlesContainer);
+      
+      // Remove existing sections
+      const existingSections = subtitlesContainer.querySelectorAll('#elites, #special-citizens, #special-soldiers');
+      existingSections.forEach(section => {
+        console.log(`🗑️ Removing existing section: ${section.id}`);
+        section.remove();
+      });
+      
+      // Recreate sections with current data
+      console.log("🔧 Creating new sections...");
+      const elitesSection = createPaginatedSection("Elites", () => window.Elites || [], "elites");
+      const specialCitizensSection = createPaginatedSection("Special Citizens", () => window.SpecialCitizens || [], "special-citizens");
+      const specialSoldiersSection = createPaginatedSection("Special Soldiers", () => window.SpecialSoldiers || [], "special-soldiers");
 
-    // Special Citizens section
-    const specialCitizensSection = document.createElement("div");
-    specialCitizensSection.style.width = "100%";
+      subtitlesContainer.appendChild(elitesSection);
+      subtitlesContainer.appendChild(specialCitizensSection);
+      subtitlesContainer.appendChild(specialSoldiersSection);
+      
+      console.log("✅ Paginated sections rebuilt successfully");
+      console.log("📊 Current data after rebuild:", { 
+        elites: window.Elites ? window.Elites.length : 0, 
+        citizens: window.SpecialCitizens ? window.SpecialCitizens.length : 0, 
+        soldiers: window.SpecialSoldiers ? window.SpecialSoldiers.length : 0 
+      });
+    }
     
-    const specialCitizensSubtitle = document.createElement("div");
-    specialCitizensSubtitle.style.fontWeight = "bold";
-    specialCitizensSubtitle.style.fontSize = "1.1em";
-    specialCitizensSubtitle.style.color = "#333";
-    specialCitizensSubtitle.style.marginBottom = "5px";
-    specialCitizensSubtitle.textContent = "Special Citizens";
-    
-    const specialCitizensContent = document.createElement("div");
-    specialCitizensContent.style.color = "#666";
-    specialCitizensContent.style.fontStyle = "italic";
-    specialCitizensContent.textContent = "Coming soon...";
-    
-    specialCitizensSection.appendChild(specialCitizensSubtitle);
-    specialCitizensSection.appendChild(specialCitizensContent);
+    // Add event listener for data updates
+    document.addEventListener('dataUpdated', (event) => {
+      console.log("📡 Data update event received:", event.detail);
+      
+      // Force re-render of all paginated sections
+      const sections = ['elites', 'special-citizens', 'special-soldiers'];
+      sections.forEach(sectionId => {
+        const section = document.getElementById(sectionId);
+        if (section) {
+          const searchInput = section.querySelector('input[type="text"]');
+          if (searchInput) {
+            console.log(`🔄 Force updating ${sectionId} section`);
+            searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        }
+      });
+    });
 
-    // SpecialSoldiers section
-    const specialSoldiersSection = document.createElement("div");
-    specialSoldiersSection.style.width = "100%";
+    // Helper function to create paginated section
+    function createPaginatedSection(title, dataFunction, containerId) {
+      const section = document.createElement("div");
+      // ensure section has a stable id so updates find it
+      section.id = containerId;
+      section.style.width = "100%";
+      section.style.marginBottom = "20px";
+      
+      const subtitle = document.createElement("div");
+      subtitle.style.fontWeight = "bold";
+      subtitle.style.fontSize = "1.1em";
+      subtitle.style.color = "#333";
+      subtitle.style.marginBottom = "10px";
+      subtitle.textContent = title;
+      
+      // Search input
+      const searchContainer = document.createElement("div");
+      searchContainer.style.marginBottom = "10px";
+      searchContainer.style.display = "flex";
+      searchContainer.style.gap = "10px";
+      searchContainer.style.alignItems = "center";
+      
+      const searchInput = document.createElement("input");
+      searchInput.type = "text";
+      searchInput.placeholder = `Search ${title.toLowerCase()}...`;
+      searchInput.style.padding = "5px";
+      searchInput.style.border = "1px solid #ccc";
+      searchInput.style.borderRadius = "3px";
+      searchInput.style.flex = "1";
+      
+      const sortBtn = document.createElement("button");
+      sortBtn.textContent = "Sort by Name";
+      sortBtn.className = "btn btn-blue";
+      sortBtn.style.fontSize = "0.9em";
+      sortBtn.style.padding = "5px 10px";
+      
+      searchContainer.appendChild(searchInput);
+      searchContainer.appendChild(sortBtn);
+      
+      // Content area
+      const contentArea = document.createElement("div");
+      contentArea.id = `${containerId}-content`;
+      contentArea.style.minHeight = "100px";
+      contentArea.style.border = "1px solid #ddd";
+      contentArea.style.borderRadius = "5px";
+      contentArea.style.padding = "10px";
+      contentArea.style.backgroundColor = "#f9f9f9";
+      
+      // Pagination
+      const paginationContainer = document.createElement("div");
+      paginationContainer.id = `${containerId}-pagination`;
+      paginationContainer.style.display = "flex";
+      paginationContainer.style.justifyContent = "center";
+      paginationContainer.style.gap = "10px";
+      paginationContainer.style.marginTop = "10px";
+      paginationContainer.style.alignItems = "center";
+      
+      const itemsPerPage = 5;
+      let currentPage = 1;
+      let filteredData = [];
+      let sortedData = [];
+      
+      function renderContent() {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const pageData = sortedData.slice(startIndex, endIndex);
+        
+        if (pageData.length === 0) {
+          contentArea.innerHTML = `<div style="text-align: center; color: #666; font-style: italic;">No ${title.toLowerCase()} found</div>`;
+        } else {
+          // Use the same card format as pack opening
+          contentArea.innerHTML = `
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; justify-items: center; align-items: start;">
+              ${pageData.map(unit => {
+                const cardColor = unit.type === 'Elite' ? '#ffd700' : '#c0c0c0';
+                const cardBorder = unit.type === 'Elite' ? '#b8860b' : '#808080';
+                const imageBg = unit.type === 'Elite' ? '#b8860b' : '#808080';
+                const imageBorder = unit.type === 'Elite' ? '#996f00' : '#666';
+                
+                // Determine image path
+                let imagePath = '';
+                if (unit.img) {
+                  imagePath = `src/Population/${unit.img}`;
+                } else {
+                  imagePath = `src/Population/${unit.type}/${unit.name || 'default'}.png`;
+                }
+                
+                return `
+                  <div class="unit-card" style="
+                    background: linear-gradient(135deg, ${cardColor}, ${cardColor}dd);
+                    border: 2px solid ${cardBorder};
+                    border-radius: 12px;
+                    padding: 15px;
+                    text-align: center;
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                    height: 280px;
+                    position: relative;
+                    width: 160px;
+                    margin: 0 auto;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                  ">
+                    <!-- Card Type (top left) -->
+                    <div style="
+                      position: absolute;
+                      top: 8px;
+                      left: 8px;
+                      font-size: 10px;
+                      font-weight: bold;
+                      color: #333;
+                      background: rgba(255,255,255,0.9);
+                      padding: 3px 8px;
+                      border-radius: 4px;
+                      border: 1px solid rgba(0,0,0,0.2);
+                    ">${unit.type === 'Elite' ? 'Elite' : unit.type === 'SpecialCitizen' ? 'Special Citizen' : 'Special Soldier'}</div>
+                    
+                    
+                    
+                    <!-- Card Name -->
+                    <div style="
+                      font-weight: bold;
+                      font-size: 16px;
+                      margin: 30px 0 0 0;
+                      color: #333;
+                      text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+                      height: 48px;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      text-align: center;
+                      line-height: 1.2;
+                    ">${unit.name || 'Mystery Unit'}</div>
+                    
+                    <!-- Image -->
+                    <div style="
+                      width: 120px;
+                      height: 120px;
+                      background: ${imageBg};
+                      border-radius: 10px;
+                      margin: 10px auto;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      border: 3px solid ${imageBorder};
+                      overflow: hidden;
+                      position: relative;
+                      flex-shrink: 0;
+                    ">
+                      <img src="${imagePath}" 
+                           style="width: 100%; height: 100%; object-fit: cover; border-radius: 7px;"
+                           onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                      <div style="
+                        width: 100%;
+                        height: 100%;
+                        display: none;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 32px;
+                        color: rgba(255,255,255,0.8);
+                        background: linear-gradient(45deg, ${imageBg}80, ${imageBg}40);
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                      ">🎴</div>
+                    </div>
+                    
+                    <!-- Bottom section with fixed height -->
+                    <div style="
+                      display: flex;
+                      flex-direction: column;
+                      justify-content: space-between;
+                      height: 80px;
+                    ">
+                      <!-- Quantity or Level -->
+                      <div style="
+                        font-size: 13px;
+                        color: #ffd700;
+                        font-weight: bold;
+                        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+                        height: 20px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                      ">${unit.type === 'Elite' ? `Level: ${unit.Level || 1}` : `Quantity: ${unit.Quantity || 1}`}</div>
+                      
+                      <!-- Description -->
+                      <div style="
+                        font-size: 11px;
+                        color: #555;
+                        line-height: 1.4;
+                        text-align: left;
+                        height: 60px;
+                        overflow: hidden;
+                        display: -webkit-box;
+                        -webkit-line-clamp: 4;
+                        -webkit-box-orient: vertical;
+                      ">${unit.desc || 'No description available'}</div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `;
+        }
+        
+        renderPagination();
+      }
+      
+      function renderPagination() {
+        const totalPages = Math.ceil(sortedData.length / itemsPerPage);
+        
+        if (totalPages <= 1) {
+          paginationContainer.innerHTML = '';
+          return;
+        }
+        
+        // Use the advanced pagination system
+        createPaginationBar({
+          currentPage: currentPage,
+          totalPages: totalPages,
+          container: paginationContainer,
+          onPageChange: (newPage) => {
+            currentPage = newPage;
+            renderContent();
+          },
+          itemsPerPage: itemsPerPage,
+          showGoToPage: true
+        });
+      }
+      
+      // Search functionality
+      searchInput.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        const currentData = dataFunction();
+        filteredData = currentData.filter(item => 
+          (item.name && item.name.toLowerCase().includes(searchTerm)) ||
+          (item.desc && item.desc.toLowerCase().includes(searchTerm))
+        );
+        sortedData = [...filteredData];
+        currentPage = 1;
+        renderContent();
+      });
+      
+      // Sort functionality
+      let sortAscending = true;
+      sortBtn.addEventListener('click', () => {
+        sortAscending = !sortAscending;
+        sortedData.sort((a, b) => {
+          const nameA = (a.name || '').toLowerCase();
+          const nameB = (b.name || '').toLowerCase();
+          return sortAscending ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+        });
+        sortBtn.textContent = sortAscending ? "Sort by Name ▲" : "Sort by Name ▼";
+        currentPage = 1;
+        renderContent();
+      });
+      
+      // Initialize data
+      function initializeData() {
+        const currentData = dataFunction();
+        filteredData = [...currentData];
+        sortedData = [...currentData];
+        currentPage = 1;
+        renderContent();
+      }
+      
+      // Initial render
+      initializeData();
+      
+      section.appendChild(subtitle);
+      section.appendChild(searchContainer);
+      section.appendChild(contentArea);
+      section.appendChild(paginationContainer);
+      
+      return section;
+    }
     
-    const specialSoldiersSubtitle = document.createElement("div");
-    specialSoldiersSubtitle.style.fontWeight = "bold";
-    specialSoldiersSubtitle.style.fontSize = "1.1em";
-    specialSoldiersSubtitle.style.color = "#333";
-    specialSoldiersSubtitle.style.marginBottom = "5px";
-    specialSoldiersSubtitle.textContent = "SpecialSoldiers";
-    
-    const specialSoldiersContent = document.createElement("div");
-    specialSoldiersContent.style.color = "#666";
-    specialSoldiersContent.style.fontStyle = "italic";
-    specialSoldiersContent.textContent = "Coming soon...";
-    
-    specialSoldiersSection.appendChild(specialSoldiersSubtitle);
-    specialSoldiersSection.appendChild(specialSoldiersContent);
+    // Create paginated sections - use functions that return current data
+    const elitesSection = createPaginatedSection("Elites", () => window.Elites || [], "elites");
+    const specialCitizensSection = createPaginatedSection("Special Citizens", () => window.SpecialCitizens || [], "special-citizens");
+    const specialSoldiersSection = createPaginatedSection("Special Soldiers", () => window.SpecialSoldiers || [], "special-soldiers");
 
     subtitlesContainer.appendChild(elitesSection);
     subtitlesContainer.appendChild(specialCitizensSection);
@@ -10949,6 +12204,7 @@ function renderVillageChief() {
     autoOrderBtn.id = 'autoclick-order-btn';
 
     autoOrderBtn.textContent = 'AssingAutoclickers';
+    autoOrderBtn.title = "1m => -20%Energy+1Exp+1Resource";
 
     autoOrderBtn.className = 'btn btn-green';
 
@@ -10959,6 +12215,7 @@ function renderVillageChief() {
       if (autoAssignStage === 0) {
 
         autoOrderBtn.textContent = 'Enable Autoclick';
+        autoOrderBtn.title = "1m => -20%Energy+1Exp+1Resource";
 
         autoAssignStage = 1;
 
@@ -26792,9 +28049,17 @@ async function resetGameCompletely() {
 
   try {
 
-    // Cargar partida0.json como estado inicial
-    const response = await fetch('partida0.json');
-    if (response.ok) {
+    // Cargar partida0.json como estado inicial (con fallback para producción)
+    let response;
+    try {
+      response = await fetch('partida0.json');
+    } catch {}
+    if (!response || !response.ok) {
+      try {
+        response = await fetch('build-src/partida0.json');
+      } catch {}
+    }
+    if (response && response.ok) {
       const partida0Data = await response.json();
       
       // Validar que el archivo tenga la estructura correcta
@@ -28837,4 +30102,5 @@ function addKeyboardNavigation(container, currentPage, totalPages, onPageChange)
 }
 
 export default api;
+
 

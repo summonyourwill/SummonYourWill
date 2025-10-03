@@ -1,0 +1,26 @@
+[
+  {
+    "id": "Dwarf Blacksmith",
+    "name": "Dwarf Blacksmith",
+    "img": "SpecialCitizens/Dwarf Blacksmith.png",
+    "desc": "Master dwarf craftsman skilled in forging weapons and armor"
+  },
+  {
+    "id": "Dwarf Lumberjack",
+    "name": "Dwarf Lumberjack",
+    "img": "SpecialCitizens/Dwarf Lumberjack.png",
+    "desc": "Hardy dwarf woodsman expert in harvesting and woodworking"
+  },
+  {
+    "id": "Werewolf Miner",
+    "name": "Werewolf Miner",
+    "img": "SpecialCitizens/Werewolf Miner.png",
+    "desc": "Mysterious miner with lycanthropic powers for deep underground work"
+  },
+  {
+    "id": "Dwarf Farmer",
+    "name": "Dwarf Farmer",
+    "img": "SpecialCitizens/Dwarf Farmer.png",
+    "desc": "Mysterious miner with lycanthropic powers for deep underground work"
+  }
+]

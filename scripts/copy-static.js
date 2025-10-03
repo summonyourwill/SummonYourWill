@@ -86,6 +86,8 @@ async function copyFileIfNeeded(src, dest) {
   await copyFileIfNeeded(path.join(projectRoot, 'script.js'), path.join(buildSrcDir, 'script.js'));
   await copyFileIfNeeded(path.join(projectRoot, 'package.json'), path.join(buildSrcDir, 'package.json'));
   await copyFileIfNeeded(path.join(projectRoot, 'index.html'), path.join(buildSrcDir, 'index.html'));
+  // Ensure partida0.json is available beside build-src/index.html for production fetch
+  await copyFileIfNeeded(path.join(projectRoot, 'partida0.json'), path.join(buildSrcDir, 'partida0.json'));
   
   // Copy minigame files
   await copyFile(path.join(projectRoot, 'IdleBossRush.html'), path.join(buildSrcDir, 'idlebossrush.html'));

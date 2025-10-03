@@ -218,3 +218,13 @@ NOTAS IMPORTANTES:
 - La experiencia se gana por héroe asignado
 - Los tiempos se pueden reducir con héroes de mayor nivel
 - Las capacidades se aplican inmediatamente al completar la mejora
+
+12. AUTOCLIC
+------------
+- Intervalo de ciclo: cada 60 segundos.
+- Consumo de energía por héroe activo: 20% por ciclo.
+- Experiencia:
+  - Cada héroe activo gana 1 Exp por ciclo mientras tenga energía > 0.
+  - Además, por ciclo: si el Jefe no está al máximo, gana 1 Exp; de lo contrario, la gana el Compañero.
+- Agotamiento: si un héroe llega a 0% de energía, se detiene y entra en descanso automático.
+- Offline: al volver, se simulan los ciclos transcurridos (se aplican consumo de energía y experiencia por ciclo).

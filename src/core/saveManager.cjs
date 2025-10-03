@@ -61,6 +61,71 @@ function generateUniqueId() {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 
+// Utilidades para imágenes → convertir rutas a base64 (data URL)
+async function pathExists(target) {
+  try { await fs.access(target); return true; } catch (_) { return false; }
+}
+
+function guessMimeByExt(filePath) {
+  const ext = (path.extname(filePath) || '').toLowerCase();
+  if (ext === '.png') return 'image/png';
+  if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
+  if (ext === '.webp') return 'image/webp';
+  if (ext === '.gif') return 'image/gif';
+  return 'application/octet-stream';
+}
+
+async function resolveImageCandidates(img, typeFolder, unitName) {
+  const candidates = [];
+  if (img && typeof img === 'string') {
+    if (/^data:image\//i.test(img)) {
+      // Ya es data URL
+      return { dataUrl: img, tried: [] };
+    }
+    // Si es ruta relativa o absoluta
+    if (path.isAbsolute(img)) {
+      candidates.push(img);
+    } else {
+      candidates.push(path.resolve(__dirname, '../../', img));
+      candidates.push(path.resolve(__dirname, '../', img));
+    }
+  }
+  // Fallbacks por carpeta/tipo y nombre
+  const baseSrcDev = path.resolve(__dirname, '../../src/Population');
+  const baseSrcBuild = path.resolve(__dirname, '../Population');
+  const fileNames = [];
+  if (unitName) fileNames.push(`${unitName}.png`, `${unitName}.jpg`, `${unitName}.jpeg`, `${unitName}.webp`);
+  // Si img venía como nombre simple
+  if (img && !/[/\\]/.test(img)) {
+    fileNames.push(img);
+  }
+  const folders = typeFolder ? [typeFolder, ''] : [''];
+  for (const folder of folders) {
+    for (const fname of fileNames) {
+      candidates.push(path.join(baseSrcDev, folder, fname));
+      candidates.push(path.join(baseSrcBuild, folder, fname));
+    }
+  }
+  return { dataUrl: null, tried: candidates };
+}
+
+async function loadImageAsDataUrl(img, typeFolder, unitName) {
+  try {
+    const res = await resolveImageCandidates(img, typeFolder, unitName);
+    if (res.dataUrl) return res.dataUrl; // ya era base64
+    for (const candidate of res.tried) {
+      if (await pathExists(candidate)) {
+        const buf = await fs.readFile(candidate);
+        const mime = guessMimeByExt(candidate);
+        return `data:${mime};base64,${buf.toString('base64')}`;
+      }
+    }
+  } catch (e) {
+    logger && logger.warn && logger.warn('[saveManager] No se pudo convertir imagen a base64:', e.message);
+  }
+  return '';
+}
+
 // Función para generar archivo heroes.json
 async function generateHeroesFile(heroes, chiefId, chiefObjectId) {
   try {
@@ -100,7 +165,14 @@ async function generatePetsFile(heroes, chiefId, chiefObjectId) {
     const pets = [];
     
     heroes.forEach(hero => {
-      if (hero.pet && hero.pet.trim() !== '') {
+      if (hero && hero.pet && String(hero.pet).trim() !== '') {
+        const {
+          pet, petImg, petLevel, petExp, petOrigin, petFavorite,
+          petResourceType, petPendingCount, petLastCollection,
+          petExploreDay, petDesc,
+          ...ownerRest
+        } = hero;
+
         pets.push({
           // MongoDB generará _id automáticamente
           id_hero: hero.id, // ID del héroe en el juego
@@ -117,11 +189,19 @@ async function generatePetsFile(heroes, chiefId, chiefObjectId) {
           pendingCount: hero.petPendingCount || 0,
           lastCollection: hero.petLastCollection || Date.now(),
           exploreDay: hero.petExploreDay || '',
-          desc: hero.petDesc || ''
+          desc: hero.petDesc || '',
+          // Embed del héroe dueño (resto de datos del héroe)
+          owner_hero: ownerRest
         });
       }
     });
     
+    // Si no hay mascotas, no generar archivo ni sincronizar
+    if (pets.length === 0) {
+      logger.info('ℹ️ No hay mascotas para guardar. No se genera pets.json');
+      return [];
+    }
+
     const petsPath = path.join(SAVE_DIR, 'pets.json');
     await fs.writeFile(petsPath, JSON.stringify(pets, null, 2), 'utf-8');
     logger.info('✅ Archivo pets.json generado en:', petsPath);
@@ -342,6 +422,111 @@ async function generateFamiliarsFile(familiars, chiefId, chiefObjectId) {
   }
 }
 
+// Función para generar archivo Elites.json
+async function generateElitesFile(elites, chiefId, chiefObjectId) {
+  try {
+    const elitesForJson = await Promise.all((Array.isArray(elites) ? elites : []).map(async elite => {
+      const img64 = await loadImageAsDataUrl(elite.img, 'Elites', elite.name);
+      return {
+        id: elite.id ?? elite.name,
+        name: elite.name,
+        img: elite.img,
+        img64,
+        desc: elite.desc,
+        level_quantity: elite.Level ?? elite.level_quantity ?? 1
+      };
+    }));
+    
+    const elitesPath = path.join(SAVE_DIR, 'Elites.json');
+    await fs.writeFile(elitesPath, JSON.stringify(elitesForJson, null, 2), 'utf-8');
+    logger.info('✅ Archivo Elites.json generado en:', elitesPath);
+    
+    // Sincronizar con MongoDB usando los datos con chief_id correcto
+    try {
+      const { upsertElites } = require('../main/repos/elitesRepo.cjs');
+      await upsertElites(elitesForJson);
+      logger.info(`[MongoDB] ✅ ${elitesForJson.length} elites sincronizados con MongoDB`);
+    } catch (mongoError) {
+      logger.warn('[MongoDB] Error sincronizando elites:', mongoError.message);
+    }
+    
+    return elitesForJson;
+  } catch (error) {
+    logger.error('❌ Error al generar Elites.json:', error);
+    return elites;
+  }
+}
+
+// Función para generar archivo SpecialSoldiers.json
+async function generateSpecialSoldiersFile(specialSoldiers, chiefId, chiefObjectId) {
+  try {
+    const specialSoldiersForJson = await Promise.all((Array.isArray(specialSoldiers) ? specialSoldiers : []).map(async soldier => {
+      const img64 = await loadImageAsDataUrl(soldier.img, 'SpecialSoldiers', soldier.name);
+      return {
+        id: soldier.id ?? soldier.name,
+        name: soldier.name,
+        img: soldier.img,
+        img64,
+        desc: soldier.desc,
+        level_quantity: soldier.Quantity ?? soldier.level_quantity ?? 1
+      };
+    }));
+    
+    const specialSoldiersPath = path.join(SAVE_DIR, 'SpecialSoldiers.json');
+    await fs.writeFile(specialSoldiersPath, JSON.stringify(specialSoldiersForJson, null, 2), 'utf-8');
+    logger.info('✅ Archivo SpecialSoldiers.json generado en:', specialSoldiersPath);
+    
+    // Sincronizar con MongoDB usando los datos con chief_id correcto
+    try {
+      const { upsertSpecialSoldiers } = require('../main/repos/specialSoldiersRepo.cjs');
+      await upsertSpecialSoldiers(specialSoldiersForJson);
+      logger.info(`[MongoDB] ✅ ${specialSoldiersForJson.length} special soldiers sincronizados con MongoDB`);
+    } catch (mongoError) {
+      logger.warn('[MongoDB] Error sincronizando special soldiers:', mongoError.message);
+    }
+    
+    return specialSoldiersForJson;
+  } catch (error) {
+    logger.error('❌ Error al generar SpecialSoldiers.json:', error);
+    return specialSoldiers;
+  }
+}
+
+// Función para generar archivo SpecialCitizens.json
+async function generateSpecialCitizensFile(specialCitizens, chiefId, chiefObjectId) {
+  try {
+    const specialCitizensForJson = await Promise.all((Array.isArray(specialCitizens) ? specialCitizens : []).map(async citizen => {
+      const img64 = await loadImageAsDataUrl(citizen.img, 'SpecialCitizens', citizen.name);
+      return {
+        id: citizen.id ?? citizen.name,
+        name: citizen.name,
+        img: citizen.img,
+        img64,
+        desc: citizen.desc,
+        level_quantity: citizen.Quantity ?? citizen.level_quantity ?? 1
+      };
+    }));
+    
+    const specialCitizensPath = path.join(SAVE_DIR, 'SpecialCitizens.json');
+    await fs.writeFile(specialCitizensPath, JSON.stringify(specialCitizensForJson, null, 2), 'utf-8');
+    logger.info('✅ Archivo SpecialCitizens.json generado en:', specialCitizensPath);
+    
+    // Sincronizar con MongoDB usando los datos con chief_id correcto
+    try {
+      const { upsertSpecialCitizens } = require('../main/repos/specialCitizensRepo.cjs');
+      await upsertSpecialCitizens(specialCitizensForJson);
+      logger.info(`[MongoDB] ✅ ${specialCitizensForJson.length} special citizens sincronizados con MongoDB`);
+    } catch (mongoError) {
+      logger.warn('[MongoDB] Error sincronizando special citizens:', mongoError.message);
+    }
+    
+    return specialCitizensForJson;
+  } catch (error) {
+    logger.error('❌ Error al generar SpecialCitizens.json:', error);
+    return specialCitizens;
+  }
+}
+
 async function ensureSaveDir() {
   try {
     await fs.mkdir(SAVE_DIR, { recursive: true });
@@ -408,10 +593,17 @@ async function saveGame(data) {
     // Generar archivos adicionales usando el chiefId
     if (data.heroes && Array.isArray(data.heroes)) {
       const heroesWithIds = await generateHeroesFile(data.heroes, chiefId, chiefObjectId);
-      
-      // Generar pets.json usando los heroes con IDs
-      if (data.heroes.some(h => h.pet && h.pet.trim() !== '')) {
-        await generatePetsFile(heroesWithIds, chiefId, chiefObjectId);
+
+      // Mapear ObjectId de los héroes insertados a los héroes originales para no perder campos (como pet)
+      const idToObjectId = new Map();
+      (Array.isArray(heroesWithIds) ? heroesWithIds : []).forEach(h => {
+        if (h && typeof h.id !== 'undefined') idToObjectId.set(h.id, h._id);
+      });
+      const heroesForPets = data.heroes.map(h => ({ ...h, _id: idToObjectId.get(h.id) || h._id }));
+
+      // Generar pets.json solo si hay héroes con mascota
+      if (heroesForPets.some(h => h && h.pet && String(h.pet).trim() !== '')) {
+        await generatePetsFile(heroesForPets, chiefId, chiefObjectId);
       }
     }
     
@@ -428,6 +620,21 @@ async function saveGame(data) {
     // Generar familiars.json
     if (data.villageChief && data.villageChief.familiars && Array.isArray(data.villageChief.familiars)) {
       await generateFamiliarsFile(data.villageChief.familiars, chiefId, chiefObjectId);
+    }
+    
+    // Generar Elites.json
+    if (data.Elites && Array.isArray(data.Elites)) {
+      await generateElitesFile(data.Elites, chiefId, chiefObjectId);
+    }
+    
+    // Generar SpecialSoldiers.json
+    if (data.SpecialSoldiers && Array.isArray(data.SpecialSoldiers)) {
+      await generateSpecialSoldiersFile(data.SpecialSoldiers, chiefId, chiefObjectId);
+    }
+    
+    // Generar SpecialCitizens.json
+    if (data.SpecialCitizens && Array.isArray(data.SpecialCitizens)) {
+      await generateSpecialCitizensFile(data.SpecialCitizens, chiefId, chiefObjectId);
     }
     
     if (mongoAvailable) {
@@ -449,7 +656,19 @@ async function loadGame(defaultData = {}) {
     return JSON.parse(data);
   } catch (error) {
     if (error.code === 'ENOENT') {
-      logger.warn('⚠️ No se encontró una partida previa. Usando datos por defecto.');
+      logger.warn('⚠️ No se encontró save.json. Intentando cargar partida0.json como respaldo...');
+      
+      // Intentar cargar partida0.json como respaldo
+      try {
+        const partida0Path = path.join(__dirname, '../../partida0.json');
+        const backupData = await fs.readFile(partida0Path, 'utf-8');
+        logger.info('✅ Partida de respaldo cargada desde:', partida0Path);
+        return JSON.parse(backupData);
+      } catch (backupError) {
+        logger.warn('⚠️ No se pudo cargar partida0.json. Usando datos por defecto.');
+        logger.error('Error al cargar partida0.json:', backupError);
+        return defaultData;
+      }
     } else {
       logger.error('❌ Error al cargar partida:', error);
       if (error.name === 'SyntaxError') {
@@ -461,8 +680,18 @@ async function loadGame(defaultData = {}) {
           logger.error('❌ Error al renombrar archivo corrupto:', renameErr);
         }
       }
+      
+      // Si hay error de sintaxis, también intentar cargar partida0.json
+      try {
+        const partida0Path = path.join(__dirname, '../../partida0.json');
+        const backupData = await fs.readFile(partida0Path, 'utf-8');
+        logger.info('✅ Cargando partida0.json como respaldo tras error de sintaxis');
+        return JSON.parse(backupData);
+      } catch (backupError) {
+        logger.warn('⚠️ No se pudo cargar partida0.json como respaldo. Usando datos por defecto.');
+        return defaultData;
+      }
     }
-    return defaultData;
   }
 }
 

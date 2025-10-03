@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎴 Card Visualizations</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        * {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        
+        .visualization-container {
+            max-width: 1600px;
+            width: 100%;
+        }
+        
+        
+        .cards-row {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        .visualization-card {
+            width: 200px;
+            height: 320px;
+            border-radius: 15px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: all 0.6s ease;
+            cursor: default;
+            animation: cardAppear 0.8s ease-out;
+            animation-fill-mode: both;
+        }
+        
+        .visualization-card-level-quantity {
+            text-align: center;
+            margin: 8px 0;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #ffd700;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+            flex-shrink: 0;
+        }
+        
+        .visualization-card:nth-child(1) { animation-delay: 0.1s; }
+        .visualization-card:nth-child(2) { animation-delay: 0.2s; }
+        .visualization-card:nth-child(3) { animation-delay: 0.3s; }
+        .visualization-card:nth-child(4) { animation-delay: 0.4s; }
+        .visualization-card:nth-child(5) { animation-delay: 0.5s; }
+        .visualization-card:nth-child(6) { animation-delay: 0.6s; }
+        .visualization-card:nth-child(7) { animation-delay: 0.7s; }
+        
+        .visualization-card:hover {
+            transform: translateY(-15px) rotateY(5deg);
+        }
+        
+        .visualization-card-front, .visualization-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 15px;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+        
+        .visualization-card-back {
+            background: linear-gradient(145deg, #2c3e50, #34495e);
+            border: 3px solid #1a252f;
+            transform: rotateY(180deg);
+        }
+        
+        .visualization-card-front {
+            background: linear-gradient(145deg, #95a5a6, #7f8c8d);
+            border: 3px solid #5d6d7e;
+            color: white;
+        }
+        
+        .visualization-card.rare .visualization-card-front {
+            background: linear-gradient(145deg, #f39c12, #e67e22);
+            border: 3px solid #d68910;
+            animation: rareGlow 2s ease-in-out infinite;
+        }
+        
+        .visualization-card-content {
+            padding: 15px 20px 20px 20px;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .visualization-card-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+            flex-shrink: 0;
+            height: 2.4em;
+            line-height: 1.2;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .visualization-card-image {
+            width: 80%;
+            aspect-ratio: 1;
+            background: linear-gradient(145deg, #34495e, #2c3e50);
+            border: 2px solid #1a252f;
+            border-radius: 8px;
+            margin: 0 auto 15px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #7f8c8d;
+            font-size: 0.8rem;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        
+        .visualization-card-image::before {
+            content: "🖼️";
+            font-size: 1.5rem;
+            opacity: 0.5;
+        }
+        
+        .visualization-card.rare .visualization-card-image {
+            background: linear-gradient(145deg, #f39c12, #e67e22);
+            border-color: #d68910;
+            color: #fff;
+        }
+        
+        .visualization-card.rare .visualization-card-image::before {
+            content: "✨";
+            opacity: 0.8;
+        }
+        
+        .visualization-card-type {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-top: auto;
+            text-align: center;
+            height: 2.7em;
+            line-height: 0.9;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        
+        @media (max-width: 768px) {
+            .cards-row {
+                gap: 15px;
+            }
+            
+            .visualization-card {
+                width: 150px;
+                height: 240px;
+            }
+            
+        }
+    </style>
+</head>
+<body>
+    <div class="visualization-container">
+        
+        <div class="cards-row" id="cards-row">
+            <!-- Cards will be generated here -->
+        </div>
+    </div>
+
+    <script>
+        class CardVisualization {
+            constructor() {
+                this.cardNames = [
+                    "Brave Warrior", "Wise Mage", "Elven Archer", "Noble Knight",
+                    "Dark Sorcerer", "Nature Druid", "Sacred Paladin"
+                ];
+                
+                this.rareCardNames = [
+                    "Ancient Dragon", "Reborn Phoenix", "Crystal Titan", "Infernal Demon",
+                    "Celestial Angel", "Abyssal Kraken", "Mystical Unicorn"
+                ];
+                
+                this.cardDescriptions = [
+                    "A powerful warrior with exceptional combat skills and unwavering courage in battle.",
+                    "A mystical spell that harnesses the forces of nature to create devastating magical effects.",
+                    "An ancient artifact imbued with mysterious powers that can alter the course of destiny.",
+                    "A permanent enchantment that bestows magical properties upon creatures or objects.",
+                    "An instant magical effect that can be cast at any time to turn the tide of battle.",
+                    "A legendary creature with unique abilities that can change the entire game strategy.",
+                    "A defensive spell that creates protective barriers and shields against enemy attacks."
+                ];
+                
+                this.generateVisualizationCards();
+            }
+            
+            generateVisualizationCards() {
+                const cardsRow = document.getElementById('cards-row');
+                
+                for (let i = 0; i < 7; i++) {
+                    const isRare = i >= 4; // Last 3 cards are rare
+                    const card = this.createVisualizationCard(isRare, i);
+                    cardsRow.appendChild(card);
+                }
+            }
+            
+            createVisualizationCard(isRare, index) {
+                const card = document.createElement('div');
+                card.className = `visualization-card ${isRare ? 'rare' : ''}`;
+                
+                const cardName = isRare 
+                    ? this.rareCardNames[index - 4]
+                    : this.cardNames[index];
+                
+                const cardDescription = this.cardDescriptions[index];
+                
+                const levelOrQuantity = isRare ? `Level: ${Math.floor(Math.random() * 10) + 1}` : `Quantity: ${Math.floor(Math.random() * 99) + 1}`;
+                
+                card.innerHTML = `
+                    <div class="visualization-card-front">
+                        <div class="visualization-card-content">
+                            <div class="visualization-card-name">${cardName}</div>
+                            <div class="visualization-card-image"></div>
+                            <div class="visualization-card-level-quantity">${levelOrQuantity}</div>
+                            <div class="visualization-card-type">${cardDescription}</div>
+                        </div>
+                    </div>
+                    <div class="visualization-card-back"></div>
+                `;
+                
+                // Cards are no longer clickable for flipping
+                
+                return card;
+            }
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new CardVisualization();
+        });
+    </script>
+</body>
+</html>

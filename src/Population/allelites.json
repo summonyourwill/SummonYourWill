@@ -1,0 +1,200 @@
+[
+  {
+    "id": "Epic Wizard Casting",
+    "name": "Epic Wizard Casting",
+    "img": "Elites/20250807_1425_Epic Wizard Casting_simple_compose_01k22wfpwmfer8gvyjh7g9hbvw-128x128.png",
+    "desc": "Legendary wizard capable of casting the most powerful spells"
+  },
+  {
+    "id": "AirBender",
+    "name": "AirBender",
+    "img": "Elites/AirBender.png",
+    "desc": "Master of air manipulation and wind-based martial arts"
+  },
+  {
+    "id": "Archer RabbitOwner",
+    "name": "Archer RabbitOwner",
+    "img": "Elites/Archer RabbitOwner.png",
+    "desc": "Skilled archer with a loyal rabbit companion"
+  },
+  {
+    "id": "ArtDancer CatOwner",
+    "name": "ArtDancer CatOwner",
+    "img": "Elites/ArtDancer CatOwner.png",
+    "desc": "Graceful dancer and artist with a mystical cat companion"
+  },
+  {
+    "id": "ArtDancer RopeExpert",
+    "name": "ArtDancer RopeExpert",
+    "img": "Elites/ArtDancer RopeExpert.png",
+    "desc": "Acrobatic dancer specialized in rope techniques and performance"
+  },
+  {
+    "id": "ArtDancer WindWarrior",
+    "name": "ArtDancer WindWarrior",
+    "img": "Elites/ArtDancer WindWarrior.png",
+    "desc": "Dancer warrior who channels wind magic through movement"
+  },
+  {
+    "id": "BudgieOwner Lancer",
+    "name": "BudgieOwner Lancer",
+    "img": "Elites/BudgieOwner Lancer.png",
+    "desc": "Noble lancer with a colorful budgie companion"
+  },
+  {
+    "id": "Chef & Rat Duo",
+    "name": "Chef & Rat Duo",
+    "img": "Elites/Chef & Rat Duo.png",
+    "desc": "Unlikely culinary duo of a master chef and his rat assistant"
+  },
+  {
+    "id": "Cyclist and Dog Duo",
+    "name": "Cyclist and Dog Duo",
+    "img": "Elites/Cyclist and Dog Duo.png",
+    "desc": "Adventurous cyclist and his faithful dog companion"
+  },
+  {
+    "id": "EarthBender",
+    "name": "EarthBender",
+    "img": "Elites/EarthBender.png",
+    "desc": "Master of earth manipulation and stone-based combat"
+  },
+  {
+    "id": "Fairy Performer",
+    "name": "Fairy Performer",
+    "img": "Elites/Fairy Performer.png",
+    "desc": "Enchanting fairy with magical performance abilities"
+  },
+  {
+    "id": "Father Fisherman",
+    "name": "Father Fisherman",
+    "img": "Elites/Father Fisherman.png",
+    "desc": "Wise fisherman father with deep knowledge of the seas"
+  },
+  {
+    "id": "FireBender",
+    "name": "FireBender",
+    "img": "Elites/FireBender.png",
+    "desc": "Master of fire manipulation and flame-based martial arts"
+  },
+  {
+    "id": "GoldRanger",
+    "name": "GoldRanger",
+    "img": "Elites/GoldRanger.png",
+    "desc": "Elite ranger clad in golden armor with legendary status"
+  },
+  {
+    "id": "Griffindor Master",
+    "name": "Griffindor Master",
+    "img": "Elites/Griffindor Master.png",
+    "desc": "Master wizard from Gryffindor house with courage and bravery"
+  },
+  {
+    "id": "GroupLider Swordman",
+    "name": "GroupLider Swordman",
+    "img": "Elites/GroupLider Swordman.png",
+    "desc": "Experienced swordsman and natural leader of warrior groups"
+  },
+  {
+    "id": "GymTeacher Traveler",
+    "name": "GymTeacher Traveler",
+    "img": "Elites/GymTeacher Traveler.png",
+    "desc": "Adventurous gym teacher who travels the world seeking challenges"
+  },
+  {
+    "id": "HappyPrince",
+    "name": "HappyPrince",
+    "img": "Elites/HappyPrince.png",
+    "desc": "Joyful prince known for spreading happiness and kindness"
+  },
+  {
+    "id": "Hufflepuff Master",
+    "name": "Hufflepuff Master",
+    "img": "Elites/Hufflepuff Master.png",
+    "desc": "Master wizard from Hufflepuff house with loyalty and dedication"
+  },
+  {
+    "id": "LegendaryBirds Owner",
+    "name": "LegendaryBirds Owner",
+    "img": "Elites/LegendaryBirds Owner.png",
+    "desc": "Mysterious figure who commands legendary bird creatures"
+  },
+  {
+    "id": "Magical Yoga Biology Professor",
+    "name": "Magical Yoga Biology Professor",
+    "img": "Elites/Magical Yoga Biology Professor.png",
+    "desc": "Professor who combines yoga, biology, and magic in unique ways"
+  },
+  {
+    "id": "MagicalCard Warrior",
+    "name": "MagicalCard Warrior",
+    "img": "Elites/MagicalCard Warrior.png",
+    "desc": "Warrior who fights using magical cards and summoning techniques"
+  },
+  {
+    "id": "Muscular FairyOddParent",
+    "name": "Muscular FairyOddParent",
+    "img": "Elites/Muscular FairyOddParent.png",
+    "desc": "Unconventional fairy parent with surprising physical strength"
+  },
+  {
+    "id": "NurseBartender CatOwner",
+    "name": "NurseBartender CatOwner",
+    "img": "Elites/NurseBartender CatOwner.png",
+    "desc": "Dual-profession hero: nurse by day, bartender by night, with a cat"
+  },
+  {
+    "id": "Ophthalmologist Mother",
+    "name": "Ophthalmologist Mother",
+    "img": "Elites/Ophthalmologist Mother.png",
+    "desc": "Mother-daughter team of magical eye specialists"
+  },
+  {
+    "id": "ParakeetsOwner Ninja",
+    "name": "ParakeetsOwner Ninja",
+    "img": "Elites/ParakeetsOwner Ninja.png",
+    "desc": "Stealthy ninja with a flock of trained parakeets"
+  },
+  {
+    "id": "Ravenclaw Master",
+    "name": "Ravenclaw Master",
+    "img": "Elites/Ravenclaw Master.png",
+    "desc": "Master wizard from Ravenclaw house with wisdom and intelligence"
+  },
+  {
+    "id": "Slytherin Master",
+    "name": "Slytherin Master",
+    "img": "Elites/Slytherin Master.png",
+    "desc": "Master wizard from Slytherin house with ambition and cunning"
+  },
+  {
+    "id": "Smash Master",
+    "name": "Smash Master",
+    "img": "Elites/Smash Master.png",
+    "desc": "Champion fighter known for devastating smash attacks"
+  },
+  {
+    "id": "SwordArtOnline Swordman",
+    "name": "SwordArtOnline Swordman",
+    "img": "Elites/SwordArtOnline Swordman.png",
+    "desc": "Virtual reality swordsman from the Sword Art Online universe"
+  },
+  {
+    "id": "Tuxedo Mask",
+    "name": "Tuxedo Mask",
+    "img": "Elites/Tuxedo Mask.png",
+    "desc": "Mysterious masked hero in elegant tuxedo attire"
+  },
+  {
+    "id": "WaterBender SwordMan",
+    "name": "WaterBender SwordMan",
+    "img": "Elites/WaterBender SwordMan.png",
+    "desc": "Master of water manipulation who wields a magical sword"
+  },
+  {
+    "id": "Yugioh Hero",
+    "name": "Yugioh Hero",
+    "img": "Elites/Yugioh Hero.png",
+    "desc": "Legendary duelist from the Yu-Gi-Oh universe with powerful cards"
+  }
+]

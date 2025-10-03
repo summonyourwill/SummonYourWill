@@ -1,0 +1,514 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    min-height: 100vh;
+    overflow-x: hidden;
+    color: white;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+h1 {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    background: linear-gradient(45deg, #ffd700, #ffed4e);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.stats {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+.stat {
+    background: rgba(255,255,255,0.1);
+    padding: 15px 25px;
+    border-radius: 15px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.2);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.9rem;
+    opacity: 0.8;
+    margin-bottom: 5px;
+}
+
+.stat span:last-child {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #ffd700;
+}
+
+.pack-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 50px;
+}
+
+.pack {
+    width: 300px;
+    height: 400px;
+    position: relative;
+    perspective: 1000px;
+    margin-bottom: 30px;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.pack:hover {
+    transform: translateY(-10px);
+}
+
+.pack-front, .pack-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 20px;
+    backface-visibility: hidden;
+    transition: transform 0.8s ease;
+}
+
+.pack-front {
+    background: linear-gradient(145deg, #8B4513, #A0522D);
+    border: 3px solid #654321;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.pack-glow {
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(255,215,0,0.3), transparent);
+    animation: packGlow 3s linear infinite;
+}
+
+@keyframes packGlow {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.pack-content h2 {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+    color: #ffd700;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+    z-index: 1;
+}
+
+.pack-content p {
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+    z-index: 1;
+}
+
+.pack-stars {
+    font-size: 2rem;
+    z-index: 1;
+    animation: twinkle 2s ease-in-out infinite;
+}
+
+@keyframes twinkle {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.pack-back {
+    background: linear-gradient(145deg, #654321, #8B4513);
+    border: 3px solid #4a2c17;
+    transform: rotateY(180deg);
+}
+
+.pack.opened .pack-front {
+    transform: rotateY(-180deg);
+}
+
+.pack.opened .pack-back {
+    transform: rotateY(0deg);
+}
+
+.open-pack-btn {
+    background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+    border: none;
+    padding: 15px 40px;
+    border-radius: 50px;
+    color: white;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.open-pack-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+}
+
+.open-pack-btn:active {
+    transform: translateY(0);
+}
+
+.btn-glow {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    transition: left 0.5s ease;
+}
+
+.open-pack-btn:hover .btn-glow {
+    left: 100%;
+}
+
+.cards-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 30px;
+    min-height: 300px;
+}
+
+.card {
+    width: 200px;
+    height: 320px;
+    border-radius: 15px;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: all 0.6s ease;
+    cursor: default;
+    margin: 0 auto;
+    animation: cardAppear 0.8s ease-out;
+}
+
+.card-level-quantity {
+    text-align: center;
+    margin: 8px 0;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #ffd700;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+    flex-shrink: 0;
+}
+
+@keyframes cardAppear {
+    0% {
+        opacity: 0;
+        transform: translateY(50px) rotateX(90deg);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) rotateX(0deg);
+    }
+}
+
+.card:hover {
+    transform: translateY(-10px) rotateY(5deg);
+}
+
+.card-front, .card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 15px;
+    backface-visibility: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+}
+
+.card-back {
+    background: linear-gradient(145deg, #2c3e50, #34495e);
+    border: 3px solid #1a252f;
+    transform: rotateY(180deg);
+}
+
+.card-front {
+    background: linear-gradient(145deg, #95a5a6, #7f8c8d);
+    border: 3px solid #5d6d7e;
+    color: white;
+}
+
+.card.rare .card-front {
+    background: linear-gradient(145deg, #f39c12, #e67e22);
+    border: 3px solid #d68910;
+    animation: rareGlow 2s ease-in-out infinite;
+}
+
+@keyframes rareGlow {
+    0%, 100% { box-shadow: 0 8px 25px rgba(243, 156, 18, 0.4); }
+    50% { box-shadow: 0 8px 35px rgba(243, 156, 18, 0.8); }
+}
+
+.card.rare .card-front::before {
+    content: '✨';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 1.5rem;
+    animation: sparkle 1s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.2); }
+}
+
+.card-content {
+    padding: 15px 20px 20px 20px;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.card-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 15px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+    flex-shrink: 0;
+    height: 2.4em;
+    line-height: 1.2;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.card-image {
+    width: 80%;
+    aspect-ratio: 1;
+    background: linear-gradient(145deg, #34495e, #2c3e50);
+    border: 2px solid #1a252f;
+    border-radius: 8px;
+    margin: 0 auto 15px auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #7f8c8d;
+    font-size: 0.8rem;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.card-image::before {
+    content: "🖼️";
+    font-size: 1.5rem;
+    opacity: 0.5;
+}
+
+.card.rare .card-image {
+    background: linear-gradient(145deg, #f39c12, #e67e22);
+    border-color: #d68910;
+    color: #fff;
+}
+
+.card.rare .card-image::before {
+    content: "✨";
+    opacity: 0.8;
+}
+
+.card-type {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    margin-top: auto;
+    text-align: center;
+    height: 2.7em;
+    line-height: 0.9;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+.particles {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.particle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: #ffd700;
+    border-radius: 50%;
+    animation: particleFloat 2s ease-out forwards;
+}
+
+@keyframes particleFloat {
+    0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-100px) scale(0);
+    }
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-content {
+    background: linear-gradient(145deg, #2c3e50, #34495e);
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    max-width: 600px;
+    width: 95%;
+    border: 3px solid #f39c12;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    animation: modalAppear 0.5s ease-out;
+}
+
+@keyframes modalAppear {
+    0% {
+        opacity: 0;
+        transform: scale(0.5) translateY(-50px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.modal-header h2 {
+    color: #f39c12;
+    margin-bottom: 20px;
+    font-size: 2rem;
+}
+
+.rare-card-preview {
+    width: 200px;
+    height: 280px;
+    margin: 30px auto;
+    background: linear-gradient(145deg, #f39c12, #e67e22);
+    border-radius: 15px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border: 3px solid #d68910;
+    animation: rareGlow 2s ease-in-out infinite;
+    box-shadow: 0 8px 25px rgba(243, 156, 18, 0.4);
+}
+
+.modal-close {
+    background: linear-gradient(45deg, #27ae60, #2ecc71);
+    border: none;
+    padding: 12px 30px;
+    border-radius: 25px;
+    color: white;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: all 0.3s ease;
+}
+
+.modal-close:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 2rem;
+    }
+    
+    .stats {
+        gap: 15px;
+    }
+    
+    .stat {
+        padding: 10px 15px;
+    }
+    
+    .pack {
+        width: 250px;
+        height: 350px;
+    }
+    
+    .cards-container {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+    }
+    
+    .card {
+        width: 150px;
+        height: 240px;
+    }
+    
+    .card-image {
+        font-size: 0.7rem;
+    }
+}
+

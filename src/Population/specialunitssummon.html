@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎴 Card Pack Simulator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎴 Card Pack Simulator</h1>
+            <div class="stats">
+                <div class="stat">
+                    <span class="stat-label">Packs Opened:</span>
+                    <span id="packs-opened">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Rare Cards:</span>
+                    <span id="rare-cards">0</span>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="pack-container">
+                <div class="pack" id="pack">
+                    <div class="pack-front">
+                        <div class="pack-glow"></div>
+                        <div class="pack-content">
+                            <h2>MAGIC PACK</h2>
+                            <p>Contains 5 cards!</p>
+                            <div class="pack-stars">⭐⭐⭐</div>
+                        </div>
+                    </div>
+                    <div class="pack-back"></div>
+                </div>
+                <button class="open-pack-btn" id="open-pack-btn">
+                    <span class="btn-text">OPEN PACK</span>
+                    <div class="btn-glow"></div>
+                </button>
+            </div>
+
+            <div class="cards-container" id="cards-container">
+                <!-- Las cartas aparecerán aquí -->
+            </div>
+
+            <div class="particles" id="particles"></div>
+        </main>
+
+        <div class="modal" id="rare-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>🎉 RARE CARD FOUND! 🎉</h2>
+                </div>
+                <div class="modal-body">
+                    <div class="rare-card-preview" id="rare-card-preview"></div>
+                    <p>Congratulations! You found a rare card</p>
+                </div>
+                <button class="modal-close" id="modal-close">Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+

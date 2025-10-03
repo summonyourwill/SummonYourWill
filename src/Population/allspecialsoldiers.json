@@ -1,0 +1,56 @@
+[
+  {
+    "id": "Dwarf FireMage",
+    "name": "Dwarf FireMage",
+    "img": "SpecialSoldiers/Dwarf FireMage.png",
+    "desc": "Dwarf that learned magic specialized on fire"
+  },
+  {
+    "id": "Dwarf Guard",
+    "name": "Dwarf Guard",
+    "img": "SpecialSoldiers/Dwarf Guard.png",
+    "desc": "Sturdy dwarf warrior specialized in defense and protection"
+  },
+  {
+    "id": "Dwarf Healer",
+    "name": "Dwarf Healer",
+    "img": "SpecialSoldiers/Dwarf Healer.png",
+    "desc": "Dwarf cleric with powerful healing and restoration magic"
+  },
+  {
+    "id": "Dwarf Knight",
+    "name": "Dwarf Knight",
+    "img": "SpecialSoldiers/Dwarf Knight.png",
+    "desc": "Noble dwarf warrior mounted on a sturdy steed"
+  },
+  {
+    "id": "Elf Archer",
+    "name": "Elf Archer",
+    "img": "SpecialSoldiers/Elf Archer.png",
+    "desc": "Elven marksman with exceptional accuracy and forest magic"
+  },
+  {
+    "id": "Human King Swordman",
+    "name": "Human King Swordman",
+    "img": "SpecialSoldiers/Human King Swordman.png",
+    "desc": "Royal human warrior wielding the legendary king's blade"
+  },
+  {
+    "id": "Princess Summoner",
+    "name": "Princess Summoner",
+    "img": "SpecialSoldiers/Princess Summoner.png",
+    "desc": "Royal princess with the power to summon magical creatures"
+  },
+  {
+    "id": "Princess SwordWoman",
+    "name": "Princess SwordWoman",
+    "img": "SpecialSoldiers/Princess SwordWoman.png",
+    "desc": "Skilled princess warrior trained in the royal sword arts"
+  },
+  {
+    "id": "Robot Gunner",
+    "name": "Robot Gunner",
+    "img": "SpecialSoldiers/Robot Gunner.png",
+    "desc": "Mechanical soldier equipped with advanced projectile weapons"
+  }
+]
