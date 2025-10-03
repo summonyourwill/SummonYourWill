@@ -2,6 +2,24 @@
 
 A desktop incremental RPG built with Electron. Manage heroes, gather resources and send them on missions. Game data is persisted using `electron-store` with a fallback to `localStorage` when running in a regular browser. When running inside Electron, `preload.cjs` exposes these methods on `window.electronStore` so the renderer can call `get`, `set` and `delete` without importing Node modules. The interface uses a light color scheme by default. The main process also initializes `electron-store` so these calls work correctly.
 
+## ⚠ Important Note
+1. The game may show Windows security warnings because I don’t have a digital signature certificate yet. Windows flags any unsigned indie executable as “unknown.” It should be safe.
+2. save.json is saved in User/.../Documents/SummonYourWillSaves.
+3. You can put your own music inside the game and it copies them into User/.../Musics/SummonYourWillMusic
+4. You can export all your images that you have imported , they will be inside User/.../Images/SummonYourWillImages.
+
+## 🎮 About the Game
+SummonYourWill is an idle, motivational experience designed to help you stay on track with your daily goals while enjoying a fantasy world full of heroes, pets, and exciting battles.
+
+✅ Habit Calendar: Complete your daily tasks, track your progress, and keep your motivation high.
+✅ Goal Checklist: Every milestone you reach strengthens your heroes and your village.
+✅ Quests & Rewards: Turn your real-life achievements into gold, food, wood, and stone to expand your settlement.
+✅ Fun Minigames: Challenge yourself with battles, defeat the Village Chief, and even meet their Partner in unique story events.
+✅ Customizable Heroes: Collect unique heroes and use personalized images to make them truly yours.
+✅ Resourceful Pets: They gather materials for you while you focus on your real-life goals.
+✅ Strategic Resource Management: Decide how to spend your gold and materials to unlock skills, summon new heroes, and improve your constructions.
+✅ Idle System: Even when you’re away, your heroes keep fighting and gathering resources for you.
+
 ## Save files and user music
 
 The desktop app stores the latest game save in the user's documents folder at `Documents/SummonYourWillSaves/save.json`. Imported MP3 files and `music_index.json` reside in `Music/SummonYourWillMusic`. These folders are created automatically and existing saves are migrated from the legacy AppData location on first run.
