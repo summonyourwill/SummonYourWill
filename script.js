@@ -148,7 +148,7 @@ import { createPlaceholderGame } from "./minigames/placeholder.js";
 
 import { initStatsMonitor, start as startStats, stop as stopStats, wireVisibility as wireStatsVisibility, reposition as repositionStats } from "./performance/statsMonitor.js";
 
-import { resizeImageToBase64 } from "./renderer/utils/imageResizer.js";
+import { resizeImageToBase64, resizeImageProportional } from "./renderer/utils/imageResizer.js";
 
 import { openConfirm } from './ui/modals.js';
 
@@ -983,6 +983,8 @@ let heroSortAsc = true;
 let heroFilterOrigin = null;
 
 let heroFilterProfession = null;
+
+let heroFilterType = null;
 
 let heroFilterFavorites = false;
 
@@ -1884,9 +1886,11 @@ async function loadGame() {
 
     if (h.secondImg === undefined) h.secondImg = "";
 
-    if (h.secondOffset === undefined) h.secondOffset = 50;
+  if (h.secondOffset === undefined) h.secondOffset = 50;
 
-    if (h.maxProfessions === undefined) h.maxProfessions = PROFESSION_LIMIT;
+  if (h.maxProfessions === undefined) h.maxProfessions = PROFESSION_LIMIT;
+
+  if (h.type === undefined) h.type = "Hero (Rank 3)";
 
     if (h.missionStartTime === undefined) h.missionStartTime = Date.now();
 
@@ -3034,6 +3038,8 @@ state.missions.forEach(m => {
 let openStats = {};
 
 let openTraining = {};
+
+let openInfo = {};
 
 let openBossStats = false;
 
@@ -4984,7 +4990,24 @@ function updateHeroControls() {
 
   sexSel.onmousedown = pauseTimersBriefly;
 
-
+  const typeSel = document.getElementById("type-filter");
+  
+  if (typeSel) {
+    const types = [...new Set(state.heroes.map(h => h.type || "Hero (Rank 3)"))].sort((a,b)=>a.localeCompare(b));
+    const currentType = heroFilterType || "";
+    
+    typeSel.innerHTML = "<option value=''>Filter by type</option>";
+    
+    types.forEach(t => {
+      const opt = document.createElement("option");
+      opt.value = t;
+      opt.textContent = t;
+      typeSel.appendChild(opt);
+    });
+    
+    typeSel.value = currentType;
+    typeSel.onmousedown = pauseTimersBriefly;
+  }
 
   if (searchInput && searchList) {
 
@@ -5026,7 +5049,7 @@ function updateHeroControls() {
 
   const removeBtn = document.getElementById("remove-filter-btn");
 
-  if (removeBtn) removeBtn.style.display = (heroFilterOrigin || heroFilterProfession || heroFilterSex || heroFilterSearch) ? "inline-block" : "none";
+  if (removeBtn) removeBtn.style.display = (heroFilterOrigin || heroFilterProfession || heroFilterType || heroFilterSex || heroFilterSearch) ? "inline-block" : "none";
 
 }
 
@@ -6147,9 +6170,9 @@ function showAddPetPopup() {
 
   overlay.className = 'modal-overlay card-modal';
 
-  const petSection = document.getElementById('pets-section');
+  const petManagementCard = document.getElementById('pet-management-card');
 
-  if (petSection) petSection.style.position = 'relative';
+  if (petManagementCard) petManagementCard.style.position = 'relative';
 
   const modal = document.createElement('div');
 
@@ -6339,7 +6362,7 @@ function showAddPetPopup() {
 
   overlay.appendChild(modal);
 
-  appendOverlay(overlay, petSection);
+  appendOverlay(overlay, petManagementCard);
 
   focusNoScroll(nameInput);
 
@@ -6365,9 +6388,9 @@ function showFreePetPopup() {
 
   overlay.className = 'modal-overlay card-modal';
 
-  const petSection = document.getElementById('pets-section');
+  const petManagementCard = document.getElementById('pet-management-card');
 
-  if (petSection) petSection.style.position = 'relative';
+  if (petManagementCard) petManagementCard.style.position = 'relative';
 
   const modal = document.createElement('div');
 
@@ -6465,7 +6488,7 @@ function showFreePetPopup() {
 
   overlay.appendChild(modal);
 
-  appendOverlay(overlay, petSection);
+  appendOverlay(overlay, petManagementCard);
 
   focusNoScroll(select);
 
@@ -8929,6 +8952,31 @@ function renderVillageChief() {
   };
   avatarWrap.appendChild(chiefDownload);
 
+  // Add "Add as Hero" button for village chief
+  if (!readOnly) {
+    const addAsHeroBtn = document.createElement('div');
+    addAsHeroBtn.className = 'add-as-hero-icon';
+    addAsHeroBtn.textContent = '+';
+    
+    // Check if village chief already exists as hero
+    const alreadyExists = state.heroes.some(h => h.type === "VillageChief (Rank 1)");
+    if (alreadyExists) {
+      addAsHeroBtn.classList.add('disabled');
+      addAsHeroBtn.title = 'Village Chief already added as hero';
+    } else {
+      addAsHeroBtn.title = 'Add as Hero';
+    }
+    
+    addAsHeroBtn.setAttribute('aria-label', 'Add as Hero');
+    addAsHeroBtn.onclick = e => {
+      e.stopPropagation();
+      if (!addAsHeroBtn.classList.contains('disabled')) {
+        addVillageChiefAsHero();
+      }
+    };
+    avatarWrap.appendChild(addAsHeroBtn);
+  }
+
   if (!readOnly) {
 
     addMoveArrows(avatarWrap, img, villageChief, 'avatarOffset', false, 'avatarOffsetX');
@@ -9229,19 +9277,19 @@ function renderVillageChief() {
 
       input.onchange = e => {
 
-        const reader = new FileReader();
+        const file = e.target.files[0];
 
-        reader.onload = ev => {
+        if (!file) return;
 
-          partner.img = ev.target.result;
+        resizeImageProportional(file, 500, 500, resized => {
+
+          partner.img = resized;
 
           saveGame();
 
           renderVillageChief();
 
-        };
-
-        reader.readAsDataURL(e.target.files[0]);
+        });
 
       };
 
@@ -9298,6 +9346,31 @@ function renderVillageChief() {
     downloadImage(partner.img);
   };
   partnerWrap.appendChild(partnerDownload);
+
+  // Add "Add as Hero" button for partner
+  if (!readOnly) {
+    const addAsHeroBtn = document.createElement('div');
+    addAsHeroBtn.className = 'add-as-hero-icon';
+    addAsHeroBtn.textContent = '+';
+    
+    // Check if partner already exists as hero
+    const alreadyExists = state.heroes.some(h => h.type === "Partner (Rank 1)");
+    if (alreadyExists) {
+      addAsHeroBtn.classList.add('disabled');
+      addAsHeroBtn.title = 'Partner already added as hero';
+    } else {
+      addAsHeroBtn.title = 'Add as Hero';
+    }
+    
+    addAsHeroBtn.setAttribute('aria-label', 'Add as Hero');
+    addAsHeroBtn.onclick = e => {
+      e.stopPropagation();
+      if (!addAsHeroBtn.classList.contains('disabled')) {
+        addPartnerAsHero();
+      }
+    };
+    partnerWrap.appendChild(addAsHeroBtn);
+  }
 
   if (!readOnly) {
 
@@ -10356,13 +10429,20 @@ function renderVillageChief() {
 
   famSortBar.className = 'sort-bar';
 
+  // Add "Order by:" label
+  const famSortLabel = document.createElement('span');
+  famSortLabel.textContent = 'Order by: ';
+  famSortLabel.style.fontWeight = 'bold';
+  famSortLabel.style.marginRight = '4px';
+  famSortBar.appendChild(famSortLabel);
+
   ['number','name','level','modified'].forEach(opt=>{
 
     const b=document.createElement('button');
 
     b.className='button';
 
-    const labels={name:'Order by Name',level:'Order by Level',number:'Order by Number',modified:'Order by LastModification'};
+    const labels={name:'Name',level:'Level',number:'Number',modified:'LastModification'};
 
     b.textContent=labels[opt];
 
@@ -10436,6 +10516,35 @@ function renderVillageChief() {
     };
     imgDiv.appendChild(famDownload);
 
+    // Add "Add as Hero" button for familiar (bottom-right)
+    if (!readOnly && globalIdx < villageChief.unlockedFamiliars) {
+      const addAsHeroBtn = document.createElement('div');
+      addAsHeroBtn.className = 'add-as-hero-icon-familiar';
+      addAsHeroBtn.textContent = '+';
+      
+      // Check if this specific familiar already exists as hero (by name and type)
+      const famName = fam.name || `Familiar ${globalIdx + 1}`;
+      const alreadyExists = state.heroes.some(h => 
+        h.type === "Familiar (Rank 2)" && h.origin === "Familiar" && h.name === famName
+      );
+      
+      if (alreadyExists) {
+        addAsHeroBtn.classList.add('disabled');
+        addAsHeroBtn.title = 'Familiar already added as hero';
+      } else {
+        addAsHeroBtn.title = 'Add as Hero';
+      }
+      
+      addAsHeroBtn.setAttribute('aria-label', 'Add as Hero');
+      addAsHeroBtn.onclick = e => {
+        e.stopPropagation();
+        if (!addAsHeroBtn.classList.contains('disabled')) {
+          addFamiliarAsHero(fam, globalIdx);
+        }
+      };
+      imgDiv.appendChild(addAsHeroBtn);
+    }
+
     if (!readOnly) {
 
       imgDiv.title = "Edit Image (320x320 recommended)";
@@ -10450,25 +10559,25 @@ function renderVillageChief() {
 
         input.onchange = e => {
 
-          const reader = new FileReader();
+          const file = e.target.files[0];
 
-            reader.onload = ev => {
+          if (!file) return;
 
-              fam.img = ev.target.result;
+          resizeImageProportional(file, 500, 500, resized => {
 
-              const now = Date.now();
+            fam.img = resized;
 
-              if (fam.firstModified === undefined) fam.firstModified = now;
+            const now = Date.now();
 
-              fam.modified = now;
+            if (fam.firstModified === undefined) fam.firstModified = now;
 
-              saveGame();
+            fam.modified = now;
 
-              renderVillageChief();
+            saveGame();
 
-            };
+            renderVillageChief();
 
-          reader.readAsDataURL(e.target.files[0]);
+          });
 
         };
 
@@ -12531,13 +12640,20 @@ function renderVillageChief() {
 
   habSortBar.className='sort-bar';
 
+  // Add "Order by:" label
+  const habSortLabel = document.createElement('span');
+  habSortLabel.textContent = 'Order by: ';
+  habSortLabel.style.fontWeight = 'bold';
+  habSortLabel.style.marginRight = '4px';
+  habSortBar.appendChild(habSortLabel);
+
   ['number','name','level','modified'].forEach(opt=>{
 
     const b=document.createElement('button');
 
     b.className='button';
 
-    const labels={name:'Order by Name',level:'Order by Level',number:'Order by Number',modified:'Order by LastModification'};
+    const labels={name:'Name',level:'Level',number:'Number',modified:'LastModification'};
 
     b.textContent=labels[opt];
 
@@ -12627,33 +12743,33 @@ function renderVillageChief() {
 
         input.onchange = e => {
 
-          const reader = new FileReader();
+          const file = e.target.files[0];
 
-            reader.onload = ev => {
+          if (!file) return;
 
-              if (stepIdx === 0) {
+          resizeImageProportional(file, 500, 500, resized => {
 
-                hab.img = ev.target.result;
+            if (stepIdx === 0) {
 
-              } else {
+              hab.img = resized;
 
-                hab.stepImgs[stepIdx-1] = ev.target.result;
+            } else {
 
-              }
+              hab.stepImgs[stepIdx-1] = resized;
 
-              const now = Date.now();
+            }
 
-              if (hab.firstModified === undefined) hab.firstModified = now;
+            const now = Date.now();
 
-              hab.modified = now;
+            if (hab.firstModified === undefined) hab.firstModified = now;
 
-              saveGame();
+            hab.modified = now;
 
-              renderVillageChief();
+            saveGame();
 
-            };
+            renderVillageChief();
 
-          reader.readAsDataURL(e.target.files[0]);
+          });
 
         };
 
@@ -12837,11 +12953,13 @@ function renderVillageChief() {
 
           input.onchange = ev => {
 
-            const reader = new FileReader();
+            const file = ev.target.files[0];
 
-            reader.onload = rv => {
+            if (!file) return;
 
-              if (t === 0) hab.img = rv.target.result; else hab.stepImgs[t-1] = rv.target.result;
+            resizeImageProportional(file, 500, 500, resized => {
+
+              if (t === 0) hab.img = resized; else hab.stepImgs[t-1] = resized;
 
               hab.activeStep = t;
 
@@ -12855,9 +12973,7 @@ function renderVillageChief() {
 
               renderVillageChief();
 
-            };
-
-            reader.readAsDataURL(ev.target.files[0]);
+            });
 
           };
 
@@ -12963,13 +13079,20 @@ function renderVillageChief() {
 
   partSort.className = 'sort-bar';
 
+  // Add "Order by:" label
+  const partSortLabel = document.createElement('span');
+  partSortLabel.textContent = 'Order by: ';
+  partSortLabel.style.fontWeight = 'bold';
+  partSortLabel.style.marginRight = '4px';
+  partSort.appendChild(partSortLabel);
+
   ['number','name','level','modified'].forEach(opt => {
 
     const b = document.createElement('button');
 
     b.className = 'button';
 
-    const labels={name:'Order by Name',level:'Order by Level',number:'Order by Number',modified:'Order by LastModification'};
+    const labels={name:'Name',level:'Level',number:'Number',modified:'LastModification'};
 
     b.textContent = labels[opt];
 
@@ -13059,17 +13182,19 @@ function renderVillageChief() {
 
         input.onchange = e => {
 
-          const reader = new FileReader();
+          const file = e.target.files[0];
 
-          reader.onload = ev => {
+          if (!file) return;
+
+          resizeImageProportional(file, 500, 500, resized => {
 
             if (stepIdxP === 0) {
 
-              ab.img = ev.target.result;
+              ab.img = resized;
 
             } else {
 
-              ab.stepImgs[stepIdxP-1] = ev.target.result;
+              ab.stepImgs[stepIdxP-1] = resized;
 
             }
 
@@ -13083,9 +13208,7 @@ function renderVillageChief() {
 
             renderVillageChief();
 
-          };
-
-          reader.readAsDataURL(e.target.files[0]);
+          });
 
         };
 
@@ -21810,6 +21933,12 @@ export function renderHeroes() {
 
   }
 
+  if (heroFilterType) {
+
+    list = list.filter(h => (h.type || "Hero (Rank 3)") === heroFilterType);
+
+  }
+
   if (heroFilterFavorites) {
 
     list = list.filter(h => h.favorite);
@@ -21841,6 +21970,14 @@ export function renderHeroes() {
     if (heroSort === "level") {
 
       return heroSortAsc ? (a.level || 0) - (b.level || 0) : (b.level || 0) - (a.level || 0);
+
+    }
+
+    if (heroSort === "type") {
+
+      const aType = a.type || "Hero (Rank 3)";
+      const bType = b.type || "Hero (Rank 3)";
+      return heroSortAsc ? aType.localeCompare(bType) : bType.localeCompare(aType);
 
     }
 
@@ -22042,6 +22179,15 @@ export function renderHeroes() {
 
     info.appendChild(document.createElement("br"));
 
+    // Add Type field
+    const typeLine = document.createElement('div');
+    typeLine.textContent = 'Type: ';
+    const typeSpan = document.createElement('span');
+    typeSpan.textContent = hero.type || 'Hero (Rank 3)';
+    typeSpan.style.fontWeight = 'bold';
+    typeLine.appendChild(typeSpan);
+    info.appendChild(typeLine);
+
     const profLine = document.createElement('div');
 
     profLine.textContent = 'Profession: ';
@@ -22158,7 +22304,7 @@ export function renderHeroes() {
 
         "beforeend",
 
-          `<br>Level: ${hero.level}/<span title="Improve Caste to Increase">${MAX_LEVEL}</span><br>${expLine}<br>Energy: <span id="hero-energy-${hero.id}">${hero.energia}%</span> <span id="hero-low-energy-${hero.id}" style="color:red">${hero.energia <= 20 ? "Low energy!" : ""}</span><br>HP: ${hero.hp}/${hero.hpMax} Mana: ${hero.mana}/${hero.manaMax}${notes.length ? "<br>" + notes.join("<br>") : ""}`
+          `<br>Level: ${hero.level}/<span title="Improve Caste to Increase">${MAX_LEVEL}</span><br>${expLine}<br>Energy: <span id="hero-energy-${hero.id}">${hero.energia}%</span> <span id="hero-low-energy-${hero.id}" style="color:red">${hero.energia <= 20 ? "Low energy!" : ""}</span>${notes.length ? "<br>" + notes.join("<br>") : ""}`
 
         );
 
@@ -22225,6 +22371,7 @@ export function renderHeroes() {
       btn.textContent = label;
 
       btn.style.width = "100%";
+
 
       if (label === "Rest") btn.id = `rest-btn-${hero.id}`;
 
@@ -22541,6 +22688,7 @@ export function renderHeroes() {
           return;
 
         }
+
 
 
 
@@ -24212,6 +24360,28 @@ export function renderHeroes() {
 
     div.appendChild(statsDiv);
 
+    // Info panel
+    const infoDiv = document.createElement("div");
+    infoDiv.className = "info-panel";
+    infoDiv.id = `info-${hero.id}`;
+    
+    if (openInfo[hero.id]) infoDiv.classList.add("expand-row");
+    
+    if (openInfo[hero.id]) {
+      const closeBtn = document.createElement("button");
+      closeBtn.textContent = "❌";
+      closeBtn.className = "close-btn";
+      closeBtn.onclick = () => {
+        infoDiv.classList.remove("expand-row");
+        delete openInfo[hero.id];
+        scheduleRenderHeroes();
+      };
+      infoDiv.appendChild(closeBtn);
+      
+    }
+    
+    div.appendChild(infoDiv);
+
     renderSexBadge(div, hero);
 
     fragment.appendChild(div);
@@ -24286,7 +24456,11 @@ function renderVillains() {
 
   const sorted = list.sort((a, b) => {
 
-    if (villainSort === "floor") return (a.floor || 0) - (b.floor || 0);
+    if (villainSort === "floor") {
+      return villainSortAsc 
+        ? (a.floor || 0) - (b.floor || 0)
+        : (b.floor || 0) - (a.floor || 0);
+    }
 
     return villainSortAsc
 
@@ -24544,8 +24718,6 @@ function renderVillains() {
     };
 
     actionBlock.appendChild(statsBtn);
-
-
 
     const delBtn = document.createElement("button");
 
@@ -24810,6 +24982,7 @@ function renderPets() {
       };
 
       ownerInfo.appendChild(changeBtn);
+      
 
     }
 
@@ -27430,6 +27603,81 @@ function summonHero() {
 
 }
 
+// Functions to add Village Chief, Partner, and Familiars as Heroes
+function addVillageChiefAsHero() {
+  const villageChiefContainer = document.getElementById("village-chief");
+  
+  if (state.heroes.length >= state.houses) {
+    showAlert("Not enough houses for new hero", { container: villageChiefContainer });
+    return;
+  }
+  
+  const name = ensureUniqueHeroName(state.heroes, villageChief.name || "Village Chief");
+  const newHero = createHero(state.heroes, name, "Village Chief", "", 1);
+  newHero.avatar = villageChief.avatar || "";
+  newHero.avatarOffset = villageChief.avatarOffset || 50;
+  newHero.avatarOffsetX = villageChief.avatarOffsetX || 50;
+  newHero.type = "VillageChief (Rank 1)";
+  // Level and stats remain at default (level 1, stats 1)
+  
+  state.heroes.push(newHero);
+  state.heroMap.set(newHero.id, newHero);
+  saveGame();
+  scheduleRenderHeroes();
+  renderMissions();
+  renderVillageChief();
+  showAlert(`${name} added as hero!`, { container: villageChiefContainer });
+}
+
+function addPartnerAsHero() {
+  const villageChiefContainer = document.getElementById("village-chief");
+  
+  if (state.heroes.length >= state.houses) {
+    showAlert("Not enough houses for new hero", { container: villageChiefContainer });
+    return;
+  }
+  
+  const name = ensureUniqueHeroName(state.heroes, partner.name || "Partner");
+  const newHero = createHero(state.heroes, name, "Partner", "", 1);
+  newHero.avatar = partner.img || "";
+  newHero.avatarOffset = partner.imgOffset || 50;
+  newHero.avatarOffsetX = partner.imgOffsetX || 50;
+  newHero.type = "Partner (Rank 1)";
+  // Level and stats remain at default (level 1, stats 1)
+  
+  state.heroes.push(newHero);
+  state.heroMap.set(newHero.id, newHero);
+  saveGame();
+  scheduleRenderHeroes();
+  renderMissions();
+  renderVillageChief();
+  showAlert(`${name} added as hero!`, { container: villageChiefContainer });
+}
+
+function addFamiliarAsHero(familiar, index) {
+  const familiarsContainer = document.getElementById("boss-familiars");
+  
+  if (state.heroes.length >= state.houses) {
+    showAlert("Not enough houses for new hero", { container: familiarsContainer });
+    return;
+  }
+  
+  const name = ensureUniqueHeroName(state.heroes, familiar.name || `Familiar ${index + 1}`);
+  const newHero = createHero(state.heroes, name, "Familiar", "", 1);
+  newHero.avatar = familiar.img || "";
+  newHero.avatarOffset = familiar.imgOffset || 50;
+  newHero.type = "Familiar (Rank 2)";
+  // Level and stats remain at default (level 1, stats 1)
+  
+  state.heroes.push(newHero);
+  state.heroMap.set(newHero.id, newHero);
+  saveGame();
+  scheduleRenderHeroes();
+  renderMissions();
+  renderVillageChief();
+  showAlert(`${name} added as hero!`, { container: familiarsContainer });
+}
+
 
 
 function summonCitizen() {
@@ -29088,7 +29336,27 @@ async function init() {
 
   };
 
-
+  const sortTypeBtn = document.getElementById("sort-type-btn");
+  
+  if (sortTypeBtn) sortTypeBtn.onclick = () => {
+    
+    if (heroSort === "type") {
+      
+      heroSortAsc = !heroSortAsc;
+      
+    } else {
+      
+      heroSort = "type";
+      
+      heroSortAsc = true;
+      
+    }
+    
+    currentHeroPage = 1;
+    
+    scheduleRenderHeroes();
+    
+  };
 
   const sortNameBtn = document.getElementById("sort-name-btn");
 
@@ -29144,7 +29412,19 @@ async function init() {
 
   };
 
-
+  const typeSel = document.getElementById("type-filter");
+  
+  if (typeSel) typeSel.onchange = e => {
+    
+    heroFilterType = e.target.value || null;
+    
+    currentHeroPage = 1;
+    
+    scheduleRenderHeroes();
+    
+    updateHeroControls();
+    
+  };
 
   const favCheck = document.getElementById("favorite-check");
 
@@ -29244,6 +29524,8 @@ async function init() {
 
     heroFilterProfession = null;
 
+    heroFilterType = null;
+
     heroFilterSex = null;
 
     heroFilterSearch = null;
@@ -29328,7 +29610,12 @@ async function init() {
 
   if (vilSortFloorBtn) vilSortFloorBtn.onclick = () => {
 
-    villainSort = "floor";
+    if (villainSort === "floor") {
+      villainSortAsc = !villainSortAsc;
+    } else {
+      villainSort = "floor";
+      villainSortAsc = true;
+    }
 
     currentVillainPage = 1;
 

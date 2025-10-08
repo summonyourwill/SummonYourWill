@@ -127,32 +127,19 @@ async function loadImageAsDataUrl(img, typeFolder, unitName) {
 }
 
 // Función para generar archivo heroes.json
-async function generateHeroesFile(heroes, chiefId, chiefObjectId) {
+async function generateHeroesFile(heroes, chiefId) {
   try {
     const heroesForJson = heroes.map(hero => ({
       ...hero,
       id: hero.id, // Mantener id del juego
-      chief_id: chiefId, // ID numérico del village chief
-      _chief_id: chiefObjectId // ObjectId del village chief en MongoDB
-      // MongoDB generará _id automáticamente
+      chief_id: chiefId // ID numérico del village chief
     }));
     
     const heroesPath = path.join(SAVE_DIR, 'heroes.json');
     await fs.writeFile(heroesPath, JSON.stringify(heroesForJson, null, 2), 'utf-8');
     logger.info('✅ Archivo heroes.json generado en:', heroesPath);
     
-    // Sincronizar con MongoDB usando los datos con chief_id correcto
-    try {
-      const { upsertHeroes } = require('../main/repos/heroesRepo.cjs');
-      const insertedHeroes = await upsertHeroes(heroesForJson);
-      logger.info(`[MongoDB] ✅ ${heroesForJson.length} héroes sincronizados con MongoDB`);
-      
-      // Retornar los heroes con sus ObjectId generados
-      return insertedHeroes;
-    } catch (mongoError) {
-      logger.warn('[MongoDB] Error sincronizando héroes:', mongoError.message);
-      return heroesForJson;
-    }
+    return heroesForJson;
   } catch (error) {
     logger.error('❌ Error al generar heroes.json:', error);
     return heroes;
@@ -160,7 +147,7 @@ async function generateHeroesFile(heroes, chiefId, chiefObjectId) {
 }
 
 // Función para generar archivo pets.json
-async function generatePetsFile(heroes, chiefId, chiefObjectId) {
+async function generatePetsFile(heroes, chiefId) {
   try {
     const pets = [];
     
@@ -174,11 +161,8 @@ async function generatePetsFile(heroes, chiefId, chiefObjectId) {
         } = hero;
 
         pets.push({
-          // MongoDB generará _id automáticamente
           id_hero: hero.id, // ID del héroe en el juego
-          _id_hero: hero._id, // ObjectId del héroe en MongoDB
           chief_id: chiefId, // ID numérico del village chief
-          _chief_id: chiefObjectId, // ObjectId del village chief
           name: hero.pet,
           img: hero.petImg || '',
           level: hero.petLevel || 1,
@@ -196,7 +180,7 @@ async function generatePetsFile(heroes, chiefId, chiefObjectId) {
       }
     });
     
-    // Si no hay mascotas, no generar archivo ni sincronizar
+    // Si no hay mascotas, no generar archivo
     if (pets.length === 0) {
       logger.info('ℹ️ No hay mascotas para guardar. No se genera pets.json');
       return [];
@@ -206,15 +190,6 @@ async function generatePetsFile(heroes, chiefId, chiefObjectId) {
     await fs.writeFile(petsPath, JSON.stringify(pets, null, 2), 'utf-8');
     logger.info('✅ Archivo pets.json generado en:', petsPath);
     
-    // Sincronizar con MongoDB usando los datos con chief_id correcto
-    try {
-      const { upsertPets } = require('../main/repos/petsRepo.cjs');
-      await upsertPets(pets);
-      logger.info(`[MongoDB] ✅ ${pets.length} pets sincronizados con MongoDB`);
-    } catch (mongoError) {
-      logger.warn('[MongoDB] Error sincronizando pets:', mongoError.message);
-    }
-    
     return pets;
   } catch (error) {
     logger.error('❌ Error al generar pets.json:', error);
@@ -223,30 +198,19 @@ async function generatePetsFile(heroes, chiefId, chiefObjectId) {
 }
 
 // Función para generar archivo villains.json
-async function generateVillainsFile(villains, chiefId, chiefObjectId) {
+async function generateVillainsFile(villains, chiefId) {
   try {
     const villainsForJson = villains.map(villain => {
       const { id, ...villainWithoutId } = villain; // Remover id del juego
       return {
         ...villainWithoutId,
-        chief_id: chiefId, // ID numérico del village chief
-        _chief_id: chiefObjectId // ObjectId del village chief
-        // MongoDB generará _id automáticamente
+        chief_id: chiefId // ID numérico del village chief
       };
     });
     
     const villainsPath = path.join(SAVE_DIR, 'villains.json');
     await fs.writeFile(villainsPath, JSON.stringify(villainsForJson, null, 2), 'utf-8');
     logger.info('✅ Archivo villains.json generado en:', villainsPath);
-    
-    // Sincronizar con MongoDB usando los datos con chief_id correcto
-    try {
-      const { upsertVillains } = require('../main/repos/villainsRepo.cjs');
-      await upsertVillains(villainsForJson);
-      logger.info(`[MongoDB] ✅ ${villainsForJson.length} villains sincronizados con MongoDB`);
-    } catch (mongoError) {
-      logger.warn('[MongoDB] Error sincronizando villains:', mongoError.message);
-    }
     
     return villainsForJson;
   } catch (error) {
@@ -262,7 +226,6 @@ async function generateVillageChiefFile(villageChief, bossStats) {
       ...villageChief,
       // Mantener id del juego para el esquema
       id: villageChief.id || 1,
-      // MongoDB generará _id automáticamente
       // Incluir las propiedades específicas solicitadas
       nivel: villageChief.level || 1,
       experiencia: villageChief.exp || 0,
@@ -286,21 +249,6 @@ async function generateVillageChiefFile(villageChief, bossStats) {
     await fs.writeFile(villageChiefPath, JSON.stringify(villageChiefForJson, null, 2), 'utf-8');
     logger.info('✅ Archivo villagechief.json generado en:', villageChiefPath);
     
-    // Sincronizar con MongoDB y obtener el ObjectId (abilities van en archivo separado)
-    let villageChiefObjectId = null;
-    try {
-      const { upsertVillageChief } = require('../main/repos/villageChiefRepo.cjs');
-      const ids = await upsertVillageChief(villageChiefForJson);
-      if (ids && ids.chiefObjectId) villageChiefObjectId = ids.chiefObjectId;
-      if (ids && ids.chiefId) villageChiefForJson.id = ids.chiefId;
-      logger.info('[MongoDB] ✅ Village chief sincronizado con MongoDB');
-    } catch (mongoError) {
-      logger.warn('[MongoDB] Error sincronizando village chief:', mongoError.message);
-    }
-    
-    // Agregar el ObjectId al JSON para referencia
-    villageChiefForJson._id = villageChiefObjectId;
-    
     return villageChiefForJson;
   } catch (error) {
     logger.error('❌ Error al generar villagechief.json:', error);
@@ -309,7 +257,7 @@ async function generateVillageChiefFile(villageChief, bossStats) {
 }
 
 // Función para generar archivo villagechief_abilities.json
-async function generateVillageChiefAbilitiesFile(villageChief, chiefId, chiefObjectId) {
+async function generateVillageChiefAbilitiesFile(villageChief) {
   try {
     const abilitiesArray = Array.isArray(villageChief.abilities)
       ? villageChief.abilities
@@ -319,7 +267,6 @@ async function generateVillageChiefAbilitiesFile(villageChief, chiefId, chiefObj
     await fs.writeFile(pathOut, JSON.stringify(abilitiesArray, null, 2), 'utf-8');
     logger.info('✅ Archivo villagechief_abilities.json generado en:', pathOut);
 
-    // No sincronizamos aquí; lo hará el watcher específico
     return abilitiesArray;
   } catch (error) {
     logger.error('❌ Error al generar villagechief_abilities.json:', error);
@@ -328,14 +275,12 @@ async function generateVillageChiefAbilitiesFile(villageChief, chiefId, chiefObj
 }
 
 // Función para generar archivo partner.json (sin abilities)
-async function generatePartnerFile(partner, partnerStats, chiefId, villageChief, chiefObjectId) {
+async function generatePartnerFile(partner, partnerStats, chiefId) {
   try {
     const { id, ...partnerWithoutId } = partner; // Remover id del juego
     const partnerForJson = {
       ...partnerWithoutId,
-      // MongoDB generará _id automáticamente
       chief_id: chiefId, // ID numérico del village chief
-      _chief_id: chiefObjectId, // ObjectId del village chief
       // Incluir las propiedades específicas solicitadas
       nivel: partner.level || 1,
       experiencia: partner.exp || 0,
@@ -352,16 +297,6 @@ async function generatePartnerFile(partner, partnerStats, chiefId, villageChief,
     const partnerPath = path.join(SAVE_DIR, 'partner.json');
     await fs.writeFile(partnerPath, JSON.stringify(partnerForJson, null, 2), 'utf-8');
     logger.info('✅ Archivo partner.json generado en:', partnerPath);
-    
-    // Sincronizar con MongoDB usando los datos con chief_id correcto (abilities van en archivo separado)
-    try {
-      const { upsertPartner } = require('../main/repos/partnerRepo.cjs');
-      const partnerObjectId = await upsertPartner(partnerForJson);
-      logger.info('[MongoDB] ✅ Partner sincronizado con MongoDB');
-      // No sincronizamos abilities aquí; se manejarán por watcher dedicado
-    } catch (mongoError) {
-      logger.warn('[MongoDB] Error sincronizando partner:', mongoError.message);
-    }
     
     return partnerForJson;
   } catch (error) {
@@ -381,7 +316,6 @@ async function generatePartnerAbilitiesFile(villageChief) {
     const pathOut = path.join(SAVE_DIR, 'partner_abilities.json');
     await fs.writeFile(pathOut, JSON.stringify(abilities, null, 2), 'utf-8');
     logger.info('✅ Archivo partner_abilities.json generado en:', pathOut);
-    // Sincronización diferida al watcher
     return abilities;
   } catch (error) {
     logger.error('❌ Error al generar partner_abilities.json:', error);
@@ -390,30 +324,19 @@ async function generatePartnerAbilitiesFile(villageChief) {
 }
 
 // Función para generar archivo familiars.json
-async function generateFamiliarsFile(familiars, chiefId, chiefObjectId) {
+async function generateFamiliarsFile(familiars, chiefId) {
   try {
     const familiarsForJson = familiars.map(familiar => {
       const { id, ...familiarWithoutId } = familiar; // Remover id del juego
       return {
         ...familiarWithoutId,
-        chief_id: chiefId, // ID numérico del village chief
-        _chief_id: chiefObjectId // ObjectId del village chief
-        // MongoDB generará _id automáticamente
+        chief_id: chiefId // ID numérico del village chief
       };
     });
     
     const familiarsPath = path.join(SAVE_DIR, 'familiars.json');
     await fs.writeFile(familiarsPath, JSON.stringify(familiarsForJson, null, 2), 'utf-8');
     logger.info('✅ Archivo familiars.json generado en:', familiarsPath);
-    
-    // Sincronizar con MongoDB usando los datos con chief_id correcto
-    try {
-      const { upsertFamiliars } = require('../main/repos/familiarsRepo.cjs');
-      await upsertFamiliars(familiarsForJson);
-      logger.info(`[MongoDB] ✅ ${familiarsForJson.length} familiars sincronizados con MongoDB`);
-    } catch (mongoError) {
-      logger.warn('[MongoDB] Error sincronizando familiars:', mongoError.message);
-    }
     
     return familiarsForJson;
   } catch (error) {
@@ -423,7 +346,7 @@ async function generateFamiliarsFile(familiars, chiefId, chiefObjectId) {
 }
 
 // Función para generar archivo Elites.json
-async function generateElitesFile(elites, chiefId, chiefObjectId) {
+async function generateElitesFile(elites) {
   try {
     const elitesForJson = await Promise.all((Array.isArray(elites) ? elites : []).map(async elite => {
       const img64 = await loadImageAsDataUrl(elite.img, 'Elites', elite.name);
@@ -441,15 +364,6 @@ async function generateElitesFile(elites, chiefId, chiefObjectId) {
     await fs.writeFile(elitesPath, JSON.stringify(elitesForJson, null, 2), 'utf-8');
     logger.info('✅ Archivo Elites.json generado en:', elitesPath);
     
-    // Sincronizar con MongoDB usando los datos con chief_id correcto
-    try {
-      const { upsertElites } = require('../main/repos/elitesRepo.cjs');
-      await upsertElites(elitesForJson);
-      logger.info(`[MongoDB] ✅ ${elitesForJson.length} elites sincronizados con MongoDB`);
-    } catch (mongoError) {
-      logger.warn('[MongoDB] Error sincronizando elites:', mongoError.message);
-    }
-    
     return elitesForJson;
   } catch (error) {
     logger.error('❌ Error al generar Elites.json:', error);
@@ -458,7 +372,7 @@ async function generateElitesFile(elites, chiefId, chiefObjectId) {
 }
 
 // Función para generar archivo SpecialSoldiers.json
-async function generateSpecialSoldiersFile(specialSoldiers, chiefId, chiefObjectId) {
+async function generateSpecialSoldiersFile(specialSoldiers) {
   try {
     const specialSoldiersForJson = await Promise.all((Array.isArray(specialSoldiers) ? specialSoldiers : []).map(async soldier => {
       const img64 = await loadImageAsDataUrl(soldier.img, 'SpecialSoldiers', soldier.name);
@@ -476,15 +390,6 @@ async function generateSpecialSoldiersFile(specialSoldiers, chiefId, chiefObject
     await fs.writeFile(specialSoldiersPath, JSON.stringify(specialSoldiersForJson, null, 2), 'utf-8');
     logger.info('✅ Archivo SpecialSoldiers.json generado en:', specialSoldiersPath);
     
-    // Sincronizar con MongoDB usando los datos con chief_id correcto
-    try {
-      const { upsertSpecialSoldiers } = require('../main/repos/specialSoldiersRepo.cjs');
-      await upsertSpecialSoldiers(specialSoldiersForJson);
-      logger.info(`[MongoDB] ✅ ${specialSoldiersForJson.length} special soldiers sincronizados con MongoDB`);
-    } catch (mongoError) {
-      logger.warn('[MongoDB] Error sincronizando special soldiers:', mongoError.message);
-    }
-    
     return specialSoldiersForJson;
   } catch (error) {
     logger.error('❌ Error al generar SpecialSoldiers.json:', error);
@@ -493,7 +398,7 @@ async function generateSpecialSoldiersFile(specialSoldiers, chiefId, chiefObject
 }
 
 // Función para generar archivo SpecialCitizens.json
-async function generateSpecialCitizensFile(specialCitizens, chiefId, chiefObjectId) {
+async function generateSpecialCitizensFile(specialCitizens) {
   try {
     const specialCitizensForJson = await Promise.all((Array.isArray(specialCitizens) ? specialCitizens : []).map(async citizen => {
       const img64 = await loadImageAsDataUrl(citizen.img, 'SpecialCitizens', citizen.name);
@@ -510,15 +415,6 @@ async function generateSpecialCitizensFile(specialCitizens, chiefId, chiefObject
     const specialCitizensPath = path.join(SAVE_DIR, 'SpecialCitizens.json');
     await fs.writeFile(specialCitizensPath, JSON.stringify(specialCitizensForJson, null, 2), 'utf-8');
     logger.info('✅ Archivo SpecialCitizens.json generado en:', specialCitizensPath);
-    
-    // Sincronizar con MongoDB usando los datos con chief_id correcto
-    try {
-      const { upsertSpecialCitizens } = require('../main/repos/specialCitizensRepo.cjs');
-      await upsertSpecialCitizens(specialCitizensForJson);
-      logger.info(`[MongoDB] ✅ ${specialCitizensForJson.length} special citizens sincronizados con MongoDB`);
-    } catch (mongoError) {
-      logger.warn('[MongoDB] Error sincronizando special citizens:', mongoError.message);
-    }
     
     return specialCitizensForJson;
   } catch (error) {
@@ -552,15 +448,6 @@ async function migrateLegacySave() {
   }
 }
 
-// Función para verificar si MongoDB está disponible
-async function isMongoDBAvailable() {
-  try {
-    const mongoose = require('mongoose');
-    return mongoose.connection.readyState === 1;
-  } catch (error) {
-    return false;
-  }
-}
 
 async function saveGame(data) {
   try {
@@ -572,76 +459,57 @@ async function saveGame(data) {
     await fs.rename(tmpPath, SAVE_FILE_PATH);
     logger.info('✅ Partida guardada en:', SAVE_FILE_PATH);
     
-    // Verificar si MongoDB está disponible
-    const mongoAvailable = await isMongoDBAvailable();
-    
-    if (!mongoAvailable) {
-      logger.info('⚠️ MongoDB no disponible, solo generando archivos JSON...');
-    }
-    
     let chiefId = null;
     
     // Generar villagechief.json (sin abilities) primero para obtener el ID numérico
     if (data.villageChief) {
       const villageChiefResult = await generateVillageChiefFile(data.villageChief, data.bossStats);
       chiefId = villageChiefResult.id; // Este será el ID numérico del village chief
-      var chiefObjectId = villageChiefResult._id || null;
       // Generar abilities en archivo separado
-      await generateVillageChiefAbilitiesFile(data.villageChief, chiefId, chiefObjectId);
+      await generateVillageChiefAbilitiesFile(data.villageChief);
     }
     
     // Generar archivos adicionales usando el chiefId
     if (data.heroes && Array.isArray(data.heroes)) {
-      const heroesWithIds = await generateHeroesFile(data.heroes, chiefId, chiefObjectId);
-
-      // Mapear ObjectId de los héroes insertados a los héroes originales para no perder campos (como pet)
-      const idToObjectId = new Map();
-      (Array.isArray(heroesWithIds) ? heroesWithIds : []).forEach(h => {
-        if (h && typeof h.id !== 'undefined') idToObjectId.set(h.id, h._id);
-      });
-      const heroesForPets = data.heroes.map(h => ({ ...h, _id: idToObjectId.get(h.id) || h._id }));
+      await generateHeroesFile(data.heroes, chiefId);
 
       // Generar pets.json solo si hay héroes con mascota
-      if (heroesForPets.some(h => h && h.pet && String(h.pet).trim() !== '')) {
-        await generatePetsFile(heroesForPets, chiefId, chiefObjectId);
+      if (data.heroes.some(h => h && h.pet && String(h.pet).trim() !== '')) {
+        await generatePetsFile(data.heroes, chiefId);
       }
     }
     
     if (data.villains && Array.isArray(data.villains)) {
-      await generateVillainsFile(data.villains, chiefId, chiefObjectId);
+      await generateVillainsFile(data.villains, chiefId);
     }
     
     // Generar partner.json y partner_abilities.json
     if (data.partner) {
-      await generatePartnerFile(data.partner, data.partnerStats, chiefId, data.villageChief, chiefObjectId);
+      await generatePartnerFile(data.partner, data.partnerStats, chiefId);
       await generatePartnerAbilitiesFile(data.villageChief || {});
     }
     
     // Generar familiars.json
     if (data.villageChief && data.villageChief.familiars && Array.isArray(data.villageChief.familiars)) {
-      await generateFamiliarsFile(data.villageChief.familiars, chiefId, chiefObjectId);
+      await generateFamiliarsFile(data.villageChief.familiars, chiefId);
     }
     
     // Generar Elites.json
     if (data.Elites && Array.isArray(data.Elites)) {
-      await generateElitesFile(data.Elites, chiefId, chiefObjectId);
+      await generateElitesFile(data.Elites);
     }
     
     // Generar SpecialSoldiers.json
     if (data.SpecialSoldiers && Array.isArray(data.SpecialSoldiers)) {
-      await generateSpecialSoldiersFile(data.SpecialSoldiers, chiefId, chiefObjectId);
+      await generateSpecialSoldiersFile(data.SpecialSoldiers);
     }
     
     // Generar SpecialCitizens.json
     if (data.SpecialCitizens && Array.isArray(data.SpecialCitizens)) {
-      await generateSpecialCitizensFile(data.SpecialCitizens, chiefId, chiefObjectId);
+      await generateSpecialCitizensFile(data.SpecialCitizens);
     }
     
-    if (mongoAvailable) {
-      logger.info('✅ Archivos JSON generados y sincronizados con MongoDB');
-    } else {
-      logger.info('✅ Archivos JSON generados (MongoDB no disponible)');
-    }
+    logger.info('✅ Archivos JSON generados correctamente');
     
   } catch (error) {
     logger.error('❌ Error al guardar partida:', error);

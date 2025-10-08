@@ -1221,8 +1221,9 @@ body.loading .content section {
   border-radius: 8px;
   border: 2px solid #ccc;
   background: #eee;
-  background-size: cover;
+  background-size: contain;
   background-position: center;
+  background-repeat: no-repeat;
   cursor: pointer;
   position: relative;
 }
@@ -2220,7 +2221,9 @@ body.loading .content section {
   height: 320px;
   max-width: none;
   max-height: none;
-  object-fit: cover;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .habilities-grid {
@@ -2251,7 +2254,9 @@ body.loading .content section {
   height: 320px;
   max-width: none;
   max-height: none;
-  object-fit: cover;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .partner-slot {

@@ -124,13 +124,30 @@
       <section id="villain-section">
         <h1>My Villains (0/20)</h1>
         <div class="hero-controls" id="villain-controls">
-          <label><input type="checkbox" id="villain-favorite-check"> Favorites</label>
-          <input type="text" id="villain-search" list="villain-search-list" placeholder="Search villain">
-          <datalist id="villain-search-list"></datalist>
-          <button id="villain-sort-name-btn" class="btn btn-green">Order by Name</button>
-          <button id="villain-sort-floor-btn" class="btn btn-green">Order by Floor</button>
-          <select id="villain-origin-filter"></select>
-          <button id="villain-remove-filter-btn" class="btn btn-green" style="display:none;">-&gt; RemoveFilter</button>
+          <div class="hero-controls-row">
+            <div class="control-group" data-icon="⭐">
+              <label><input type="checkbox" id="villain-favorite-check"> Favorites</label>
+            </div>
+            
+            <div class="control-group" data-icon="🧭">
+              <span style="font-weight: bold; margin-right: 4px;">Order by:</span>
+              <button id="villain-sort-name-btn" class="btn btn-green">Name</button>
+              <button id="villain-sort-floor-btn" class="btn btn-green">Floor</button>
+            </div>
+            
+            <div class="control-group" data-icon="🔍">
+              <input type="text" id="villain-search" list="villain-search-list" placeholder="Search villain">
+              <datalist id="villain-search-list"></datalist>
+            </div>
+          </div>
+          
+          <div class="hero-controls-row">
+            <div class="control-group" data-icon="🔧">
+              <span style="font-weight: bold; margin-right: 4px;">Filter by:</span>
+              <select id="villain-origin-filter"></select>
+              <button id="villain-remove-filter-btn" class="btn btn-green" style="display:none;">RemoveFilter</button>
+            </div>
+          </div>
         </div>
         <div id="villains"></div>
         <div id="villain-pagination" class="pagination"></div>
@@ -139,13 +156,30 @@
       <section id="pets-section" style="display:none;">
         <h1>My Pets (0/5)</h1>
         <div class="hero-controls" id="pet-controls">
-          <label><input type="checkbox" id="pet-favorite-check"> Favorites</label>
-          <button id="pet-sort-name-btn" class="btn btn-green">Order by Name</button>
-          <button id="pet-sort-level-btn" class="btn btn-green">Order by Level</button>
-          <input type="text" id="pet-search" list="pet-search-list" placeholder="Search pet">
-          <datalist id="pet-search-list"></datalist>
-          <select id="pet-origin-filter"></select>
-          <button id="pet-remove-filter-btn" class="btn btn-green" style="display:none;">-> RemoveFilter</button>
+          <div class="hero-controls-row">
+            <div class="control-group" data-icon="⭐">
+              <label><input type="checkbox" id="pet-favorite-check"> Favorites</label>
+            </div>
+            
+            <div class="control-group" data-icon="🧭">
+              <span style="font-weight: bold; margin-right: 4px;">Order by:</span>
+              <button id="pet-sort-name-btn" class="btn btn-green">Name</button>
+              <button id="pet-sort-level-btn" class="btn btn-green">Level</button>
+            </div>
+            
+            <div class="control-group" data-icon="🔍">
+              <input type="text" id="pet-search" list="pet-search-list" placeholder="Search pet">
+              <datalist id="pet-search-list"></datalist>
+            </div>
+          </div>
+          
+          <div class="hero-controls-row">
+            <div class="control-group" data-icon="🔧">
+              <span style="font-weight: bold; margin-right: 4px;">Filter by:</span>
+              <select id="pet-origin-filter"></select>
+              <button id="pet-remove-filter-btn" class="btn btn-green" style="display:none;">RemoveFilter</button>
+            </div>
+          </div>
         </div>
         <div id="pets"></div>
         <div id="pet-pagination" class="pagination"></div>
@@ -154,16 +188,35 @@
       <section id="heroes-section">
         <h1>My Heroes</h1>
         <div class="hero-controls">
-          <label><input type="checkbox" id="favorite-check"> Favorites</label>
-          <label><input type="checkbox" id="ready-check"> Ready</label>
-          <button id="sort-name-btn" class="btn btn-green">Order by Name</button>
-          <button id="sort-level-btn" class="btn btn-green">Order by Level</button>
-          <input type="text" id="hero-search" list="hero-search-list" placeholder="Search hero">
-          <datalist id="hero-search-list"></datalist>
-          <select id="sex-filter"></select>
-          <select id="origin-filter"></select>
-          <select id="profession-filter"></select>
-          <button id="remove-filter-btn" class="btn btn-green" style="display:none;">-&gt; RemoveFilter</button>
+          <div class="hero-controls-row">
+            <div class="control-group" data-icon="⭐">
+              <label><input type="checkbox" id="favorite-check"> Favorites</label>
+              <label><input type="checkbox" id="ready-check"> Ready</label>
+            </div>
+            
+            <div class="control-group" data-icon="🧭">
+              <span style="font-weight: bold; margin-right: 4px;">Order by:</span>
+              <button id="sort-name-btn" class="btn btn-green">Name</button>
+              <button id="sort-level-btn" class="btn btn-green">Level</button>
+              <button id="sort-type-btn" class="btn btn-green">Type</button>
+            </div>
+            
+            <div class="control-group" data-icon="🔍">
+              <input type="text" id="hero-search" list="hero-search-list" placeholder="Search hero">
+              <datalist id="hero-search-list"></datalist>
+            </div>
+          </div>
+          
+          <div class="hero-controls-row">
+            <div class="control-group" data-icon="🔧">
+              <span style="font-weight: bold; margin-right: 4px;">Filter by:</span>
+              <select id="sex-filter"></select>
+              <select id="origin-filter"></select>
+              <select id="profession-filter"></select>
+              <select id="type-filter"></select>
+              <button id="remove-filter-btn" class="btn btn-green" style="display:none;">RemoveFilter</button>
+            </div>
+          </div>
         </div>
         <div id="heroes" class="virtual-section"></div>
         <div id="hero-pagination" class="pagination"></div>

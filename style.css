@@ -1436,8 +1436,9 @@ body.loading .content section {
   border-radius: 8px;
   border: 2px solid #ccc;
   background: #eee;
-  background-size: cover;
+  background-size: contain;
   background-position: center;
+  background-repeat: no-repeat;
   cursor: pointer;
   position: relative;
 }
@@ -1675,6 +1676,365 @@ body.loading .content section {
   opacity: 0.5;
 }
 
+/* Add as Hero button (top-right for village chief and partner) */
+.add-as-hero-icon {
+  position: absolute;
+  top: var(--image-badge-offset);
+  right: var(--image-badge-offset);
+  width: 24px;
+  height: 24px;
+  border: 2px solid #4CAF50;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: bold;
+  background: #4CAF50;
+  color: white;
+  z-index: 6;
+  opacity: 0.9;
+  transition: all 0.2s ease;
+}
+
+.add-as-hero-icon:hover {
+  opacity: 1;
+  background: #45a049;
+  transform: scale(1.1);
+}
+
+.add-as-hero-icon.disabled {
+  background: #999;
+  border-color: #999;
+  cursor: not-allowed;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.add-as-hero-icon.disabled:hover {
+  background: #999;
+  transform: none;
+}
+
+/* Add as Hero button (bottom-right for familiars) */
+.add-as-hero-icon-familiar {
+  position: absolute;
+  bottom: var(--image-badge-offset);
+  right: var(--image-badge-offset);
+  width: 24px;
+  height: 24px;
+  border: 2px solid #4CAF50;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: bold;
+  background: #4CAF50;
+  color: white;
+  z-index: 6;
+  opacity: 0.9;
+  transition: all 0.2s ease;
+}
+
+.add-as-hero-icon-familiar:hover {
+  opacity: 1;
+  background: #45a049;
+  transform: scale(1.1);
+}
+
+.add-as-hero-icon-familiar.disabled {
+  background: #999;
+  border-color: #999;
+  cursor: not-allowed;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.add-as-hero-icon-familiar.disabled:hover {
+  background: #999;
+  transform: none;
+}
+
+/* Modern Control Panel Styles */
+.hero-controls {
+  background: linear-gradient(135deg, rgba(139, 69, 19, 0.1), rgba(160, 82, 45, 0.05));
+  border: 2px solid rgba(139, 69, 19, 0.4);
+  border-radius: 12px;
+  padding: 2px 12px;
+  margin: 8px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(2px);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: visible;
+  justify-content: center;
+  align-items: center;
+}
+
+
+.hero-controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(139, 69, 19, 0.2);
+  flex-shrink: 0;
+  box-sizing: border-box;
+  margin: 0;
+}
+
+.control-group label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  color: #8B4513;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.control-group input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 2px solid #8B4513;
+  background: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.control-group input[type="checkbox"]:checked {
+  background: #8B4513;
+  border-color: #8B4513;
+}
+
+.control-group input[type="checkbox"]:checked::after {
+  content: '✓';
+  color: white;
+  font-weight: bold;
+  display: block;
+  text-align: center;
+  line-height: 12px;
+  font-size: 10px;
+}
+
+/* Styled select elements */
+.control-group select {
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid rgba(139, 69, 19, 0.3);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.85em;
+  color: #8B4513;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+  max-width: 120px;
+}
+
+.control-group select:hover {
+  border-color: #8B4513;
+  box-shadow: 0 2px 4px rgba(139, 69, 19, 0.2);
+}
+
+.control-group select:focus {
+  outline: none;
+  border-color: #8B4513;
+  box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.1);
+}
+
+/* Styled search input */
+.control-group input[type="text"] {
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid rgba(139, 69, 19, 0.3);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.85em;
+  color: #8B4513;
+  transition: all 0.2s ease;
+  min-width: 120px;
+  max-width: 180px;
+}
+
+.control-group input[type="text"]:hover {
+  border-color: #8B4513;
+  box-shadow: 0 2px 4px rgba(139, 69, 19, 0.2);
+}
+
+.control-group input[type="text"]:focus {
+  outline: none;
+  border-color: #8B4513;
+  box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.1);
+}
+
+/* Small sort buttons for Order by sections */
+.hero-controls .btn.btn-green {
+  font-size: 0.85em;
+  padding: 4px 8px;
+  margin: 0 1px;
+  min-height: auto;
+  line-height: 1.2;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(139, 69, 19, 0.3);
+}
+
+.hero-controls .btn.btn-green:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(139, 69, 19, 0.3);
+}
+
+.hero-controls .btn.btn-green:disabled {
+  background: #8B4513;
+  border-color: #8B4513;
+  color: white;
+  font-weight: bold;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.hero-controls span[style*="font-weight: bold"] {
+  font-size: 0.9em;
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+  color: #8B4513;
+  font-weight: 600;
+}
+
+/* Icons for visual enhancement */
+.control-group::before {
+  content: attr(data-icon);
+  font-size: 1.1em;
+  margin-right: 4px;
+}
+
+/* Section titles with medieval styling */
+section h1 {
+  background: linear-gradient(135deg, rgba(139, 69, 19, 0.2), rgba(160, 82, 45, 0.1));
+  border: 2px solid rgba(139, 69, 19, 0.4);
+  border-radius: 8px;
+  padding: 12px 20px;
+  margin: 16px 0 8px 0;
+  color: #8B4513;
+  font-weight: bold;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(139, 69, 19, 0.2);
+  position: relative;
+}
+
+section h1::before {
+  content: "⚔️";
+  margin-right: 8px;
+  font-size: 1.2em;
+}
+
+#heroes-section h1::before {
+  content: "🧙";
+}
+
+#villain-section h1::before {
+  content: "👹";
+}
+
+#pets-section h1::before {
+  content: "🐾";
+}
+
+/* Info panel styling */
+.info-panel {
+  background: linear-gradient(135deg, rgba(128, 0, 128, 0.1), rgba(75, 0, 130, 0.05));
+  border: 2px solid rgba(128, 0, 128, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 0;
+  box-shadow: 0 4px 12px rgba(128, 0, 128, 0.2);
+  backdrop-filter: blur(2px);
+  display: none;
+  min-height: 200px;
+  width: calc(100% + 30px);
+  box-sizing: border-box;
+  position: relative;
+}
+
+.info-panel.expand-row {
+  display: block;
+}
+
+.info-panel .close-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(128, 0, 128, 0.8);
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.info-panel .close-btn:hover {
+  background: rgba(128, 0, 128, 1);
+  transform: scale(1.1);
+}
+
+/* Remove filter button styling */
+#remove-filter-btn {
+  font-size: 0.8em;
+  padding: 4px 8px;
+  margin-left: 8px;
+  background: #dc3545;
+  border-color: #dc3545;
+  color: white;
+}
+
+#remove-filter-btn:hover {
+  background: #c82333;
+  border-color: #bd2130;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .hero-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .control-group {
+    justify-content: center;
+  }
+  
+  section h1 {
+    font-size: 1.1em;
+    padding: 8px 16px;
+  }
+}
+
 /* Show only download icon in top-left for downsized images */
 .hero-image-container .download-icon,
 .hero-second-image .download-icon,
@@ -1774,7 +2134,7 @@ body.loading .content section {
   align-items: center;
 }
 .hero-controls > * {
-  flex: 1 1 140px;
+  flex: 1 1 50px;
 }
 .hero-controls label {
   display: flex;
@@ -2599,7 +2959,9 @@ body.loading .content section {
   height: 320px;
   max-width: none;
   max-height: none;
-  object-fit: cover;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .habilities-grid {
@@ -2635,7 +2997,9 @@ body.loading .content section {
   height: 320px;
   max-width: none;
   max-height: none;
-  object-fit: cover;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .ability-image {

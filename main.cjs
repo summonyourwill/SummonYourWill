@@ -22,16 +22,6 @@ const { bootstrapBuiltIns, BUILTIN_DIR } = requireFromApp('Music', 'bootstrapLib
 const { saveGame, loadGame, deleteSave } = requireFromApp('core', 'saveManager.cjs');
 const { importOtherGamesGold } = requireFromApp('system', 'otherGamesIntegration.cjs');
 
-// MongoDB integration
-let mongoInitialized = false;
-let initializeMongoDB, cleanupMongoDB;
-try {
-  const mongoIntegration = requireFromApp('main', 'integration-example.cjs');
-  initializeMongoDB = mongoIntegration.initializeMongoDB;
-  cleanupMongoDB = mongoIntegration.cleanupMongoDB;
-} catch (err) {
-  console.warn('[MongoDB] No se pudo cargar la integración de MongoDB:', err.message);
-}
 
 // Initialize electron-store in the main process so renderer requests succeed.
 let electronStore;
@@ -432,16 +422,6 @@ app.on('before-quit', async (event) => {
       console.error('[SAVE] Failed to save on quit:', err);
     }
     
-    // Limpiar MongoDB
-    if (mongoInitialized && cleanupMongoDB) {
-      try {
-        await cleanupMongoDB();
-        console.log('[MongoDB] Desconectado correctamente');
-      } catch (err) {
-        console.warn('[MongoDB] Error al desconectar:', err.message);
-      }
-    }
-    
     app.quit();
   }
 });
@@ -489,17 +469,6 @@ app.whenReady().then(async () => {
   currentGameState = await loadGame(defaultData);
 
   createWindow();
-
-  // Inicializar MongoDB y watchers
-  if (initializeMongoDB) {
-    try {
-      await initializeMongoDB();
-      mongoInitialized = true;
-      console.log('[MongoDB] Inicializado correctamente');
-    } catch (err) {
-      console.warn('[MongoDB] Error al inicializar:', err.message);
-    }
-  }
 
   // Atajo global de emergencia: Ctrl+Shift+Q
   try {
