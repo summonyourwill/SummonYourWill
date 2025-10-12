@@ -4447,10 +4447,103 @@ function renderVillageChief() {
   updateAutoClickButtonHeight();
 
   const autoCard = document.createElement("div");
-  autoCard.className = "card gold-border";
+  autoCard.className = "card";
   autoCard.style.marginTop = "10px";
   autoCard.appendChild(autoWrap);
   info.appendChild(autoCard);
+
+  // Productivity tabs en la tercera columna
+  const prodCol = document.createElement("div");
+  prodCol.className = "chief-action-col";
+  prodCol.style.gap = "4px";
+
+  const prodTabs = [
+    { id: 'life', label: 'LifeMissions' },
+    { id: 'habits', label: 'HabitsCalendar' },
+    { id: 'projects', label: 'Projects' },
+    { id: 'silence', label: 'SilenceTemple' },
+    { id: 'pomodoro', label: 'PomodoroTower' }
+  ];
+
+  prodTabs.forEach(({ id, label }) => {
+    const btn = document.createElement('button');
+    btn.className = 'population-tab';
+    btn.textContent = label;
+    btn.style.marginTop = id === 'life' ? '0' : '4px';
+    btn.style.width = '100%';
+    btn.onclick = () => {
+      if (id === 'silence') {
+        showSilenceTempleModal();
+      } else if (id === 'pomodoro') {
+        showPomodoroTowerModal();
+      } else {
+        // Para life, habits, projects: mostrar directamente debajo de chief-card
+        const extraCard = document.getElementById('chief-extra');
+        if (!extraCard) return;
+        
+        if (currentChiefExtra === label) {
+          // Si ya está abierto, cerrarlo
+          extraCard.innerHTML = '';
+          extraCard.style.display = 'none';
+          currentChiefExtra = '';
+        } else {
+          // Abrirlo
+          extraCard.innerHTML = '';
+          extraCard.style.display = 'block';
+          extraCard.style.position = 'relative';
+          currentChiefExtra = label;
+          
+          // Botón de cierre en la esquina superior derecha
+          const closeBtn = document.createElement('button');
+          closeBtn.textContent = '❌';
+          closeBtn.className = 'close-btn';
+          closeBtn.style.position = 'absolute';
+          closeBtn.style.top = '8px';
+          closeBtn.style.right = '8px';
+          closeBtn.style.zIndex = '10';
+          closeBtn.onclick = () => {
+            extraCard.innerHTML = '';
+            extraCard.style.display = 'none';
+            currentChiefExtra = '';
+          };
+          extraCard.appendChild(closeBtn);
+          
+          if (id === 'life') {
+            renderLifeMissions(extraCard);
+          } else if (id === 'habits') {
+            renderHabits(extraCard);
+          } else if (id === 'projects') {
+            const iframe = document.createElement('iframe');
+            iframe.className = 'html-game-frame';
+            iframe.src = GAME_SOURCES.Projects;
+            iframe.onload = () => {
+              try {
+                const chiefAbilities = (villageChief.habilities || [])
+                  .slice(0, villageChief.unlockedHabilities ?? unlockedHabilities)
+                  .map((a, idx) => ({
+                    id: a.id ?? a.number ?? String(idx + 1),
+                    label: a.label ?? a.name ?? `Ability ${idx + 1}`,
+                    name: a.name ?? a.label ?? `Ability ${idx + 1}`,
+                    level: a.level ?? a.lvl ?? a.abilityLevel ?? a.lvlAbility ?? a.skillLevel ?? 1
+                  }));
+                iframe.contentWindow.postMessage({
+                  type: 'projectsData',
+                  partner: {
+                    unlockedPartnerAbilities: villageChief.unlockedHabilities ?? unlockedHabilities,
+                    abilities: chiefAbilities
+                  }
+                }, '*');
+              } catch {}
+            };
+            extraCard.appendChild(iframe);
+          }
+        }
+      }
+    };
+    prodCol.appendChild(btn);
+  });
+
+  card.appendChild(prodCol);
 
   if (currentView === "profiles") {
     shopBtn.style.display = "none";
@@ -5513,9 +5606,10 @@ function renderVillageChief() {
 
   if (!savedExtra) {
     const extra = document.createElement("div");
-    extra.className = "chief-card";
+    extra.className = "chief-card card gold-border";
     extra.id = "chief-extra";
     extra.style.display = "none";
+    extra.style.marginTop = "20px";
     container.appendChild(extra);
   }
   updateTimerPause();
@@ -5947,20 +6041,15 @@ function showChiefExtra(label, onClose) {
     card.appendChild(iframe);
   } else if (label === "DailyTribute") {
     const wrap = document.createElement("div");
-    wrap.className = "card gold-border";
+    wrap.className = "card";
     if (dailyTributeInfo) {
       const text = document.createElement("div");
       let html =
         `${dailyTributeInfo.claimedToday ? "Claimed" : "Claim your daily tribute"}:<br>` +
         `• 300 Gold for each Villain in your village (Total: ${dailyTributeInfo.goldFromVillains} Gold)<br>` +
-        `• 500 Gold for each Familiar + 50 Gold per Familiar level (Total: ${dailyTributeInfo.goldFromFamiliars} Gold)<br>` +
         `• 250 Gold for each Hero (Total: ${dailyTributeInfo.goldFromHeroes} Gold)<br>` +
         `• 200 Gold for each Pet (Total: ${dailyTributeInfo.goldFromPets} Gold)<br>` +
-        `• 100 Gold per Dungeon level (Total: ${dailyTributeInfo.goldFromDungeons} Gold)<br>` +
-        `• Random potions from your Village Partner, equal to their level (${dailyTributeInfo.partnerLevel}), chosen from: Health, Mana, Energy, or Experience. These potions are added to the Village Chief\'s inventory.<br>`;
-      if (dailyTributeInfo.potionSummary) {
-        html += `Potions received: ${dailyTributeInfo.potionSummary}`;
-      }
+        `• 100 Gold per Dungeon level (Total: ${dailyTributeInfo.goldFromDungeons} Gold)<br>`;
       text.innerHTML = html;
       wrap.appendChild(text);
     }
@@ -13644,6 +13733,7 @@ async function init() {
 
 // allow requiring this file in Node tests without running the game
 const api = {
+  init,
   saveGame,
   updateResourcesDisplay,
   updateHeroControls,
