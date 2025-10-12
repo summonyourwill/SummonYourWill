@@ -4335,7 +4335,7 @@ function renderVillageChief() {
   shopBtn.textContent = "Shop";
   shopBtn.className = "btn btn-yellow";
   shopBtn.style.flex = "1";
-  shopBtn.onclick = () => showResourceShop({ container: card });
+  shopBtn.onclick = () => showResourceShop();
   actionRow.appendChild(shopBtn);
 
   const pB2 = document.createElement("button");
@@ -4447,7 +4447,6 @@ function renderVillageChief() {
   updateAutoClickButtonHeight();
 
   const autoCard = document.createElement("div");
-  autoCard.className = "card";
   autoCard.style.marginTop = "10px";
   autoCard.appendChild(autoWrap);
   info.appendChild(autoCard);
@@ -4493,21 +4492,6 @@ function renderVillageChief() {
           extraCard.style.position = 'relative';
           currentChiefExtra = label;
           
-          // Botón de cierre en la esquina superior derecha
-          const closeBtn = document.createElement('button');
-          closeBtn.textContent = '❌';
-          closeBtn.className = 'close-btn';
-          closeBtn.style.position = 'absolute';
-          closeBtn.style.top = '8px';
-          closeBtn.style.right = '8px';
-          closeBtn.style.zIndex = '10';
-          closeBtn.onclick = () => {
-            extraCard.innerHTML = '';
-            extraCard.style.display = 'none';
-            currentChiefExtra = '';
-          };
-          extraCard.appendChild(closeBtn);
-          
           if (id === 'life') {
             renderLifeMissions(extraCard);
           } else if (id === 'habits') {
@@ -4537,6 +4521,21 @@ function renderVillageChief() {
             };
             extraCard.appendChild(iframe);
           }
+          
+          // Botón de cierre en la esquina superior derecha (después de renderizar)
+          const closeBtn = document.createElement('button');
+          closeBtn.textContent = '❌';
+          closeBtn.className = 'close-btn';
+          closeBtn.style.position = 'absolute';
+          closeBtn.style.top = '8px';
+          closeBtn.style.right = '8px';
+          closeBtn.style.zIndex = '10';
+          closeBtn.onclick = () => {
+            extraCard.innerHTML = '';
+            extraCard.style.display = 'none';
+            currentChiefExtra = '';
+          };
+          extraCard.appendChild(closeBtn);
         }
       }
     };
@@ -5095,23 +5094,9 @@ function renderVillageChief() {
   const habWrapper = document.createElement('div');
   habWrapper.className = 'scroll-wrapper';
   habWrapper.appendChild(habGrid);
-  const habSortBar=document.createElement('div');
-  habSortBar.className='sort-bar';
-  ['number','name','level','modified'].forEach(opt=>{
-    const b=document.createElement('button');
-    b.className='button';
-    const labels={name:'Order by Name',level:'Order by Level',number:'Order by Number',modified:'Order by LastModification'};
-    b.textContent=labels[opt];
-    b.disabled=chiefHabilitySort===opt;
-    b.onclick=()=>{chiefHabilitySort=opt;renderVillageChief();};
-    habSortBar.appendChild(b);
-  });
-  habDiv.appendChild(habSortBar);
+  // Removed sort bar - abilities are always ordered by number
   let habList = villageChief.habilities.slice().sort((a,b)=>{
-    if(chiefHabilitySort==='name') return a.name.localeCompare(b.name);
-    if(chiefHabilitySort==='level') return (b.level||1)-(a.level||1);
-    if(chiefHabilitySort==='number') return (a.number||0)-(b.number||0);
-    return (b.modified||0)-(a.modified||0);
+    return (a.number||0)-(b.number||0); // Always sort by number
   });
   const habPages = CHIEF_MAX_PAGES;
   if (chiefHabilityPage > habPages) chiefHabilityPage = habPages;
@@ -5124,6 +5109,9 @@ function renderVillageChief() {
     const num = document.createElement('div');
     num.className = 'slot-number';
     num.textContent = hab.number ?? globalIdx + 1;
+    num.style.position = "absolute";
+    num.style.top = "2px";
+    num.style.right = "2px";
     slot.appendChild(num);
     const imgDiv = document.createElement("div");
     imgDiv.className = "slot-img hability-img";
@@ -5171,6 +5159,9 @@ function renderVillageChief() {
     habDl.classList.toggle('disabled', !imgSrc);
     habDl.title = 'Download image';
     habDl.setAttribute('aria-label', 'Download image');
+    habDl.style.position = "absolute";
+    habDl.style.top = "2px";
+    habDl.style.left = "2px";
     habDl.onclick = e => {
       e.stopPropagation();
       if (habDl.classList.contains('disabled')) return;
@@ -5182,7 +5173,7 @@ function renderVillageChief() {
       del.className = "close-small";
       del.style.position = "absolute";
       del.style.top = "2px";
-      del.style.right = "2px";
+      del.style.right = "25px"; // Moved left to avoid overlap with number
       del.onclick = e => {
         e.stopPropagation();
           if (stepIdx === 0) {
@@ -5972,7 +5963,6 @@ function showChiefExtra(label, onClose) {
   updateTimerPause();
   if (label === "Autoclick enabled") {
     const wrap = document.createElement("div");
-    wrap.className = "card gold-border";
     wrap.style.gridColumn = "1 / -1";
     const subtitle = document.createElement("div");
     subtitle.textContent = "Hide this card to start autoclicking  ------------> (❌)";
@@ -6041,9 +6031,9 @@ function showChiefExtra(label, onClose) {
     card.appendChild(iframe);
   } else if (label === "DailyTribute") {
     const wrap = document.createElement("div");
-    wrap.className = "card";
     if (dailyTributeInfo) {
       const text = document.createElement("div");
+      text.style.paddingBottom = "15px"; // Agregar padding bottom
       let html =
         `${dailyTributeInfo.claimedToday ? "Claimed" : "Claim your daily tribute"}:<br>` +
         `• 300 Gold for each Villain in your village (Total: ${dailyTributeInfo.goldFromVillains} Gold)<br>` +
@@ -6407,7 +6397,7 @@ function showView(view = "home") {
     if (view === "pets") renderPetManagement();
   }
   if (sections.heroes) {
-    const hideHeroes = ["events", "missions", "games", "village", "tutorial", "settings", "population", "productivity"].includes(view);
+    const hideHeroes = ["events", "missions", "games", "village", "tutorial", "settings", "population"].includes(view);
     sections.heroes.style.display = hideHeroes ? "none" : "block";
     if (!hideHeroes) {
       scheduleRenderHeroes();
@@ -6627,6 +6617,7 @@ function renderLifeMissions(card) {
   goldDisplay.style.textAlign = "left";
   goldDisplay.style.fontWeight = "bold";
   goldDisplay.style.fontSize = "1.2em";
+  goldDisplay.style.paddingBottom = "15px"; // Agregar padding bottom
   card.appendChild(goldDisplay);
 
   if (lifeTasksDay !== getToday()) {

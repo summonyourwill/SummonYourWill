@@ -1052,7 +1052,10 @@ body.loading .content section {
   gap: 10px;
   margin-bottom: 4px;
   justify-items: center;
-  min-height: 90px;
+  min-height: auto;
+  height: auto;
+  overflow: visible;
+  padding-bottom: 15px;
 }
 
 #full-collect-icons {
