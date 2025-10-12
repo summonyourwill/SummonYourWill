@@ -1,0 +1,526 @@
+================================================================================
+DOCUMENTACIÓN: BOTÓN POPULATION - SPECIAL UNITS SYSTEM
+================================================================================
+
+UBICACIÓN: Botón verde "Population" en la interfaz principal (script.js)
+
+================================================================================
+1. ESTRUCTURA DE DATOS
+================================================================================
+
+Existen tres tipos de unidades especiales almacenadas en:
+
+A) ELITES (Elites.json)
+   - Archivo fuente: src/Population/allelites.json (33 unidades)
+   - Estructura:
+     {
+       "id": "string",
+       "name": "string",
+       "img": "Elites/nombre.png",
+       "desc": "descripción de la unidad",
+       "Level": number (incrementa cuando se obtiene duplicado)
+     }
+   - Probabilidad de obtención: 5%
+   - Color distintivo: Dorado (#ffd700)
+   - Carpeta de imágenes: src/Population/Elites/
+
+B) SPECIAL CITIZENS (SpecialCitizens.json)
+   - Archivo fuente: src/Population/allspecialcitizens.json (4 unidades)
+   - Estructura:
+     {
+       "id": "string",
+       "name": "string",
+       "img": "SpecialCitizens/nombre.png",
+       "desc": "descripción de la unidad",
+       "Quantity": number (incrementa cuando se obtiene duplicado)
+     }
+   - Probabilidad de obtención: 45%
+   - Color distintivo: Plateado (#c0c0c0)
+   - Carpeta de imágenes: src/Population/SpecialCitizens/
+
+C) SPECIAL SOLDIERS (SpecialSoldiers.json)
+   - Archivo fuente: src/Population/allspecialsoldiers.json (9 unidades)
+   - Estructura:
+     {
+       "id": "string",
+       "name": "string",
+       "img": "SpecialSoldiers/nombre.png",
+       "desc": "descripción de la unidad",
+       "Quantity": number (incrementa cuando se obtiene duplicado)
+     }
+   - Probabilidad de obtención: 50%
+   - Color distintivo: Plateado (#c0c0c0)
+   - Carpeta de imágenes: src/Population/SpecialSoldiers/
+
+================================================================================
+2. BOTÓN "SUMMON SPECIAL UNITS" (5000 GOLD)
+================================================================================
+
+UBICACIÓN EN CÓDIGO: script.js, líneas 10856-11436
+
+CARACTERÍSTICAS:
+- ID del botón: "special-units-btn"
+- Texto: "🃏Summon SpecialUnits (5000 Gold)🃏"
+- Clase CSS: "btn btn-gold"
+- Tooltip: "5 Random Units (Elites/Sp.Citizen/Sp.Soldier)"
+- Costo: 5000 Gold
+- Ubicación: Primera fila de botones en la tarjeta Population
+
+FUNCIONALIDAD AL HACER CLIC:
+1. Verifica si hay suficiente oro (state.money >= 5000)
+2. Crea/muestra un minijuego tipo "Pack Opening" (simulador de paquete de cartas)
+3. Si ya existe el minijuego, lo elimina (toggle)
+
+================================================================================
+3. MINIJUEGO "SPECIAL UNITS PACK OPENING"
+================================================================================
+
+ID DEL CONTENEDOR: "special-units-minigame"
+
+COMPONENTES VISUALES:
+- Tarjeta dorada con borde de 2px solid gold
+- Fondo: #fffacd (amarillo claro)
+- Header: #ffd700 (dorado) con título y botón de cerrar
+- Título: "🎴 Special Units Pack Opening 🎴"
+
+PAQUETE VISUAL:
+- Dimensiones: 150px × 200px
+- Estilo: Tarjeta dorada con estrellas ⭐⭐⭐
+- Texto: "MAGIC PACK - Contains 5 cards!"
+- Efecto hover: escala a 1.05
+
+BOTÓN "OPEN PACK":
+- Texto: "OPEN PACK (5000 Gold)"
+- Clase: "btn btn-gold"
+- Se deshabilita durante la apertura mostrando "OPENING..."
+
+================================================================================
+4. PROCESO DE APERTURA DEL PAQUETE
+================================================================================
+
+PASO 1: VALIDACIÓN Y PAGO (Líneas 10960-10984)
+- Verifica oro disponible (state.money >= 5000)
+- Guarda posición de scroll para evitar saltos de página
+- DEDUCE INMEDIATAMENTE 5000 gold: state.money -= 5000
+- Actualiza display de recursos
+- Deshabilita botón y muestra "OPENING..."
+
+PASO 2: CARGA DE DATOS (Líneas 10988-10046)
+- Carga archivos JSON usando Promise.all():
+  * src/Population/allelites.json
+  * src/Population/allspecialcitizens.json
+  * src/Population/allspecialsoldiers.json
+- Manejo de errores con catch(() => [])
+
+PASO 3: GENERACIÓN DE UNIDADES (Líneas 11007-11035)
+- Genera exactamente 5 unidades aleatorias
+- Sistema de probabilidades ponderadas:
+  * random < 0.05 → Elite (5%)
+  * random < 0.5 → Special Citizen (45%)
+  * random >= 0.5 → Special Soldier (50%)
+- Cada unidad incluye tipo, nombre, descripción e imagen
+
+PASO 4: AÑADIR A COLECCIONES (Líneas 11056-11118)
+A) Para ELITES:
+   - Si existe: Incrementa Level
+   - Si es nueva: Añade con Level = 1
+   - Almacenado en: window.Elites[]
+
+B) Para SPECIAL CITIZENS:
+   - Si existe: Incrementa Quantity
+   - Si es nueva: Añade con Quantity = 1
+   - Almacenado en: window.SpecialCitizens[]
+
+C) Para SPECIAL SOLDIERS:
+   - Si existe: Incrementa Quantity
+   - Si es nueva: Añade con Quantity = 1
+   - Almacenado en: window.SpecialSoldiers[]
+
+PASO 5: ACTUALIZACIÓN DE UI (Líneas 11120-11156)
+- Actualiza contadores en pantalla:
+  * elitesCounter.textContent = `Elites: ${window.Elites.length}`
+  * specialCitizensCounter.textContent = `SpecialCitizens: ${window.SpecialCitizens.length}`
+  * specialSoldiersCounter.textContent = `SpecialSoldiers: ${window.SpecialSoldiers.length}`
+- Llama a forceRerenderSections() para refrescar las secciones
+- Llama a updatePaginatedSections() para actualizar paginación
+- Llama a updateExistingSections() para actualizar contenido
+- Ejecuta saveGame() INMEDIATAMENTE
+
+PASO 6: ANIMACIÓN (Líneas 11158-11379)
+- Rota el paquete 180deg (0.5s transition)
+- Espera 500ms
+- Oculta el paquete
+- Muestra las 5 cartas en grid responsive
+- Animación de revelado escalonada (0.15s entre cartas)
+- Efecto de celebración: "🎉 PACK OPENED! 🎉"
+- Re-habilita el botón después de 3 segundos
+
+================================================================================
+5. VISUALIZACIÓN DE CARTAS (Líneas 11169-11316)
+================================================================================
+
+FORMATO DE CARTA:
+- Dimensiones: 160px × 280px
+- Diseño:
+  * Tipo de unidad (esquina superior izquierda)
+  * Nombre de la unidad (centrado, 48px altura)
+  * Imagen (120px × 120px, centrada)
+  * Nivel/Cantidad (solo para display, no se muestra en apertura)
+  * Descripción (4 líneas máximo, truncado con ellipsis)
+
+COLORES:
+- Elites: Fondo dorado (#ffd700), borde #b8860b
+- Otros: Fondo plateado (#c0c0c0), borde #808080
+
+IMAGEN:
+- Carga desde: src/Population/${unit.img}
+- Fallback: Emoji 🎴 con fondo degradado
+- Manejo de errores: onerror muestra emoji en lugar de imagen rota
+- Logging: onload y onerror registran en consola
+
+ANIMACIÓN:
+@keyframes cardReveal {
+  0%: opacity 0, translateY(30px), scale(0.8), rotateX(90deg)
+  50%: opacity 0.7, translateY(15px), scale(0.9), rotateX(45deg)
+  100%: opacity 1, translateY(0), scale(1), rotateX(0deg)
+}
+- Duración: 0.8s ease-out
+- Delay escalonado: index × 0.15s
+
+HOVER:
+- Transform: translateY(-5px) scale(1.05)
+- Box-shadow: 0 8px 16px rgba(0,0,0,0.3)
+- Transition: 0.3s ease
+
+================================================================================
+6. CONTADORES DE POPULATION (Líneas 11470-11529)
+================================================================================
+
+UBICACIÓN: Debajo de los botones de summon
+
+CONTADORES MOSTRADOS:
+1. Citizens: ${citizens}/${state.terrain * 50}
+2. Soldiers: ${soldiers}/${state.terrain * 50}
+3. Familiars: ${unlockedFamiliars}/100
+4. Heroes: ${state.heroes.length}
+5. Villains: ${villains.length}
+6. Pets: ${totalPets}
+7. Elites: ${window.Elites.length}
+8. SpecialCitizens: ${window.SpecialCitizens.length}
+9. SpecialSoldiers: ${window.SpecialSoldiers.length}
+
+IDs DE ELEMENTOS:
+- citizens-display
+- soldiers-display
+- familiars-display
+- heroes-total-display
+- villains-total-display
+- pets-total-display
+- elites-display
+- special-citizens-display
+- special-soldiers-display
+
+================================================================================
+7. SECCIONES PAGINADAS (Líneas 11543-11752)
+================================================================================
+
+FUNCIÓN: updatePaginatedSections()
+- Refresca las secciones de Elites, SpecialCitizens y SpecialSoldiers
+- Dispara eventos de búsqueda para actualizar la paginación
+- Métodos de actualización:
+  1. Dispara eventos 'input' y 'change' en campos de búsqueda
+  2. Focus/blur para activar listeners
+  3. Reemplazo temporal del contenido
+
+FUNCIÓN: forceRerenderSections()
+- Re-renderiza completamente las secciones con datos actuales
+- Muestra primeros 5 items en grid de 5 columnas
+- Timeout de 100ms para permitir actualización del DOM
+
+SECCIONES:
+1. ID: 'elites'
+   - Content ID: 'elites-content'
+   - Datos: window.Elites
+
+2. ID: 'special-citizens'
+   - Content ID: 'special-citizens-content'
+   - Datos: window.SpecialCitizens
+
+3. ID: 'special-soldiers'
+   - Content ID: 'special-soldiers-content'
+   - Datos: window.SpecialSoldiers
+
+DISEÑO DE TARJETAS EN SECCIONES:
+- Grid: 5 columnas (repeat(5, 1fr))
+- Gap: 15px
+- Dimensiones: 160px × 280px
+- Contenido:
+  * Badge de tipo de unidad
+  * Nombre (48px altura)
+  * Imagen (120px × 120px)
+  * Level/Quantity destacado
+  * Descripción (3 líneas máximo)
+
+================================================================================
+8. SISTEMA DE GUARDADO (src/core/saveManager.cjs y script.js)
+================================================================================
+
+A) EN SCRIPT.JS (Líneas 4304-4328)
+Incluye en el objeto gameState:
+
+Elites: (Array.isArray(window.Elites) ? window.Elites : []).map(u => ({
+  id: u.id ?? u.name,
+  name: u.name,
+  img: u.img,
+  desc: u.desc,
+  level_quantity: u.Level ?? 1
+}))
+
+SpecialSoldiers: (Array.isArray(window.SpecialSoldiers) ? window.SpecialSoldiers : []).map(u => ({
+  id: u.id ?? u.name,
+  name: u.name,
+  img: u.img,
+  desc: u.desc,
+  level_quantity: u.Quantity ?? 1
+}))
+
+SpecialCitizens: (Array.isArray(window.SpecialCitizens) ? window.SpecialCitizens : []).map(u => ({
+  id: u.id ?? u.name,
+  name: u.name,
+  img: u.img,
+  desc: u.desc,
+  level_quantity: u.Quantity ?? 1
+}))
+
+NOTA: Se usa "level_quantity" como campo compacto para guardar tanto Level como Quantity
+
+B) EN SAVEMANGER.CJS (Líneas 349-424, 497-510)
+
+FUNCIÓN: generateElitesFile(elites)
+- Convierte imágenes a base64 usando loadImageAsDataUrl()
+- Guarda en: SAVE_DIR/Elites.json
+- Formato:
+  {
+    "id": string,
+    "name": string,
+    "img": path_relativo,
+    "img64": data_url_base64,
+    "desc": string,
+    "level_quantity": number
+  }
+
+FUNCIÓN: generateSpecialCitizensFile(specialCitizens)
+- Convierte imágenes a base64
+- Guarda en: SAVE_DIR/SpecialCitizens.json
+- Estructura idéntica a Elites
+
+FUNCIÓN: generateSpecialSoldiersFile(specialSoldiers)
+- Convierte imágenes a base64
+- Guarda en: SAVE_DIR/SpecialSoldiers.json
+- Estructura idéntica a Elites
+
+FLUJO EN saveGame() (Líneas 497-510):
+if (data.Elites && Array.isArray(data.Elites)) {
+  await generateElitesFile(data.Elites);
+}
+
+if (data.SpecialSoldiers && Array.isArray(data.SpecialSoldiers)) {
+  await generateSpecialSoldiersFile(data.SpecialSoldiers);
+}
+
+if (data.SpecialCitizens && Array.isArray(data.SpecialCitizens)) {
+  await generateSpecialCitizensFile(data.SpecialCitizens);
+}
+
+ARCHIVOS GENERADOS:
+1. save.json (con todos los datos de juego)
+2. Elites.json (solo datos de elites con img64)
+3. SpecialCitizens.json (solo datos de ciudadanos especiales con img64)
+4. SpecialSoldiers.json (solo datos de soldados especiales con img64)
+
+================================================================================
+9. CARGA DE DATOS AL INICIO
+================================================================================
+
+Las unidades especiales se cargan desde:
+- window.Elites (array global)
+- window.SpecialCitizens (array global)
+- window.SpecialSoldiers (array global)
+
+Se inicializan vacíos si no existen:
+if (!window.Elites) window.Elites = [];
+if (!window.SpecialCitizens) window.SpecialCitizens = [];
+if (!window.SpecialSoldiers) window.SpecialSoldiers = [];
+
+================================================================================
+10. ESTILOS CSS ADICIONALES
+================================================================================
+
+ARCHIVO: src/Population/style.css
+
+Incluye estilos para:
+- Animaciones de cartas
+- Efectos de hover
+- Diseño del simulador de packs
+- Partículas y efectos visuales
+
+ARCHIVO HTML STANDALONE: src/Population/specialunitssummon.html
+- Simulador independiente de apertura de packs
+- Usa misma estructura pero standalone
+- Para pruebas y visualización separada
+
+================================================================================
+11. OTROS BOTONES EN POPULATION
+================================================================================
+
+SUMMON CITIZEN (100 Gold):
+- ID: "citizen-btn"
+- Función: summonCitizen()
+- Límite: citizens < state.terrain * 50
+- Incrementa: citizens++
+
+SUMMON SOLDIER (200 Gold):
+- ID: "soldier-btn"
+- Función: summonSoldier()
+- Límite: soldiers < state.terrain * 50
+- Incrementa: soldiers++
+
+SPECIAL CITIZEN (300 Gold):
+- ID: "special-citizen-btn"
+- Deshabilitado si state.money < 300
+
+SPECIAL SOLDIER (600 Gold):
+- ID: "special-soldier-btn"
+- Deshabilitado si state.money < 600
+
+ELITE (1500 Gold):
+- ID: "elite-btn"
+- Deshabilitado si state.money < 1500
+
+================================================================================
+12. INTEGRACIÓN CON updateResourcesDisplay()
+================================================================================
+
+La función updateResourcesDisplay() (líneas 4714-4743 en script.js) actualiza 
+todos los botones y contadores:
+
+- Habilita/deshabilita botones según oro y límites
+- Actualiza tooltips de "Not enough Gold"
+- Refresca displays de recursos
+- Se llama automáticamente después de cada cambio en state.money
+
+================================================================================
+13. LISTA DE UNIDADES DISPONIBLES
+================================================================================
+
+ELITES (33 total):
+1. Epic Wizard Casting
+2. AirBender
+3. Archer RabbitOwner
+4. ArtDancer CatOwner
+5. ArtDancer RopeExpert
+6. ArtDancer WindWarrior
+7. BudgieOwner Lancer
+8. Chef & Rat Duo
+9. Cyclist and Dog Duo
+10. EarthBender
+11. Fairy Performer
+12. Father Fisherman
+13. FireBender
+14. GoldRanger
+15. Griffindor Master
+16. GroupLider Swordman
+17. GymTeacher Traveler
+18. HappyPrince
+19. Hufflepuff Master
+20. LegendaryBirds Owner
+21. Magical Yoga Biology Professor
+22. MagicalCard Warrior
+23. Muscular FairyOddParent
+24. NurseBartender CatOwner
+25. Ophthalmologist Mother
+26. ParakeetsOwner Ninja
+27. Ravenclaw Master
+28. Slytherin Master
+29. Smash Master
+30. SwordArtOnline Swordman
+31. Tuxedo Mask
+32. WaterBender SwordMan
+33. Yugioh Hero
+
+SPECIAL CITIZENS (4 total):
+1. Dwarf Blacksmith
+2. Dwarf Lumberjack
+3. Werewolf Miner
+4. Dwarf Farmer
+
+SPECIAL SOLDIERS (9 total):
+1. Dwarf FireMage
+2. Dwarf Guard
+3. Dwarf Healer
+4. Dwarf Knight
+5. Elf Archer
+6. Human King Swordman
+7. Princess Summoner
+8. Princess SwordWoman
+9. Robot Gunner
+
+================================================================================
+14. ARCHIVOS RELACIONADOS
+================================================================================
+
+CÓDIGO PRINCIPAL:
+- script.js (líneas 10856-11752) - Implementación completa
+- script.js (líneas 4304-4328) - Guardado en gameState
+- src/core/saveManager.cjs (líneas 349-510) - Guardado en archivos
+
+DATOS:
+- src/Population/allelites.json
+- src/Population/allspecialcitizens.json
+- src/Population/allspecialsoldiers.json
+
+IMÁGENES:
+- src/Population/Elites/ (33 archivos .png)
+- src/Population/SpecialCitizens/ (4 archivos .png)
+- src/Population/SpecialSoldiers/ (9 archivos .png)
+
+HTML/CSS STANDALONE:
+- src/Population/specialunitssummon.html
+- src/Population/style.css
+
+VISUALIZACIÓN:
+- src/Population/visualizaciones.html
+
+OTROS:
+- src/Population/0Prompt.txt
+- src/Population/script.js
+
+================================================================================
+15. FLUJO COMPLETO DE USUARIO
+================================================================================
+
+1. Usuario hace clic en botón verde "Population"
+2. Se muestra la tarjeta Population con todos los contadores
+3. Usuario ve el botón dorado "🃏Summon SpecialUnits (5000 Gold)🃏"
+4. Usuario hace clic en el botón (si tiene ≥5000 gold)
+5. Aparece el minijuego con un paquete dorado
+6. Usuario hace clic en "OPEN PACK (5000 Gold)"
+7. Se deducen inmediatamente 5000 gold
+8. Se generan 5 unidades aleatorias según probabilidades
+9. Se añaden a las colecciones correspondientes (o incrementan Level/Quantity)
+10. Se guardan los cambios automáticamente
+11. El paquete se anima girando 180°
+12. Aparecen las 5 cartas con animación escalonada
+13. Se muestra efecto de celebración "🎉 PACK OPENED! 🎉"
+14. Usuario puede ver sus nuevas unidades en las secciones de abajo
+15. Los contadores se actualizan automáticamente
+16. Después de 3 segundos, el botón se re-habilita para otra compra
+
+================================================================================
+FIN DE LA DOCUMENTACIÓN
+================================================================================
+
+Autor: Sistema de documentación automática
+Fecha: Recuperación de funcionalidad eliminada
+Versión del juego: Summon Your Will
+

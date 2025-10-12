@@ -37,12 +37,11 @@
   <div class="app">
     <div class="sidebar">
       <button data-view="home">Home</button>
+      <button data-view="productivity" class="small-text">Productivity</button>
+      <button data-view="population">Population</button>
       <button data-view="village">Village</button>
-      <button data-view="games">Games</button>
       <button data-view="missions">Missions</button>
-      <button data-view="villains">Villains</button>
-      <button data-view="pets">Pets</button>
-      <button data-view="heroes">Heroes</button>
+      <button data-view="games">Games</button>
       <button data-view="profiles" class="small-text" disabled title="Coming soon?">Social</button>
       <button data-view="tutorial">Tutorial</button>
       <button data-view="settings">Settings</button>
@@ -121,6 +120,28 @@
         <div id="pet-management-card" class="chief-card card"></div>
       </section>
 
+      <section id="population-section" style="display:none;">
+        <div id="population-info" style="text-align: center; margin: 20px 0; padding: 15px; background: #f5f5f5; border-radius: 8px;"></div>
+        <div class="population-tabs">
+          <button class="population-tab" data-population-tab="heroes">Heroes</button>
+          <button class="population-tab" data-population-tab="villains">Villains</button>
+          <button class="population-tab" data-population-tab="pets">Pets</button>
+        </div>
+        <div id="population-content"></div>
+      </section>
+
+      <section id="productivity-section" style="display:none;">
+        <h1>Productivity</h1>
+        <div class="productivity-tabs">
+          <button class="productivity-tab active" data-productivity-tab="life">LifeMissions</button>
+          <button class="productivity-tab" data-productivity-tab="habits">HabitsCalendar</button>
+          <button class="productivity-tab" data-productivity-tab="projects">Projects</button>
+          <button class="productivity-tab" data-productivity-tab="silence">SilenceTemple</button>
+          <button class="productivity-tab" data-productivity-tab="pomodoro">PomodoroTower</button>
+        </div>
+        <div id="productivity-content"></div>
+      </section>
+
       <section id="villain-section">
         <h1>My Villains (0/20)</h1>
         <div class="hero-controls" id="villain-controls">
@@ -185,42 +206,6 @@
         <div id="pet-pagination" class="pagination"></div>
       </section>
 
-      <section id="heroes-section">
-        <h1>My Heroes</h1>
-        <div class="hero-controls">
-          <div class="hero-controls-row">
-            <div class="control-group" data-icon="⭐">
-              <label><input type="checkbox" id="favorite-check"> Favorites</label>
-              <label><input type="checkbox" id="ready-check"> Ready</label>
-            </div>
-            
-            <div class="control-group" data-icon="🧭">
-              <span style="font-weight: bold; margin-right: 4px;">Order by:</span>
-              <button id="sort-name-btn" class="btn btn-green">Name</button>
-              <button id="sort-level-btn" class="btn btn-green">Level</button>
-              <button id="sort-type-btn" class="btn btn-green">Type</button>
-            </div>
-            
-            <div class="control-group" data-icon="🔍">
-              <input type="text" id="hero-search" list="hero-search-list" placeholder="Search hero">
-              <datalist id="hero-search-list"></datalist>
-            </div>
-          </div>
-          
-          <div class="hero-controls-row">
-            <div class="control-group" data-icon="🔧">
-              <span style="font-weight: bold; margin-right: 4px;">Filter by:</span>
-              <select id="sex-filter"></select>
-              <select id="origin-filter"></select>
-              <select id="profession-filter"></select>
-              <select id="type-filter"></select>
-              <button id="remove-filter-btn" class="btn btn-green" style="display:none;">RemoveFilter</button>
-            </div>
-          </div>
-        </div>
-        <div id="heroes" class="virtual-section"></div>
-        <div id="hero-pagination" class="pagination"></div>
-      </section>
 
       <section id="tutorial-section" style="display:none;">
         <h1>Tutorial</h1>
@@ -272,14 +257,15 @@
            const scriptPath = './script.js';
            console.log('Loading script from:', scriptPath);
            
-           const { default: api } = await import(scriptPath);
-          api.init();
-          
-          document.querySelectorAll('.sidebar button').forEach(btn => {
-            btn.addEventListener('click', () => {
-              api.showView(btn.dataset.view);
-            });
-          });
+          const { default: api } = await import(scriptPath);
+         api.init();
+         
+         // Navegación principal solo para botones con data-view
+         document.querySelectorAll('.sidebar button[data-view]').forEach(btn => {
+           btn.addEventListener('click', () => {
+             api.showView(btn.dataset.view);
+           });
+         });
           
           console.log('App initialized successfully');
         } catch (err) {
