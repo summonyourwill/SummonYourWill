@@ -144,21 +144,7 @@ export function renderSection() {
 
       card.appendChild(gridWrap);
     } else {
-      if (hero) {
-        const nameEl = document.createElement('div');
-        nameEl.className = 'builder-name';
-        nameEl.textContent = hero.name;
-        card.appendChild(nameEl);
-      }
-
-      const choose = document.createElement('button');
-      choose.className = 'btn btn-celeste';
-      choose.textContent = 'Choose Builder';
-      choose.setAttribute('aria-label', 'Choose Builder');
-      choose.disabled = slot.status !== 'idle';
-      choose.onclick = () => openHeroPicker(slot.slotId);
-      card.appendChild(choose);
-
+      // Mostrar tiempo + botón × primero (si está corriendo)
       if (slot.status === 'running') {
         const row = document.createElement('div');
         row.setAttribute('role', 'status');
@@ -170,6 +156,36 @@ export function renderSection() {
         cancel.onclick = () => cancelAssignment(slot.slotId);
         row.appendChild(cancel);
         card.appendChild(row);
+      }
+
+      // Luego mostrar el nombre del héroe
+      if (hero) {
+        const nameEl = document.createElement('div');
+        nameEl.className = 'builder-name';
+        nameEl.textContent = hero.name;
+        card.appendChild(nameEl);
+      }
+
+      // Solo mostrar botón "Choose Builder" si no hay héroe asignado
+      if (!slot.assignedHeroId) {
+        const choose = document.createElement('button');
+        choose.className = 'btn btn-celeste';
+        choose.textContent = 'Choose Builder';
+        choose.setAttribute('aria-label', 'Choose Builder');
+        
+        // Verificar si hay héroes disponibles con 100% de energía
+        const taken = new Set(slots.filter(s => s.status !== 'idle').map(s => s.assignedHeroId));
+        const hasAvailableHeroes = state.heroes.some(h => {
+          const isBlocked = h.energia !== 100 || taken.has(h.id) || isBusy(h);
+          return !isBlocked;
+        });
+        
+        choose.disabled = slot.status !== 'idle' || !hasAvailableHeroes;
+        if (!hasAvailableHeroes && slot.status === 'idle') {
+          choose.title = 'Hero with 100% Energy is needed';
+        }
+        choose.onclick = () => openHeroPicker(slot.slotId);
+        card.appendChild(choose);
       }
     }
     grid.appendChild(card);
@@ -303,6 +319,17 @@ function resetSlot(slotId) {
   slot.durationMs = 0;
   slot.status = 'idle';
   saveSlots();
+}
+
+export function resetAllSlots() {
+  slots.forEach(slot => {
+    slot.assignedHeroId = null;
+    slot.startedAt = null;
+    slot.durationMs = 0;
+    slot.status = 'idle';
+  });
+  saveSlots();
+  renderSection();
 }
 
 export function openImproveModal(slotId) {

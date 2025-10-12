@@ -134,7 +134,9 @@ import {
 
   confirmImprove,
 
-  levelUp
+  levelUp,
+
+  resetAllSlots
 
 } from "./src/index.js";
 
@@ -4794,6 +4796,9 @@ function updateResourcesDisplay() {
 
   if (vilTitle) vilTitle.textContent = `My Villains (${villains.length}/${MAX_VILLAINS})`;
 
+  // Actualizar UI de terrenos cuando cambian los recursos
+  renderTerrainsIfVisible();
+
   const sbtn = document.getElementById("summon-btn");
 
   if (sbtn) {
@@ -7436,6 +7441,8 @@ function renderWorkers(container, arr, allowEdit, prefix = "Worker", resource = 
 
       const select = document.createElement("select");
 
+      select.title = `${prefix} ${idx + 1}`;
+
       const opt = document.createElement("option");
 
       opt.textContent = `${prefix} ${idx + 1}`;
@@ -7464,7 +7471,11 @@ function renderWorkers(container, arr, allowEdit, prefix = "Worker", resource = 
 
           const hasProf = highlightProf && (h.professions || []).includes(highlightProf);
 
-          option.textContent = hasProf ? `${professionIcons[highlightProf]} ${h.name}` : h.name;
+          const displayText = hasProf ? `${professionIcons[highlightProf]} ${h.name}` : h.name;
+
+          option.textContent = displayText;
+
+          option.title = h.name;
 
           if (hasProf) option.style.color = '#b28d25';
 
@@ -7479,6 +7490,14 @@ function renderWorkers(container, arr, allowEdit, prefix = "Worker", resource = 
         const id = parseInt(e.target.value);
 
         if (!id) return;
+
+        const hero = state.heroMap.get(id);
+
+        if (hero) {
+
+          select.title = hero.name;
+
+        }
 
         arr[idx] = id;
 
@@ -7658,6 +7677,8 @@ function renderAllCompanions(container, allowEdit) {
 
         const select = document.createElement("select");
 
+        select.title = `${prefix} ${idx + 1}`;
+
         const opt = document.createElement("option");
 
         opt.textContent = `${prefix} ${idx + 1}`;
@@ -7686,7 +7707,11 @@ function renderAllCompanions(container, allowEdit) {
 
             const hasProf = highlightProf && (h.professions || []).includes(highlightProf);
 
-            option.textContent = hasProf ? `${professionIcons[highlightProf]} ${h.name}` : h.name;
+            const displayText = hasProf ? `${professionIcons[highlightProf]} ${h.name}` : h.name;
+
+            option.textContent = displayText;
+
+            option.title = h.name;
 
             if (hasProf) option.style.color = '#b28d25';
 
@@ -7725,6 +7750,14 @@ function renderAllCompanions(container, allowEdit) {
           const id = parseInt(e.target.value);
 
           if (!id) return;
+
+          const hero = state.heroMap.get(id);
+
+          if (hero) {
+
+            select.title = hero.name;
+
+          }
 
           arr[idx] = id;
 
@@ -28030,6 +28063,9 @@ async function performReset() {
   Object.keys(BUILDING_IMAGES).forEach(k => state.buildingLevels[k] = 0);
 
   Object.assign(state.buildingTask, { heroIds: [null, null, null], time: 0, cost: 0 });
+
+  // Resetear special builder assignment slots
+  resetAllSlots();
 
 
 
