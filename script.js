@@ -10465,7 +10465,8 @@ export function renderHeroes() {
         autoStartRest(hero);
         updateResourcesDisplay();
       }),
-      createAction("Training", "trainTime", 0, () => {}),
+      // Botón Training oculto - Puede volver a usarse en el futuro
+      // createAction("Training", "trainTime", 0, () => {}),
       createAction("Rest", "restTime", 0, () => {})
     ];
     if (readOnly) {
@@ -10558,6 +10559,8 @@ export function renderHeroes() {
     const columns = document.createElement("div");
     columns.className = "stats-columns";
 
+    // Columna de Stats oculta - Puede volver a usarse en el futuro
+    /*
     const statesCol = document.createElement("div");
     statesCol.className = "stats-column";
     const statesTitle = document.createElement("div");
@@ -10727,6 +10730,7 @@ export function renderHeroes() {
     });
     statesCol.appendChild(grid);
     columns.appendChild(statesCol);
+    */
 
     const abilitiesCol = document.createElement("div");
     abilitiesCol.className = "stats-column abilities-column";
@@ -13857,9 +13861,10 @@ const api = {
 };
 
 // Population tabs management
-let currentPopulationTab = "partners";
+let currentPopulationTab = null;
 let populationOriginalParents = {};
 let populationInitialized = false;
+let populationSectionsClones = {};
 
 function updatePopulationInfo() {
   const populationInfo = document.getElementById('population-info');
@@ -13882,16 +13887,24 @@ function updatePopulationInfo() {
 }
 
 function initPopulationView() {
-  if (!populationOriginalParents.heroes) {
-    const heroesSection = document.getElementById("heroes-section");
+  // Guardar clones de las secciones originales
+  if (!populationSectionsClones.villains) {
     const villainsSection = document.getElementById("villain-section");
     const petsSection = document.getElementById("pets-section");
     const petManagementSection = document.getElementById("pet-management-section");
     
-    if (heroesSection) populationOriginalParents.heroes = heroesSection.parentNode;
-    if (villainsSection) populationOriginalParents.villains = villainsSection.parentNode;
-    if (petsSection) populationOriginalParents.pets = petsSection.parentNode;
-    if (petManagementSection) populationOriginalParents.petManagement = petManagementSection.parentNode;
+    if (villainsSection) {
+      populationSectionsClones.villains = villainsSection.cloneNode(true);
+      populationOriginalParents.villains = villainsSection.parentNode;
+    }
+    if (petsSection) {
+      populationSectionsClones.pets = petsSection.cloneNode(true);
+      populationOriginalParents.pets = petsSection.parentNode;
+    }
+    if (petManagementSection) {
+      populationSectionsClones.petManagement = petManagementSection.cloneNode(true);
+      populationOriginalParents.petManagement = petManagementSection.parentNode;
+    }
     
     const chiefPopDiv = document.getElementById("chief-population");
     const homePopCard = chiefPopDiv ? chiefPopDiv.querySelector('.card') : null;
@@ -14028,6 +14041,7 @@ function assignHeroEventListeners() {
 }
 
 function showPopulationTab(tab) {
+  // Actualizar tab actual
   currentPopulationTab = tab;
   
   const tabButtons = document.querySelectorAll('.population-tab');
@@ -14039,28 +14053,12 @@ function showPopulationTab(tab) {
     }
   });
   
-  const heroesSection = document.getElementById("heroes-section");
-  const villainsSection = document.getElementById("villain-section");
-  const petsSection = document.getElementById("pets-section");
-  const petManagementSection = document.getElementById("pet-management-section");
   const populationContent = document.getElementById("population-content");
   
   if (!populationContent) return;
   
-  if (heroesSection) heroesSection.style.display = "none";
-  if (villainsSection) villainsSection.style.display = "none";
-  if (petsSection) petsSection.style.display = "none";
-  if (petManagementSection) petManagementSection.style.display = "none";
-  
-  const children = Array.from(populationContent.children);
-  children.forEach(child => {
-    if (child.id !== "heroes-section" && 
-        child.id !== "villain-section" && 
-        child.id !== "pets-section" && 
-        child.id !== "pet-management-section") {
-      child.remove();
-    }
-  });
+  // Limpiar completamente el contenido
+  populationContent.innerHTML = '';
   
   if (tab === "heroes") {
     // Agregar botones SummonHero y PromoteHero directamente
@@ -14094,9 +14092,8 @@ function showPopulationTab(tab) {
     heroesSection.id = 'heroes-section';
     heroesSection.style.display = 'block';
 
-    const heroesTitle = document.createElement('h2');
+    const heroesTitle = document.createElement('h1');
     heroesTitle.textContent = `My Heroes (${state.heroes.length}/${state.houses})`;
-    heroesTitle.style.marginTop = '20px';
     heroesSection.appendChild(heroesTitle);
 
     // Controles de héroes
@@ -14224,46 +14221,65 @@ function showPopulationTab(tab) {
 
     // Asignar event listeners a los controles de héroes
     assignHeroEventListeners();
-
-    // Renderizar heroes
-    scheduleRenderHeroes();
+    
+    // Actualizar controles y renderizar
+    updateHeroControls();
+    setTimeout(() => {
+      scheduleRenderHeroes();
+    }, 0);
   } else if (tab === "villains") {
-    if (villainsSection) {
-      populationContent.appendChild(villainsSection);
-      villainsSection.style.display = "block";
+    // Usar clon fresco de la sección original
+    if (populationSectionsClones.villains) {
+      const freshVillainsSection = populationSectionsClones.villains.cloneNode(true);
+      populationContent.appendChild(freshVillainsSection);
+      freshVillainsSection.style.display = "block";
       setVillainSectionVisible(true, false);
     }
   } else if (tab === "pets") {
-    if (petManagementSection) {
-      populationContent.appendChild(petManagementSection);
-      petManagementSection.style.display = "block";
+    // Usar clones frescos de las secciones originales
+    if (populationSectionsClones.petManagement) {
+      const freshPetManagementSection = populationSectionsClones.petManagement.cloneNode(true);
+      populationContent.appendChild(freshPetManagementSection);
+      freshPetManagementSection.style.display = "block";
       renderPetManagement();
     }
-    if (petsSection) {
-      populationContent.appendChild(petsSection);
-      petsSection.style.display = "block";
+    if (populationSectionsClones.pets) {
+      const freshPetsSection = populationSectionsClones.pets.cloneNode(true);
+      populationContent.appendChild(freshPetsSection);
+      freshPetsSection.style.display = "block";
       renderPets();
     }
   }
 }
 
 function restorePopulationSectionsToOriginal() {
-  const heroesSection = document.getElementById("heroes-section");
-  const villainsSection = document.getElementById("villain-section");
-  const petsSection = document.getElementById("pets-section");
-  const petManagementSection = document.getElementById("pet-management-section");
+  // Limpiar completamente populationContent para evitar secciones duplicadas
+  const populationContent = document.getElementById("population-content");
+  if (populationContent) {
+    populationContent.innerHTML = '';
+  }
   
-  if (heroesSection && populationOriginalParents.heroes && heroesSection.parentNode !== populationOriginalParents.heroes) {
-    populationOriginalParents.heroes.appendChild(heroesSection);
+  // Resetear el tab actual
+  currentPopulationTab = null;
+  
+  // Restaurar las secciones originales a sus padres
+  if (populationOriginalParents.villains && populationSectionsClones.villains) {
+    const originalVillains = populationOriginalParents.villains.querySelector('#villain-section');
+    if (!originalVillains) {
+      populationOriginalParents.villains.appendChild(populationSectionsClones.villains.cloneNode(true));
+    }
   }
-  if (villainsSection && populationOriginalParents.villains && villainsSection.parentNode !== populationOriginalParents.villains) {
-    populationOriginalParents.villains.appendChild(villainsSection);
+  if (populationOriginalParents.pets && populationSectionsClones.pets) {
+    const originalPets = populationOriginalParents.pets.querySelector('#pets-section');
+    if (!originalPets) {
+      populationOriginalParents.pets.appendChild(populationSectionsClones.pets.cloneNode(true));
+    }
   }
-  if (petsSection && populationOriginalParents.pets && petsSection.parentNode !== populationOriginalParents.pets) {
-    populationOriginalParents.pets.appendChild(petsSection);
-  }
-  if (petManagementSection && populationOriginalParents.petManagement && petManagementSection.parentNode !== populationOriginalParents.petManagement) {
-    populationOriginalParents.petManagement.appendChild(petManagementSection);
+  if (populationOriginalParents.petManagement && populationSectionsClones.petManagement) {
+    const originalPetMgmt = populationOriginalParents.petManagement.querySelector('#pet-management-section');
+    if (!originalPetMgmt) {
+      populationOriginalParents.petManagement.appendChild(populationSectionsClones.petManagement.cloneNode(true));
+    }
   }
   
   if (populationOriginalParents.homePopCardEl && populationOriginalParents.homePopCardParent &&

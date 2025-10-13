@@ -48,17 +48,18 @@ export function renderVillage() {
       ["\u{1F357}", `FoodStor ${lvl("Pantry")}`],
       ["\u{1FAB5}", `WoodStor ${lvl("Lumberyard")}`],
       ["\u{1FAA8}", `StoneStor ${lvl("Quarry")}`],
-      ["\u{1F3CB}\uFE0F", `Gym ${lvl("Gym")}`],
-      ["\u{1F3F9}", `Archery ${lvl("ArcheryField")}`],
-      ["\u{1F52D}", `MageAcad ${lvl("MageAcademy")}`],
-      ["\u{1F94A}", `BoxRing ${lvl("BoxingRing")}`],
       ["\u{1F5FC}", `Tower ${lvl("Tower")}`],
       ["\u{1F3F0}", `Castle ${lvl("Castle")}`],
       ["\u{1F300}\u{1F4B0}", `Dungeon ${lvl("Dungeons")}`],
-      ["\u{1F3E5}", `Hospital ${lvl("Hospital")}`],
-      ["\u{1F64F}", `Ashram ${lvl("Ashram")}`],
-      ["\u{1F48A}", `LifeAltar ${lvl("LifeAltar")}`],
-      ["\u{1F381}", `Fortune ${lvl("FortuneTotem")}`],
+      // Edificios ocultos (posiciones 9-16) - Pueden volver a usarse en el futuro
+      // ["\u{1F94A}", `BoxRing ${lvl("BoxingRing")}`],
+      // ["\u{1F3CB}\uFE0F", `Gym ${lvl("Gym")}`],
+      // ["\u{1F3F9}", `Archery ${lvl("ArcheryField")}`],
+      // ["\u{1F52D}", `MageAcad ${lvl("MageAcademy")}`],
+      // ["\u{1F3E5}", `Hospital ${lvl("Hospital")}`],
+      // ["\u{1F64F}", `Ashram ${lvl("Ashram")}`],
+      // ["\u{1F48A}", `LifeAltar ${lvl("LifeAltar")}`],
+      // ["\u{1F381}", `Fortune ${lvl("FortuneTotem")}`],
     ];
     items.forEach(([icon, text]) => {
       const d = document.createElement("div");
@@ -177,14 +178,15 @@ export function renderVillage() {
   ensureUpgradeButton("Tower", "Tower");
   ensureUpgradeButton("Castle", "Castle");
   ensureUpgradeButton("Dungeons", "Dungeons");
-  ensureUpgradeButton("Hospital", "Hospital");
-  ensureUpgradeButton("Gym", "Gym(Str)");
-  ensureUpgradeButton("ArcheryField", "ArcheryField(Dex)");
-  ensureUpgradeButton("MageAcademy", "MageAcademy(Int)");
-  ensureUpgradeButton("BoxingRing", "BoxingRing(Def)");
-  ensureUpgradeButton("Ashram", "Ashram(Mana)");
-  ensureUpgradeButton("LifeAltar", "LifeAltar(HP)");
-  ensureUpgradeButton("FortuneTotem", "FortuneTotem(Luck)");
+  // Botones de upgrade ocultos - Pueden volver a usarse en el futuro
+  // ensureUpgradeButton("Hospital", "Hospital");
+  // ensureUpgradeButton("Gym", "Gym(Str)");
+  // ensureUpgradeButton("ArcheryField", "ArcheryField(Dex)");
+  // ensureUpgradeButton("MageAcademy", "MageAcademy(Int)");
+  // ensureUpgradeButton("BoxingRing", "BoxingRing(Def)");
+  // ensureUpgradeButton("Ashram", "Ashram(Mana)");
+  // ensureUpgradeButton("LifeAltar", "LifeAltar(HP)");
+  // ensureUpgradeButton("FortuneTotem", "FortuneTotem(Luck)");
 
   if (fragment.childNodes.length) {
     card.appendChild(fragment);
