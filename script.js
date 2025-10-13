@@ -771,8 +771,8 @@ function migrateSave(data) {
       data.heroes.forEach(h => {
         if (h.ability1LearnTime === undefined) h.ability1LearnTime = 0;
         if (h.ability2LearnTime === undefined) h.ability2LearnTime = 0;
-        if (h.ability1Learned === undefined) h.ability1Learned = false;
-        if (h.ability2Learned === undefined) h.ability2Learned = false;
+        if (h.ability1Learned === undefined) h.ability1Learned = true;
+        if (h.ability2Learned === undefined) h.ability2Learned = true;
       });
     }
     if (data.lifeGold === undefined) data.lifeGold = 0;
@@ -1415,8 +1415,8 @@ function initializeStateData() {
       if (!h.armorImg) h.armorImg = "";
       if (h.ability1LearnTime === undefined) h.ability1LearnTime = 0;
       if (h.ability2LearnTime === undefined) h.ability2LearnTime = 0;
-      if (h.ability1Learned === undefined) h.ability1Learned = false;
-      if (h.ability2Learned === undefined) h.ability2Learned = false;
+      if (h.ability1Learned === undefined) h.ability1Learned = true;
+      if (h.ability2Learned === undefined) h.ability2Learned = true;
       if (h.collectTime === undefined) h.collectTime = 0;
       if (h.collectLastShown === undefined) h.collectLastShown = h.collectTime;
       if (h.mineTime === undefined) h.mineTime = 0;
@@ -1593,36 +1593,7 @@ function finishTimer(timer) {
       }
       break;
     }
-    case 'learnAbility1': {
-      const hero = getHeroById(timer.heroId);
-      if (hero) {
-        hero.ability1LearnTime = 0;
-        hero.ability1Learned = true;
-        hero.energia = Math.max(0, hero.energia - 50);
-        autoStartRest(hero);
-        const overlay = document.getElementById(`ability1-overlay-${hero.id}`);
-        if (overlay) removeOverlay(overlay);
-        const note = document.getElementById(`stats-${hero.id}`)?.parentElement.querySelector('.learning-note');
-        if (note) note.remove();
-        renderHeroesIfVisible();
-      }
-      break;
-    }
-    case 'learnAbility2': {
-      const hero = getHeroById(timer.heroId);
-      if (hero) {
-        hero.ability2LearnTime = 0;
-        hero.ability2Learned = true;
-        hero.energia = Math.max(0, hero.energia - 50);
-        autoStartRest(hero);
-        const overlay = document.getElementById(`ability2-overlay-${hero.id}`);
-        if (overlay) removeOverlay(overlay);
-        const note = document.getElementById(`stats-${hero.id}`)?.parentElement.querySelector('.learning-note');
-        if (note) note.remove();
-        renderHeroesIfVisible();
-      }
-      break;
-    }
+    // Ability learning cases removed - all abilities are now unlocked by default
     case 'farm': {
       const hero = getHeroById(timer.heroId);
       if (hero) {
@@ -4322,22 +4293,23 @@ function renderVillageChief() {
   };
   abilityRow.appendChild(habilitiesBtn);
 
-  const abilityBtn = document.createElement("button");
-  abilityBtn.id = "ability-btn";
+  // Botón LearnAbility en la misma fila
+  const learnAbilityBtn = document.createElement("button");
+  learnAbilityBtn.id = "ability-btn";
   const abilityCost = 1000 * (unlockedHabilities + 1);
-  abilityBtn.textContent = "LearnAbility";
-  abilityBtn.className = "btn btn-blue";
-  abilityBtn.style.flex = "1";
-  abilityBtn.onclick = () => {
+  learnAbilityBtn.textContent = "LearnAbility";
+  learnAbilityBtn.className = "btn btn-green";
+  learnAbilityBtn.style.flex = "1";
+  learnAbilityBtn.onclick = () => {
     openConfirm({
       message: `Spend ${abilityCost} Gold to learn an ability?`,
       container,
       onConfirm: learnAbility,
     });
   };
-  abilityBtn.disabled = state.money < abilityCost || unlockedHabilities >= HABILITY_COUNT;
-  if (abilityBtn.disabled && state.money < abilityCost) abilityBtn.title = "Not enough Gold";
-  abilityRow.appendChild(abilityBtn);
+  learnAbilityBtn.disabled = state.money < abilityCost || unlockedHabilities >= HABILITY_COUNT;
+  if (learnAbilityBtn.disabled && state.money < abilityCost) learnAbilityBtn.title = "Not enough Gold";
+  abilityRow.appendChild(learnAbilityBtn);
 
   info.appendChild(abilityRow);
 
@@ -4472,6 +4444,7 @@ function renderVillageChief() {
   const prodCol = document.createElement("div");
   prodCol.className = "chief-action-col";
   prodCol.style.gap = "4px";
+  prodCol.style.marginLeft = "4px";
 
   const prodTabs = [
     { id: 'life', label: 'LifeMissions' },
@@ -10776,66 +10749,33 @@ export function renderHeroes() {
         labelSpan.textContent = info.label + ":";
         line.appendChild(labelSpan);
 
-        const learnKey = i === 2 ? "ability1LearnTime" : "ability2LearnTime";
-        const learnedKey = i === 2 ? "ability1Learned" : "ability2Learned";
-
-        if (!hero[learnedKey]) {
-          if (hero[learnKey] > 0) {
-            const timer = document.createElement("span");
-            timer.className = "timer";
-            timer.id = `${info.label.replace(/\s+/g,'').toLowerCase()}-timer-${hero.id}`;
-            timer.textContent = formatTime(hero[learnKey]);
-            const stop = document.createElement("button");
-            stop.textContent = "❌";
-            stop.className = "close-small";
-            stop.onclick = () => {
-              hero[learnKey] = 0;
-              removeTimer(`learn_${hero.id}_${i}`);
-              saveGame();
-              scheduleRenderHeroes();
-            };
-            line.append(" Learning ");
-            line.appendChild(timer);
-            line.appendChild(stop);
-          } else {
-            const btn = document.createElement("button");
-            btn.textContent = "Learn";
-            btn.className = "btn btn-blue btn-small ability-learn-btn";
-            const autoBusy =
-              state.autoClickActive &&
-              (state.companions.includes(hero.id) ||
-                state.farmers.includes(hero.id) ||
-                state.lumberjacks.includes(hero.id) ||
-                state.miners.includes(hero.id));
-            const otherBusy =
-              hero.buildTime > 0 ||
-              hero.restTime > 0 ||
-              hero.collectTime > 0 ||
-              hero.mineTime > 0 ||
-              hero.chopTime > 0 ||
-              hero.workTime > 0 ||
-              hero.trainTime > 0;
-            btn.disabled = readOnly || autoBusy || otherBusy;
-            btn.onclick = () => startAbilityLearning(hero.id, i, div);
-            line.appendChild(btn);
-          }
-        } else {
-          const span = document.createElement("span");
-          span.textContent = ab.name === "none" ? "Change Name" : ab.name;
-          span.style.cursor = readOnly ? "default" : "pointer";
-          if (!readOnly) {
-            span.onclick = () => {
-              openEditModal(info.label, ab.name === "none" ? "" : ab.name, val => {
-                if (val) {
-                  ab.name = val;
-                  saveGame();
-                  scheduleRenderHeroes();
-                }
-              }, {container: div});
-            };
-          }
-          line.appendChild(span);
+        // Mostrar imagen de la habilidad si existe
+        if (ab.img) {
+          const img = document.createElement("img");
+          img.src = ab.img;
+          img.style.width = "24px";
+          img.style.height = "24px";
+          img.style.marginRight = "8px";
+          img.style.verticalAlign = "middle";
+          line.appendChild(img);
         }
+
+        // Siempre mostrar la habilidad como desbloqueada con opción de cambiar nombre
+        const span = document.createElement("span");
+        span.textContent = ab.name === "none" ? "Change Name" : ab.name;
+        span.style.cursor = readOnly ? "default" : "pointer";
+        if (!readOnly) {
+          span.onclick = () => {
+            openEditModal(info.label, ab.name === "none" ? "" : ab.name, val => {
+              if (val) {
+                ab.name = val;
+                saveGame();
+                scheduleRenderHeroes();
+              }
+            }, {container: div});
+          };
+        }
+        line.appendChild(span);
         abilGrid.appendChild(line);
       });
     abilitiesCol.appendChild(abilGrid);
@@ -10984,9 +10924,9 @@ export function renderHeroes() {
     arma.textContent = "Ability 1:";
       const armaImg = document.createElement("div");
       armaImg.className = "slot-img image-wrapper ability-image ability-image-1 ability-slot";
-      if (!readOnly && hero.ability1Learned) armaImg.title = "Edit Image (160x160 recommended)";
+      if (!readOnly) armaImg.title = "Edit Image (160x160 recommended)";
       if (hero.weaponImg) armaImg.style.backgroundImage = `url(${hero.weaponImg})`;
-      if (!readOnly && hero.ability1Learned) {
+      if (!readOnly) {
         armaImg.onclick = () => {
           const input = document.createElement("input");
           input.type = "file";
@@ -11029,9 +10969,9 @@ export function renderHeroes() {
     armadura.textContent = "Ability 2:";
       const armorImg = document.createElement("div");
       armorImg.className = "slot-img image-wrapper ability-image ability-image-2 ability-slot";
-      if (!readOnly && hero.ability2Learned) armorImg.title = "Edit Image (160x160 recommended)";
+      if (!readOnly) armorImg.title = "Edit Image (160x160 recommended)";
       if (hero.armorImg) armorImg.style.backgroundImage = `url(${hero.armorImg})`;
-      if (!readOnly && hero.ability2Learned) {
+      if (!readOnly) {
         armorImg.onclick = () => {
           const input = document.createElement("input");
           input.type = "file";
@@ -12696,9 +12636,26 @@ function showBossStats() {
   appendOverlay(overlay);
 }
 function summonHero() {
+  console.log('🔍 summonHero called');
+  console.log('📊 Current state:', {
+    heroes: state.heroes.length,
+    houses: state.houses,
+    money: state.money,
+    summonCost: summonCost
+  });
+  
   recalcSummonCost();
-  if (state.heroes.length >= state.houses) return;
-  if (state.money < summonCost) return;
+  
+  if (state.heroes.length >= state.houses) {
+    console.log('❌ Blocked: No houses available');
+    return;
+  }
+  if (state.money < summonCost) {
+    console.log('❌ Blocked: Not enough money');
+    return;
+  }
+  
+  console.log('✅ Validations passed, opening popup');
   pauseTimersFor(3000);
 
   const existing = document.querySelector(".summon-overlay");
@@ -12834,7 +12791,14 @@ function summonHero() {
   modal.appendChild(profSelect);
   modal.appendChild(buttons);
   overlay.appendChild(modal);
-  appendOverlay(overlay, document.getElementById('village-chief'));
+  
+  console.log('📦 About to append overlay');
+  const modalRoot = document.getElementById('modal-root');
+  console.log('📦 Modal root element:', modalRoot);
+  
+  appendOverlay(overlay);
+  
+  console.log('✅ Overlay appended');
   overlay.tabIndex = -1;
   overlay.addEventListener('keydown', e => {
     if (e.key === 'Enter') {
@@ -12871,31 +12835,7 @@ function unlockPartnerAbility() {
   renderVillageChief();
 }
 
-function startAbilityLearning(heroId, index, container) {
-  const hero = state.heroMap.get(heroId);
-  if (!hero) return;
-  if (hero.energia <= 50) {
-    showAlert("Not enough energy", { container });
-    return;
-  }
-  if (isBusy(hero)) {
-    showAlert("Hero is busy", { container });
-    return;
-  }
-  const key = index === 2 ? 'ability1LearnTime' : 'ability2LearnTime';
-  hero[key] = 180; // 3 minutes
-  addTimer({
-    id: `learn_${hero.id}_${index}`,
-    type: index === 2 ? 'learnAbility1' : 'learnAbility2',
-    heroId: hero.id,
-    startTime: Date.now(),
-    duration: 180000,
-    paused: false,
-    completed: false,
-  });
-  scheduleSaveGame();
-  scheduleRenderHeroes();
-}
+// startAbilityLearning function removed - all heroes now have abilities unlocked by default
 
 function performReset() {
   state.money = 1000;
@@ -14134,7 +14074,10 @@ function showPopulationTab(tab) {
     summonBtn.id = "summon-btn";
     summonBtn.className = 'btn btn-blue';
     summonBtn.textContent = `SummonHero (${summonCost} Gold)`;
-    summonBtn.onclick = summonHero;
+    summonBtn.onclick = () => {
+      console.log('🎯 SummonHero button clicked!');
+      summonHero();
+    };
     const noHouse = state.heroes.length >= state.houses;
     const noGoldSummon = state.money < summonCost;
     summonBtn.disabled = noHouse || noGoldSummon;
@@ -14670,7 +14613,10 @@ function renderHeroesManagement(container) {
   summonBtn.id = "summon-btn";
   summonBtn.className = 'btn btn-blue';
   summonBtn.textContent = `SummonHero (${summonCost} Gold)`;
-  summonBtn.onclick = summonHero;
+  summonBtn.onclick = () => {
+    console.log('🎯 SummonHero button clicked (second location)!');
+    summonHero();
+  };
   const noHouse = state.heroes.length >= state.houses;
   const noGoldSummon = state.money < summonCost;
   summonBtn.disabled = noHouse || noGoldSummon;
