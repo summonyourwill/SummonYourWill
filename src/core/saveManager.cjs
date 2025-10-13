@@ -574,8 +574,26 @@ async function deleteSave() {
   }
 }
 
+async function resetToPartida0() {
+  try {
+    // Leer el contenido de partida0.json
+    const partida0Path = path.join(__dirname, '../../partida0.json');
+    const partida0Content = await fs.readFile(partida0Path, 'utf-8');
+    const partida0Data = JSON.parse(partida0Content);
+    
+    // Guardar esos datos en save.json usando la función saveGame existente
+    await saveGame(partida0Data);
+    logger.info('🔄 Reset completado: partida0.json copiado a save.json');
+    return true;
+  } catch (error) {
+    logger.error('❌ Error al resetear a partida0:', error);
+    return false;
+  }
+}
+
 module.exports = {
   saveGame,
   loadGame,
   deleteSave,
+  resetToPartida0,
 };

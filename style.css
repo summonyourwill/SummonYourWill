@@ -299,6 +299,18 @@ body.loading .content section {
   gap: 8px;
 }
 
+#terrain-card-2 {
+  padding-bottom: 15px;
+}
+
+#terrain-card.chief-card.card,
+#games-card.chief-card.card,
+#tutorial-buttons.chief-card.card,
+#save-images-card.chief-card.card,
+#tutorial-info-card.chief-card.card {
+  padding-bottom: 15px;
+}
+
 .construction-card {
   padding-bottom: 20px;
 }

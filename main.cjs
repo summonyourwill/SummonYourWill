@@ -19,7 +19,7 @@ const requireFromApp = (...segments) => {
 };
 
 const { bootstrapBuiltIns, BUILTIN_DIR } = requireFromApp('Music', 'bootstrapLibrary.cjs');
-const { saveGame, loadGame, deleteSave } = requireFromApp('core', 'saveManager.cjs');
+const { saveGame, loadGame, deleteSave, resetToPartida0 } = requireFromApp('core', 'saveManager.cjs');
 const { importOtherGamesGold } = requireFromApp('system', 'otherGamesIntegration.cjs');
 
 
@@ -516,7 +516,11 @@ ipcMain.on('reset-everything', async () => {
   } catch (err) {
     console.error('Failed to clear electron-store:', err);
   }
-  await deleteSave();
+  
+  // En producción, copiar partida0.json a save.json antes de reiniciar
+  // Así al abrir de nuevo la app, cargará los datos de partida0
+  await resetToPartida0();
+  
   app.relaunch();
   app.exit(0);
 });

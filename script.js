@@ -191,25 +191,7 @@ export function resolveSrc(path) {
 
 export const SAVE_VERSION = 4;
 
-state.groupMissions = (state.groupMissions || []).slice(0, 4);
-while (state.groupMissions.length < 4) {
-  state.groupMissions.push({
-    id: state.groupMissions.length + 1,
-    title: `GroupMission${state.groupMissions.length + 1}`,
-    description: null,
-    heroIds: [null, null, null, null, null],
-    status: 'idle',
-    started: false,
-    startAt: null,
-    endAt: null,
-    sameOriginBonus: false,
-    rewardApplied: false
-  });
-}
-state.groupMissions.forEach((gm, idx) => {
-  gm.id = idx + 1;
-  gm.title = `GroupMission${idx + 1}`;
-});
+// La inicialización de groupMissions se hará en initializeStateData()
 
 function renderHeroesIfVisible() {
   if (isSectionVisible('heroes-section')) {
@@ -681,10 +663,14 @@ let villageChief = {
   unlockedPartnerAbilities: 3,
   promoteCost: 500
 };
-Object.defineProperty(window, 'villageChief', {
-  get: () => villageChief,
-  set: v => { villageChief = v; }
-});
+// Solo definir la propiedad si no existe para evitar errores en producción
+if (!window.hasOwnProperty('villageChief')) {
+  Object.defineProperty(window, 'villageChief', {
+    get: () => villageChief,
+    set: v => { villageChief = v; },
+    configurable: true
+  });
+}
 let villains = [];
 let partner = {
   name: "Partner",
@@ -699,22 +685,18 @@ let partner = {
   energyPotions: 0,
   expPotions: 0
 };
-Object.defineProperty(window, 'partner', {
-  get: () => partner,
-  set: v => { partner = v; }
-});
+// Solo definir la propiedad si no existe para evitar errores en producción
+if (!window.hasOwnProperty('partner')) {
+  Object.defineProperty(window, 'partner', {
+    get: () => partner,
+    set: v => { partner = v; },
+    configurable: true
+  });
+}
 let currentPetHero = null;
 let nextVillainFloor = 1;
 const UPGRADE_TIME = 180; // 3 minutes
-// state for building and upgrades lives in src/state.js
-Object.keys(UPGRADE_HERO_COUNTS).forEach(b => {
-  if (!state.upgradeTasks[b]) state.upgradeTasks[b] = { heroIds: [], heroes: [], time: 0, lastTimeShown: null };
-});
-// buildingLevels defined in src/state.js
-Object.keys(BUILDING_IMAGES).forEach(b => {
-  if (state.buildingLevels[b] === undefined) state.buildingLevels[b] = 0;
-});
-if (state.buildingLevels.Tower === undefined) state.buildingLevels.Tower = 3;
+// La inicialización de state.upgradeTasks y state.buildingLevels se hará en initializeStateData()
 
 // Offload construction timers to a dedicated worker
 const constructionWorker = new Worker(new URL('./constructionWorker.js', import.meta.url));
@@ -1329,127 +1311,167 @@ function updateUpgradePreview() {
   }
 }
 
-if (villageChief.level === undefined) villageChief.level = 1;
-if (villageChief.exp === undefined) villageChief.exp = 0;
-
-state.heroes.forEach(h => {
-  if (h.level === undefined) h.level = 1;
-  if (h.exp === undefined) h.exp = 0;
-  if (h.stats === undefined) {
-    h.stats = {
-      fuerza: 1,
-      suerte: 1,
-      inteligencia: 1,
-      destreza: 1,
-      defensa: 1,
-      vida: 1,
-      mana: 1,
-    };
-  }
-  Object.keys(h.stats).forEach(s => {
-    if (h.stats[s] > MAX_STATS[s]) h.stats[s] = MAX_STATS[s];
+// Función de inicialización de datos de estado - debe llamarse después de que todos los módulos se hayan cargado
+function initializeStateData() {
+  // Inicializar volumen del reproductor de música
+  sywAudio.volume = soundVolume;
+  
+  // Inicializar state.upgradeTasks y state.buildingLevels
+  Object.keys(UPGRADE_HERO_COUNTS).forEach(b => {
+    if (!state.upgradeTasks[b]) state.upgradeTasks[b] = { heroIds: [], heroes: [], time: 0, lastTimeShown: null };
   });
-  if (h.stats.defensa === undefined) h.stats.defensa = 1;
-  if (h.hp === undefined || h.hpMax === undefined) {
-    h.hp = h.stats.vida;
-    h.hpMax = h.stats.vida;
+  Object.keys(BUILDING_IMAGES).forEach(b => {
+    if (state.buildingLevels[b] === undefined) state.buildingLevels[b] = 0;
+  });
+  if (state.buildingLevels.Tower === undefined) state.buildingLevels.Tower = 3;
+  
+  // Inicializar groupMissions
+  state.groupMissions = (state.groupMissions || []).slice(0, 4);
+  while (state.groupMissions.length < 4) {
+    state.groupMissions.push({
+      id: state.groupMissions.length + 1,
+      title: `GroupMission${state.groupMissions.length + 1}`,
+      description: null,
+      heroIds: [null, null, null, null, null],
+      status: 'idle',
+      started: false,
+      startAt: null,
+      endAt: null,
+      sameOriginBonus: false,
+      rewardApplied: false
+    });
   }
-  if (h.mana === undefined || h.manaMax === undefined) {
-    h.mana = h.stats.mana;
-    h.manaMax = h.stats.mana;
-  }
-  if (!h.skills || !Array.isArray(h.skills)) {
-    h.skills = [
-      { name: "Basic Attack", img: "" },
-      { name: "Special Attack", img: "" },
-      { name: "none", img: "" },
-      { name: "none", img: "" },
-    ];
-  } else {
-    // normalize legacy ability names
-    if (h.skills[2] && h.skills[2].name === "Extra Ability 1") {
-      h.skills[2].name = "none";
-    }
-    if (h.skills[3] && h.skills[3].name === "Extra Ability 2") {
-      h.skills[3].name = "none";
-    }
-  }
-  if (!h.pet) h.pet = "";
-  if (!h.petImg) h.petImg = "";
-  if (h.petLevel === undefined) h.petLevel = 1;
-  if (h.petExp === undefined) h.petExp = 0;
-  if (!h.petOrigin) h.petOrigin = "No origin";
-  if (h.petFavorite === undefined) h.petFavorite = false;
-  if (h.petExploreDay === undefined) h.petExploreDay = "";
-  if (h.petLastCollection === undefined) h.petLastCollection = Date.now();
-  if (h.petPendingCount === undefined) {
-    if (Array.isArray(h.petPending)) {
-      h.petPendingCount = h.petPending.length;
-    } else {
-      h.petPendingCount = parseInt(h.petPending || '0', 10) || 0;
-    }
-  }
-  delete h.petPending;
-  if (!h.petResourceType) h.petResourceType = h.petResource || null;
-  if (h.desc === undefined) h.desc = "";
-  if (h.petDesc === undefined) h.petDesc = "";
-  if (!h.origin) h.origin = "No origin";
-  if (!h.professions) h.professions = [];
-  if (h.favorite === undefined) h.favorite = false;
-  if (!h.weapon) h.weapon = "";
-  if (!h.armor) h.armor = "";
-  if (!h.weaponImg) h.weaponImg = "";
-    if (!h.armorImg) h.armorImg = "";
-    if (h.ability1LearnTime === undefined) h.ability1LearnTime = 0;
-    if (h.ability2LearnTime === undefined) h.ability2LearnTime = 0;
-    if (h.ability1Learned === undefined) h.ability1Learned = false;
-    if (h.ability2Learned === undefined) h.ability2Learned = false;
-    if (h.collectTime === undefined) h.collectTime = 0;
-    if (h.collectLastShown === undefined) h.collectLastShown = h.collectTime;
-    if (h.mineTime === undefined) h.mineTime = 0;
-    if (h.mineLastShown === undefined) h.mineLastShown = h.mineTime;
-    if (h.chopTime === undefined) h.chopTime = 0;
-    if (h.chopLastShown === undefined) h.chopLastShown = h.chopTime;
-    if (h.workTime === undefined) h.workTime = 0;
-    if (h.workLastShown === undefined) h.workLastShown = h.workTime;
-    if (h.buildTime === undefined) h.buildTime = 0;
-    if (h.hpPotions === undefined) h.hpPotions = 0;
-    if (h.manaPotions === undefined) h.manaPotions = 0;
-    if (h.energyPotions === undefined) h.energyPotions = 0;
-    if (h.expPotions === undefined) h.expPotions = 0;
-    if (h.modified === undefined) h.modified = Date.now();
-});
-state.missions.push(...Array.from({ length: missionExpRewards.length }, (_, i) => ({
-  id: i + 1,
-  heroId: null,
-  pendingHeroId: null,
-  completed: false,
-  expReward: missionExpRewards[i],
-  description: missionDescriptions[Math.floor(Math.random() * missionDescriptions.length)]
-}))); 
+  state.groupMissions.forEach((gm, idx) => {
+    gm.id = idx + 1;
+    gm.title = `GroupMission${idx + 1}`;
+  });
+  
+  if (villageChief.level === undefined) villageChief.level = 1;
+  if (villageChief.exp === undefined) villageChief.exp = 0;
 
-if (state.missions.length < missionExpRewards.length) {
-  for (let i = state.missions.length; i < missionExpRewards.length; i++) {
-    state.missions.push({
+  state.heroes.forEach(h => {
+    if (h.level === undefined) h.level = 1;
+    if (h.exp === undefined) h.exp = 0;
+    if (h.stats === undefined) {
+      h.stats = {
+        fuerza: 1,
+        suerte: 1,
+        inteligencia: 1,
+        destreza: 1,
+        defensa: 1,
+        vida: 1,
+        mana: 1,
+      };
+    }
+    Object.keys(h.stats).forEach(s => {
+      if (h.stats[s] > MAX_STATS[s]) h.stats[s] = MAX_STATS[s];
+    });
+    if (h.stats.defensa === undefined) h.stats.defensa = 1;
+    if (h.hp === undefined || h.hpMax === undefined) {
+      h.hp = h.stats.vida;
+      h.hpMax = h.stats.vida;
+    }
+    if (h.mana === undefined || h.manaMax === undefined) {
+      h.mana = h.stats.mana;
+      h.manaMax = h.stats.mana;
+    }
+    if (!h.skills || !Array.isArray(h.skills)) {
+      h.skills = [
+        { name: "Basic Attack", img: "" },
+        { name: "Special Attack", img: "" },
+        { name: "none", img: "" },
+        { name: "none", img: "" },
+      ];
+    } else {
+      // normalize legacy ability names
+      if (h.skills[2] && h.skills[2].name === "Extra Ability 1") {
+        h.skills[2].name = "none";
+      }
+      if (h.skills[3] && h.skills[3].name === "Extra Ability 2") {
+        h.skills[3].name = "none";
+      }
+    }
+    if (!h.pet) h.pet = "";
+    if (!h.petImg) h.petImg = "";
+    if (h.petLevel === undefined) h.petLevel = 1;
+    if (h.petExp === undefined) h.petExp = 0;
+    if (!h.petOrigin) h.petOrigin = "No origin";
+    if (h.petFavorite === undefined) h.petFavorite = false;
+    if (h.petExploreDay === undefined) h.petExploreDay = "";
+    if (h.petLastCollection === undefined) h.petLastCollection = Date.now();
+    if (h.petPendingCount === undefined) {
+      if (Array.isArray(h.petPending)) {
+        h.petPendingCount = h.petPending.length;
+      } else {
+        h.petPendingCount = parseInt(h.petPending || '0', 10) || 0;
+      }
+    }
+    delete h.petPending;
+    if (!h.petResourceType) h.petResourceType = h.petResource || null;
+    if (h.desc === undefined) h.desc = "";
+    if (h.petDesc === undefined) h.petDesc = "";
+    if (!h.origin) h.origin = "No origin";
+    if (!h.professions) h.professions = [];
+    if (h.favorite === undefined) h.favorite = false;
+    if (!h.weapon) h.weapon = "";
+    if (!h.armor) h.armor = "";
+    if (!h.weaponImg) h.weaponImg = "";
+      if (!h.armorImg) h.armorImg = "";
+      if (h.ability1LearnTime === undefined) h.ability1LearnTime = 0;
+      if (h.ability2LearnTime === undefined) h.ability2LearnTime = 0;
+      if (h.ability1Learned === undefined) h.ability1Learned = false;
+      if (h.ability2Learned === undefined) h.ability2Learned = false;
+      if (h.collectTime === undefined) h.collectTime = 0;
+      if (h.collectLastShown === undefined) h.collectLastShown = h.collectTime;
+      if (h.mineTime === undefined) h.mineTime = 0;
+      if (h.mineLastShown === undefined) h.mineLastShown = h.mineTime;
+      if (h.chopTime === undefined) h.chopTime = 0;
+      if (h.chopLastShown === undefined) h.chopLastShown = h.chopTime;
+      if (h.workTime === undefined) h.workTime = 0;
+      if (h.workLastShown === undefined) h.workLastShown = h.workTime;
+      if (h.buildTime === undefined) h.buildTime = 0;
+      if (h.hpPotions === undefined) h.hpPotions = 0;
+      if (h.manaPotions === undefined) h.manaPotions = 0;
+      if (h.energyPotions === undefined) h.energyPotions = 0;
+      if (h.expPotions === undefined) h.expPotions = 0;
+      if (h.modified === undefined) h.modified = Date.now();
+  });
+  
+  // Inicializar misiones solo si está vacío para evitar duplicados
+  if (state.missions.length === 0) {
+    state.missions.push(...Array.from({ length: missionExpRewards.length }, (_, i) => ({
       id: i + 1,
       heroId: null,
       pendingHeroId: null,
       completed: false,
       expReward: missionExpRewards[i],
       description: missionDescriptions[Math.floor(Math.random() * missionDescriptions.length)]
-    });
+    }))); 
   }
-}
 
-state.missions.forEach(m => {
-  if (!m.description) {
-    m.description = missionDescriptions[Math.floor(Math.random() * missionDescriptions.length)];
+  if (state.missions.length < missionExpRewards.length) {
+    for (let i = state.missions.length; i < missionExpRewards.length; i++) {
+      state.missions.push({
+        id: i + 1,
+        heroId: null,
+        pendingHeroId: null,
+        completed: false,
+        expReward: missionExpRewards[i],
+        description: missionDescriptions[Math.floor(Math.random() * missionDescriptions.length)]
+      });
+    }
   }
-  m.expReward = missionExpRewards[m.id - 1] || m.expReward || 20;
-  if (m.pendingHeroId === undefined) {
-    m.pendingHeroId = null;
-  }
-});
+
+  state.missions.forEach(m => {
+    if (!m.description) {
+      m.description = missionDescriptions[Math.floor(Math.random() * missionDescriptions.length)];
+    }
+    m.expReward = missionExpRewards[m.id - 1] || m.expReward || 20;
+    if (m.pendingHeroId === undefined) {
+      m.pendingHeroId = null;
+    }
+  });
+}
 
 let openStats = {};
 let openTraining = {};
@@ -5611,7 +5633,7 @@ function renderVillageChief() {
 let TRACKS = [];
 let sywIdx = 0;
 const sywAudio = new Audio();
-sywAudio.volume = soundVolume;
+// El volumen se inicializará después de cargar los módulos
 async function sywRefreshTracks(){
   if (!window.music) return;
   const currentId = TRACKS[sywIdx]?.id;
@@ -11633,9 +11655,11 @@ function preloadAssets(urls = []) {
   return Promise.all(loaders);
 }
 
-const minigameHtmlCache = lru;
+let minigameHtmlCache = null;
 function fetchMinigameHtml(src) {
   if (!src) return Promise.resolve(null);
+  // Inicializar cache si aún no existe
+  if (!minigameHtmlCache) minigameHtmlCache = lru;
   const cached = minigameHtmlCache.get(src);
   if (cached) return Promise.resolve(cached);
   return fetch(src)
@@ -11783,80 +11807,115 @@ function renderTutorial(){
 
   const infoCard = document.getElementById("tutorial-info-card");
   if (infoCard) {
-    infoCard.innerHTML = "";
-    [
-      "Characters",
-      "Buildings",
-      "Resource auto-collection",
-      "Minigames",
-      "Motivational functionalities"
-    ].forEach(t => {
-      const h = document.createElement('h3');
-      h.textContent = t;
-      infoCard.appendChild(h);
-      if (t === 'Motivational functionalities') {
-        [
-          'LifeMissions (Checklist)',
-          'HabitsCalendar',
-          'Silence Temple (Meditations)',
-          'PomodoroTower'
-        ].forEach(s => {
-          const div = document.createElement('div');
-          div.style.fontWeight = 'bold';
-          div.textContent = s;
-          infoCard.appendChild(div);
-        });
-      }
-    });
-    const infos = [
-      { name: "Abilities", desc: "Gestiona las habilidades del jefe del pueblo" },
-      { name: "ArcheryField", desc: "Aumenta la Destreza máxima. Requiere comida y energía" },
-      { name: "Ashram", desc: "Aumenta el Mana máximo. Requiere comida y energía" },
-      { name: "BoxingRing", desc: "Aumenta la Defensa máxima. Requiere comida y energía" },
-      { name: "Houses", desc: "Consume madera para añadir una nueva casa -30% Energy" },
-      { name: "Castle", desc: "Mejora el castillo para desbloquear mejoras" },
-      { name: "Chop", desc: "Acción del héroe: -10% Energía y +50 Madera" },
-      { name: "LifeMissions (Checklist)", desc: "Lista de tareas diarias" },
-      { name: "Delete", desc: "Elimina al héroe seleccionado" },
-      { name: "Dungeons", desc: "Explora calabozos para encontrar enemigos" },
-      { name: "Farm", desc: "Acción del héroe: -10% Energía y +50 Comida" },
-      { name: "Familiars", desc: "Muestra a los familiares disponibles" },
-      { name: "FortuneTotem", desc: "Aumenta el máximo de Suerte" },
-      { name: "Gym", desc: "Aumenta la Fuerza máxima" },
-      { name: "HabitsCalendar", desc: "Calendario para registrar hábitos" },
-      { name: "Hospital", desc: "Restaura la salud de los héroes" },
-      { name: "Inventory", desc: "Inventario del jefe del pueblo" },
-      { name: "LifeAltar", desc: "Aumenta la Vida máxima" },
-      { name: "Lumberyard", desc: "Almacén de Madera. +10 a la capacidad" },
-      { name: "Mine", desc: "Acción del héroe: -10% Energía y +50 Piedra" },
-      { name: "Pantry", desc: "Almacén de Comida. +10 a la capacidad" },
-      { name: "PetSanctuary", desc: "Permite alojar más mascotas" },
-      { name: "PomodoroTower", desc: "Mejora habilidades con sesiones pomodoro" },
-      { name: "Population", desc: "Muestra la población actual" },
-      { name: "Quarry", desc: "Almacén de Piedra. +10 a la capacidad" },
-      { name: "Rest", desc: "Acción del héroe: recupera energía" },
-      { name: "Silence Temple (Meditations)", desc: "Botón que sirve para meditar. Al terminar la sesión de meditación el familiar escogido que te acompaña en la meditación subirá de nivel." },
-      { name: "Stats", desc: "Muestra las estadísticas" },
-      { name: "Tower", desc: "Desbloquea la torre y nuevas funciones" },
-      { name: "Training", desc: "Abre el menú de entrenamiento del héroe" },
-      { name: "Work", desc: "Acción del héroe: +100 Oro, +20 Exp y -20% Energía" },
-      { name: "AutoClick", desc: "Automatiza acciones con trabajadores" },
-      { name: "BossRush", desc: "Enfrenta jefes seguidos para obtener recompensas" },
-      { name: "ChiefSurvival", desc: "Mini juego para esquivar enemigos y ganar puntos" },
-      { name: "Meditation", desc: "Usa SilenceTemple para subir de nivel a tu familiar" }
-    ];
-    infos.sort((a,b)=>a.name.localeCompare(b.name));
-    infos.forEach(i => {
-      const line = document.createElement("div");
-      line.className = "tutorial-info-item";
-      const strong = document.createElement("strong");
-      strong.textContent = i.name;
-      const p = document.createElement("div");
-      p.textContent = i.desc;
-      line.appendChild(strong);
-      line.appendChild(p);
-      infoCard.appendChild(line);
-    });
+    infoCard.innerHTML = `<pre style="white-space: pre-wrap; font-family: inherit; margin: 0;"><strong>1. Important Notes</strong>
+<strong>1.1. Save & Music Folders:</strong> Save files are stored in ...\\documents\\SummonYourWillSaves; music is stored in ...\\SummonYourWillMusic.
+
+<strong>2. Characters</strong>
+
+<strong>2.1 Village Chief</strong>
+Role: The leader of your village.
+Has: Abilities, Stats, and an Inventory.
+
+<strong>2.2 Heroes (Main Characters)</strong>
+Role: Primary workforce and adventurers.
+Resource generation: Auto-clicking, Work / Farm / Mine / Chop, Missions.
+Village building: Help construct and upgrade structures.
+Each Hero has: Stats, Inventory, a Pet slot, and two Abilities.
+
+<strong>2.3 Pets</strong>
+Role: Assign to Heroes to enhance performance.
+
+<strong>3. Village - Key Structures & Effects</strong>
+
+Terrain: Increases max Houses (each Terrain level adds +5 Houses).
+
+Houses: Increase max Heroes (1 Hero per House).
+
+Pet Sanctuary: Increases max Pets.
+
+Tower: Increases max Villains you can hold.
+
+Food/Wood/Stone Storage: Raise caps for Food, Wood, Stone.
+
+Training Grounds: Raise max attainable stats for Heroes.
+
+Dungeon: Generates daily Gold via Daily Tribute.
+
+Castle: Raises level caps for Village Chief, Heroes, Partner.
+
+<strong>4. Features</strong>
+
+<strong>4.1 Silence Temple</strong>
+Modes:
+
+4-4-6 Relaxing: Inhale 4s, hold 4s, exhale 6s.
+
+Kapalabhati Energizing: Rapid breathing with forceful exhalations.
+
+Nadi Balancing: Alternate-nostril breathing.
+Rewards: Upgrades Familiar level after 2 minutes; also gives Gold.
+
+<strong>4.2 Pomodoro Tower</strong>
+Technique: Focus cycles of 25 or 45 minutes.
+Rewards: Upgrades Village Chief ability level; also gives Gold.
+
+<strong>4.3 Projects</strong>
+Manage your real-life projects.
+
+<strong>4.4 Habits Calendar</strong>
+Daily habits → Chief stats:
+Exercise → Strength, Study → Intelligence, Meditation → Mana, etc.
+Rewards: Upgrades Village Chief stats; also gives Gold.
+
+<strong>4.5 Life Missions</strong>
+Daily tasks with difficulty tiers:
+
+Easy: 400 Gold
+
+Normal: 1000 Gold
+
+Hard: 2500 Gold
+
+<strong>4.6 Custom Music Player</strong>
+Personalized music player for your sessions.
+
+<strong>4.7 Hero Orders</strong>
+Partner issues global orders to all Heroes: Rest, Work, Auto-click.
+
+<strong>4.8 Export / Import / Reset</strong>
+
+Export: Save current game data to .json for use later.
+
+Import: Load a saved .json game.
+
+Reset: Start fresh from level 0 with default data.
+
+<strong>4.9 SaveAllImages (Setting)</strong>
+When enabled: Saves all app images to ..\\images\\SummonYourWillImages.
+
+<strong>5. Minigames</strong>
+
+<strong>5.1 Fight Intruders</strong>
+Use Village Chief and Partner abilities to repel intruders and earn Gold.
+
+<strong>5.2 Giant Boss</strong>
+6 Heroes fight a giant monster that gets stronger after each defeat.
+
+<strong>5.3 Enemy Encounters</strong>
+Capture-style minigame that adds Villains to the village.
+
+<strong>5.4 Pet Exploration</strong>
+Each Pet can collect Gold once per day with the Village Chief and Partner.
+
+<strong>5.5 Chief Survival</strong>
+Earn 1000 Gold for each level the Chief survives.
+
+<strong>5.6 Tower Defense (Coming Soon)</strong>
+12 Heroes, each must be at 100% energy.
+Rewards: +100 EXP and +1000 Gold per level reached.
+
+<strong>5.7 Fortune Wheel</strong>
+Daily wheel to earn Gold.</pre>`;
   }
 }
 
@@ -12065,15 +12124,6 @@ function renderGames() {
     saveGame();
   }
 
-  const shopBtn = document.createElement("button");
-  shopBtn.textContent = "Shop";
-  shopBtn.className = "btn btn-yellow";
-  shopBtn.style.width = "auto";
-  shopBtn.style.flex = "0";
-  shopBtn.style.padding = "8px 12px";
-  shopBtn.style.marginLeft = "20px";
-  shopBtn.onclick = showGamesShop;
-  card.appendChild(shopBtn);
   const goldDiv = document.createElement("div");
   goldDiv.id = "games-gold-display";
   goldDiv.textContent = `Gold: ${state.money}`;
@@ -13310,15 +13360,23 @@ function tickGroupMissions() {
   }
 }
 
-tickGroupMissions();
-setInterval(tickGroupMissions, 60 * MIN); // Cada 1 hora para countdown correcto
+// tickGroupMissions se ejecutará después de inicializar el estado
 
 async function init() {
   // Remove any stray overlays that might block interaction
   document.querySelectorAll('.modal-overlay, .sy-modal-overlay').forEach(el => el.remove());
   document.body.classList.remove('body--lock-scroll');
+  
   await loadExpTables();
   await loadGame();
+  
+  // Inicializar y normalizar datos de estado después de cargar el juego
+  initializeStateData();
+  
+  // Ahora que el estado está inicializado, podemos ejecutar tickGroupMissions
+  tickGroupMissions();
+  setInterval(tickGroupMissions, 60 * MIN); // Cada 1 hora para countdown correcto
+  
   cleanupFightIntrudersDaily();
   renderDailyMissions();
   if ("serviceWorker" in navigator && location.protocol.startsWith('http')) {
