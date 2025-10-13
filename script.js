@@ -2980,15 +2980,12 @@ function showAddPetPopup() {
     return;
   }
   if (state.heroes.filter(h => h.pet).length >= MAX_PETS) {
-    const petSection = document.getElementById('pets-section');
-    showAlert('Pet limit reached', petSection ? { container: petSection } : {});
+    showAlert('Pet limit reached');
     return;
   }
   let imgData = '';
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay card-modal';
-  const petSection = document.getElementById('pets-section');
-  if (petSection) petSection.style.position = 'relative';
   const modal = document.createElement('div');
   modal.className = 'modal';
   modal.style.padding = '10px';
@@ -3083,7 +3080,7 @@ function showAddPetPopup() {
   modal.appendChild(imgInput);
   modal.appendChild(btnRow);
   overlay.appendChild(modal);
-  appendOverlay(overlay, petSection);
+  appendOverlay(overlay);
   focusNoScroll(nameInput);
 }
 
@@ -3096,8 +3093,6 @@ function showFreePetPopup() {
   }
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay card-modal';
-  const petSection = document.getElementById('pets-section');
-  if (petSection) petSection.style.position = 'relative';
   const modal = document.createElement('div');
   modal.className = 'modal';
   modal.style.padding = '10px';
@@ -3146,7 +3141,7 @@ function showFreePetPopup() {
   modal.appendChild(select);
   modal.appendChild(btnRow);
   overlay.appendChild(modal);
-  appendOverlay(overlay, petSection);
+  appendOverlay(overlay);
   focusNoScroll(select);
 }
 
@@ -3159,8 +3154,6 @@ function showChangePetOwnerPopup(currentHero) {
   }
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay card-modal';
-  const petSection = document.getElementById('pets-section');
-  if (petSection) petSection.style.position = 'relative';
   const modal = document.createElement('div');
   modal.className = 'modal';
   modal.style.padding = '10px';
@@ -3222,7 +3215,7 @@ function showChangePetOwnerPopup(currentHero) {
   modal.appendChild(select);
   modal.appendChild(btnRow);
   overlay.appendChild(modal);
-  appendOverlay(overlay, petSection);
+  appendOverlay(overlay);
   focusNoScroll(select);
 }
 
@@ -6448,6 +6441,7 @@ function showView(view = "home") {
 
   if (view === "villains" || view === "profiles") {
     setVillainSectionVisible(true, view === "profiles");
+    if (view === "profiles") setupVillainEventListeners();
   } else {
     setVillainSectionVisible(false);
   }
@@ -6455,12 +6449,16 @@ function showView(view = "home") {
   if ((view === "pets" || view === "profiles") && sections.pets) {
     sections.pets.style.display = "block";
     renderPets();
+    if (view === "profiles") setupPetEventListeners();
   } else if (sections.pets) {
     sections.pets.style.display = "none";
   }
   if (sections.petManagement) {
     sections.petManagement.style.display = view === "pets" ? "block" : "none";
-    if (view === "pets") renderPetManagement();
+    if (view === "pets") {
+      renderPetManagement();
+      setupPetEventListeners();
+    }
   }
   if (sections.heroes) {
     const hideHeroes = ["events", "missions", "games", "village", "tutorial", "settings", "population"].includes(view);
@@ -11708,6 +11706,7 @@ function collectAllPetResources() {
     }
   });
   updateResourcesDisplay();
+  saveGame();
   if (isSectionVisible('pets-section')) renderPets();
   scheduleSaveGame();
   return totals;
@@ -11723,17 +11722,49 @@ function updateFullCollectIcons() {
   });
 }
 
-function renderPetManagement() {
-  const card = document.getElementById("pet-management-card");
-  if (!card) return;
+function renderPetManagement(containerContext = null) {
+  console.log('renderPetManagement called, containerContext:', containerContext);
+  
+  // Si estamos en population tab, buscar dentro de population-content
+  let card;
+  if (containerContext) {
+    card = containerContext.querySelector("#pet-management-card");
+    console.log('Buscando card en containerContext:', card);
+  } else {
+    // Verificar si estamos en el tab de population-pets
+    const populationContent = document.getElementById("population-content");
+    const petManagementInPopulation = populationContent?.querySelector("#pet-management-card");
+    
+    if (petManagementInPopulation && petManagementInPopulation.offsetParent !== null) {
+      // El card en population está visible, usar ese
+      card = petManagementInPopulation;
+      console.log('Usando card de population-content (visible):', card);
+    } else {
+      // Usar el card original
+      card = document.getElementById("pet-management-card");
+      console.log('Usando card original:', card);
+    }
+  }
+  
+  if (!card) {
+    console.warn('No se encontró pet-management-card');
+    return;
+  }
+  
+  console.log('Card encontrado, limpiando innerHTML');
   card.innerHTML = "";
 
   const addBtn = document.createElement("button");
   addBtn.id = "add-pet-btn";
   addBtn.className = "btn btn-blue";
   addBtn.textContent = "AddPet";
-  addBtn.onclick = showAddPetPopup;
   addBtn.style.width = '100%';
+  addBtn.onclick = function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Click directo en AddPet');
+    showAddPetPopup();
+  };
 
   const wrap = document.createElement('div');
   wrap.id = 'full-collect-wrap';
@@ -11742,9 +11773,12 @@ function renderPetManagement() {
   btn.className = 'btn btn-green white-text';
   btn.style.height = '100%';
   btn.textContent = 'FullRecolection';
-  btn.onclick = () => {
+  btn.onclick = function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Click directo en FullRecolection');
     collectAllPetResources();
-    renderPetManagement();
+    renderPetManagement(containerContext);
   };
   wrap.appendChild(btn);
   const icons = document.createElement('div');
@@ -11766,8 +11800,13 @@ function renderPetManagement() {
   freeBtn.id = "free-pet-btn";
   freeBtn.className = "btn btn-red";
   freeBtn.textContent = "FreePet";
-  freeBtn.onclick = showFreePetPopup;
   freeBtn.style.width = '100%';
+  freeBtn.onclick = function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Click directo en FreePet');
+    showFreePetPopup();
+  };
 
   const slot2 = document.createElement('div');
   const slot4 = document.createElement('div');
@@ -11776,8 +11815,10 @@ function renderPetManagement() {
   card.appendChild(wrap);
   card.appendChild(slot4);
   card.appendChild(freeBtn);
+  console.log('Botones añadidos al card, actualizando íconos');
   updateFullCollectIcons();
 }
+
 
 const loadedAssets = new Set();
 function preloadAssets(urls = []) {
@@ -13435,6 +13476,143 @@ function tickGroupMissions() {
 
 // tickGroupMissions se ejecutará después de inicializar el estado
 
+function setupVillainEventListeners() {
+  const villainSearchInput = document.getElementById("villain-search");
+  if (villainSearchInput) {
+    villainSearchInput.oninput = e => {
+      const q = e.target.value.toLowerCase();
+      const list = document.getElementById("villain-search-list");
+      if (list) {
+        const names = [...new Set(villains.map(v => v.name || "").filter(n => n.toLowerCase().includes(q)))]
+          .sort((a,b)=>a.localeCompare(b));
+        list.innerHTML = names.map(n => `<option value="${n}"></option>`).join("");
+      }
+    };
+    const applyVillainSearch = () => {
+      villainFilterSearch = villainSearchInput.value.trim() || null;
+      currentVillainPage = 1;
+      renderVillains();
+      updateVillainControls();
+    };
+    villainSearchInput.addEventListener('change', applyVillainSearch);
+    villainSearchInput.addEventListener('keydown', e => { if (e.key === 'Enter') applyVillainSearch(); });
+  }
+
+  const vilSortNameBtn = document.getElementById("villain-sort-name-btn");
+  if (vilSortNameBtn) vilSortNameBtn.onclick = () => {
+    if (villainSort === "name") {
+      villainSortAsc = !villainSortAsc;
+    } else {
+      villainSort = "name";
+      villainSortAsc = true;
+    }
+    currentVillainPage = 1;
+    renderVillains();
+  };
+  const vilSortFloorBtn = document.getElementById("villain-sort-floor-btn");
+  if (vilSortFloorBtn) vilSortFloorBtn.onclick = () => {
+    villainSort = "floor";
+    currentVillainPage = 1;
+    renderVillains();
+  };
+  const vilOriginSel = document.getElementById("villain-origin-filter");
+  if (vilOriginSel) vilOriginSel.onchange = e => {
+    villainFilterOrigin = e.target.value || null;
+    currentVillainPage = 1;
+    renderVillains();
+    updateVillainControls();
+  };
+  const vilFavCheck = document.getElementById("villain-favorite-check");
+  if (vilFavCheck) vilFavCheck.onchange = e => {
+    if (currentView === "profiles") return;
+    villainFilterFavorites = e.target.checked;
+    currentVillainPage = 1;
+    renderVillains();
+    updateVillainControls();
+  };
+  const vilRemoveFilterBtn = document.getElementById("villain-remove-filter-btn");
+  if (vilRemoveFilterBtn) vilRemoveFilterBtn.onclick = () => {
+    villainFilterOrigin = null;
+    villainFilterSearch = null;
+    villainSort = "floor";
+    villainSortAsc = true;
+    currentVillainPage = 1;
+    renderVillains();
+    updateVillainControls();
+  };
+}
+
+function setupPetEventListeners() {
+  const petSearchInput = document.getElementById("pet-search");
+  if (petSearchInput) {
+    petSearchInput.oninput = e => {
+      const q = e.target.value.toLowerCase();
+      const list = document.getElementById("pet-search-list");
+      if (list) {
+        const names = [...new Set(state.heroes.filter(h => h.pet).map(h => h.pet || "").filter(n => n.toLowerCase().includes(q)))]
+          .sort((a,b)=>a.localeCompare(b));
+        list.innerHTML = names.map(n => `<option value="${n}"></option>`).join("");
+      }
+    };
+    const applyPetSearch = () => {
+      petFilterSearch = petSearchInput.value.trim() || null;
+      currentPetPage = 1;
+      renderPets();
+      updatePetControls();
+    };
+    petSearchInput.addEventListener('change', applyPetSearch);
+    petSearchInput.addEventListener('keydown', e => { if (e.key === 'Enter') applyPetSearch(); });
+  }
+
+  const petSortLevelBtn = document.getElementById("pet-sort-level-btn");
+  if (petSortLevelBtn) petSortLevelBtn.onclick = () => {
+    if (petSort === "level") {
+      petSortAsc = !petSortAsc;
+    } else {
+      petSort = "level";
+      petSortAsc = false;
+    }
+    currentPetPage = 1;
+    renderPets();
+  };
+  const petSortNameBtn = document.getElementById("pet-sort-name-btn");
+  if (petSortNameBtn) petSortNameBtn.onclick = () => {
+    if (petSort === "name") {
+      petSortAsc = !petSortAsc;
+    } else {
+      petSort = "name";
+      petSortAsc = true;
+    }
+    currentPetPage = 1;
+    renderPets();
+  };
+  const petOriginSel = document.getElementById("pet-origin-filter");
+  if (petOriginSel) petOriginSel.onchange = e => {
+    petFilterOrigin = e.target.value || null;
+    currentPetPage = 1;
+    renderPets();
+    updatePetControls();
+  };
+  const petFavCheck = document.getElementById("pet-favorite-check");
+  if (petFavCheck) petFavCheck.onchange = e => {
+    if (currentView === "profiles") return;
+    petFilterFavorites = e.target.checked;
+    currentPetPage = 1;
+    renderPets();
+    updatePetControls();
+  };
+  const petRemoveBtn = document.getElementById("pet-remove-filter-btn");
+  if (petRemoveBtn) petRemoveBtn.onclick = () => {
+    petFilterOrigin = null;
+    petFilterSearch = null;
+    petSort = "name";
+    petSortAsc = true;
+    currentPetPage = 1;
+    renderPets();
+    updatePetControls();
+  };
+}
+
 async function init() {
   // Remove any stray overlays that might block interaction
   document.querySelectorAll('.modal-overlay, .sy-modal-overlay').forEach(el => el.remove());
@@ -13519,138 +13697,8 @@ async function init() {
 
   // Los event listeners de héroes se asignan dinámicamente cuando se crean los controles
 
-  const villainSearchInput = document.getElementById("villain-search");
-  if (villainSearchInput) {
-    villainSearchInput.oninput = e => {
-      const q = e.target.value.toLowerCase();
-      const list = document.getElementById("villain-search-list");
-      if (list) {
-        const names = [...new Set(villains.map(v => v.name || "").filter(n => n.toLowerCase().includes(q)))]
-          .sort((a,b)=>a.localeCompare(b));
-        list.innerHTML = names.map(n => `<option value="${n}"></option>`).join("");
-      }
-    };
-    const applyVillainSearch = () => {
-      villainFilterSearch = villainSearchInput.value.trim() || null;
-      currentVillainPage = 1;
-      renderVillains();
-      updateVillainControls();
-    };
-    villainSearchInput.addEventListener('change', applyVillainSearch);
-    villainSearchInput.addEventListener('keydown', e => { if (e.key === 'Enter') applyVillainSearch(); });
-  }
-
-  const vilSortNameBtn = document.getElementById("villain-sort-name-btn");
-  if (vilSortNameBtn) vilSortNameBtn.onclick = () => {
-    if (villainSort === "name") {
-      villainSortAsc = !villainSortAsc;
-    } else {
-      villainSort = "name";
-      villainSortAsc = true;
-    }
-    currentVillainPage = 1;
-    renderVillains();
-  };
-  const vilSortFloorBtn = document.getElementById("villain-sort-floor-btn");
-  if (vilSortFloorBtn) vilSortFloorBtn.onclick = () => {
-    villainSort = "floor";
-    currentVillainPage = 1;
-    renderVillains();
-  };
-  const vilOriginSel = document.getElementById("villain-origin-filter");
-  if (vilOriginSel) vilOriginSel.onchange = e => {
-    villainFilterOrigin = e.target.value || null;
-    currentVillainPage = 1;
-    renderVillains();
-    updateVillainControls();
-  };
-  const vilFavCheck = document.getElementById("villain-favorite-check");
-  if (vilFavCheck) vilFavCheck.onchange = e => {
-    if (currentView === "profiles") return;
-    villainFilterFavorites = e.target.checked;
-    currentVillainPage = 1;
-    renderVillains();
-    updateVillainControls();
-  };
-  const vilRemoveFilterBtn = document.getElementById("villain-remove-filter-btn");
-  if (vilRemoveFilterBtn) vilRemoveFilterBtn.onclick = () => {
-    villainFilterOrigin = null;
-    villainFilterSearch = null;
-    villainSort = "floor";
-    villainSortAsc = true;
-    currentVillainPage = 1;
-    renderVillains();
-    updateVillainControls();
-  };
-
-  const petSearchInput = document.getElementById("pet-search");
-  if (petSearchInput) {
-    petSearchInput.oninput = e => {
-      const q = e.target.value.toLowerCase();
-      const list = document.getElementById("pet-search-list");
-      if (list) {
-        const names = [...new Set(state.heroes.filter(h => h.pet).map(h => h.pet || "").filter(n => n.toLowerCase().includes(q)))]
-          .sort((a,b)=>a.localeCompare(b));
-        list.innerHTML = names.map(n => `<option value="${n}"></option>`).join("");
-      }
-    };
-    const applyPetSearch = () => {
-      petFilterSearch = petSearchInput.value.trim() || null;
-      currentPetPage = 1;
-      renderPets();
-      updatePetControls();
-    };
-    petSearchInput.addEventListener('change', applyPetSearch);
-    petSearchInput.addEventListener('keydown', e => { if (e.key === 'Enter') applyPetSearch(); });
-  }
-
-  const petSortLevelBtn = document.getElementById("pet-sort-level-btn");
-  if (petSortLevelBtn) petSortLevelBtn.onclick = () => {
-    if (petSort === "level") {
-      petSortAsc = !petSortAsc;
-    } else {
-      petSort = "level";
-      petSortAsc = false;
-    }
-    currentPetPage = 1;
-    renderPets();
-  };
-  const petSortNameBtn = document.getElementById("pet-sort-name-btn");
-  if (petSortNameBtn) petSortNameBtn.onclick = () => {
-    if (petSort === "name") {
-      petSortAsc = !petSortAsc;
-    } else {
-      petSort = "name";
-      petSortAsc = true;
-    }
-    currentPetPage = 1;
-    renderPets();
-  };
-  const petOriginSel = document.getElementById("pet-origin-filter");
-  if (petOriginSel) petOriginSel.onchange = e => {
-    petFilterOrigin = e.target.value || null;
-    currentPetPage = 1;
-    renderPets();
-    updatePetControls();
-  };
-  const petFavCheck = document.getElementById("pet-favorite-check");
-  if (petFavCheck) petFavCheck.onchange = e => {
-    if (currentView === "profiles") return;
-    petFilterFavorites = e.target.checked;
-    currentPetPage = 1;
-    renderPets();
-    updatePetControls();
-  };
-  const petRemoveBtn = document.getElementById("pet-remove-filter-btn");
-  if (petRemoveBtn) petRemoveBtn.onclick = () => {
-    petFilterOrigin = null;
-    petFilterSearch = null;
-    petSort = "name";
-    petSortAsc = true;
-    currentPetPage = 1;
-    renderPets();
-    updatePetControls();
-  };
+  setupVillainEventListeners();
+  setupPetEventListeners();
 
   const exportBtn = document.getElementById("export-btn");
   if (exportBtn) exportBtn.onclick = exportSave;
@@ -14235,13 +14283,16 @@ function showPopulationTab(tab) {
       freshVillainsSection.style.display = "block";
       setVillainSectionVisible(true, false);
     }
+    // Re-asignar event listeners después de clonar
+    setupVillainEventListeners();
   } else if (tab === "pets") {
     // Usar clones frescos de las secciones originales
     if (populationSectionsClones.petManagement) {
       const freshPetManagementSection = populationSectionsClones.petManagement.cloneNode(true);
       populationContent.appendChild(freshPetManagementSection);
       freshPetManagementSection.style.display = "block";
-      renderPetManagement();
+      console.log('Llamando renderPetManagement con freshPetManagementSection:', freshPetManagementSection);
+      renderPetManagement(freshPetManagementSection);
     }
     if (populationSectionsClones.pets) {
       const freshPetsSection = populationSectionsClones.pets.cloneNode(true);
@@ -14249,6 +14300,8 @@ function showPopulationTab(tab) {
       freshPetsSection.style.display = "block";
       renderPets();
     }
+    // Re-asignar event listeners después de clonar
+    setupPetEventListeners();
   }
 }
 
