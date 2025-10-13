@@ -57,10 +57,10 @@ export function ensureUniqueHeroName(heroes, base) {
  * @param {string} name Hero name.
  * @param {string} [origin="No origin"] Story origin.
  * @param {string} [profession=""] Starting profession.
- * @param {number} [maxProfessions=2] Maximum allowed professions.
+ * @param {number} [maxProfessions=5] Maximum allowed professions.
  * @returns {object} Newly created hero object.
  */
-export function createHero(heroes, name, origin = "No origin", profession = "", maxProfessions = 2) {
+export function createHero(heroes, name, origin = "No origin", profession = "", maxProfessions = 5) {
   const id = heroes.length ? Math.max(...heroes.map(h => h.id)) + 1 : 1;
   const stats = {
     fuerza: 1,

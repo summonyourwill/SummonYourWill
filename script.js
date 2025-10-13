@@ -329,8 +329,7 @@ const PET_RESOURCE_TYPES = Object.keys(PET_RESOURCE_ICONS);
 let unlockedFamiliars = 3;
 let unlockedHabilities = 3;
 let unlockedPartnerAbilities = 3;
-let promoteCost = 500;
-const PROFESSION_LIMIT = 2;
+const PROFESSION_LIMIT = 5;
 const PROFESSION_MAX = 5;
 const PROFESSION_REMOVE_COST = 300;
 function randomPetResource() {
@@ -660,8 +659,7 @@ let villageChief = {
   })),
   unlockedFamiliars: 3,
   unlockedHabilities: 3,
-  unlockedPartnerAbilities: 3,
-  promoteCost: 500
+  unlockedPartnerAbilities: 3
 };
 // Solo definir la propiedad si no existe para evitar errores en producción
 if (!window.hasOwnProperty('villageChief')) {
@@ -887,7 +885,7 @@ async function loadGame() {
     if (h.avatarOffset === undefined) h.avatarOffset = 50;
     if (h.secondImg === undefined) h.secondImg = "";
     if (h.secondOffset === undefined) h.secondOffset = 50;
-    if (h.maxProfessions === undefined) h.maxProfessions = PROFESSION_LIMIT;
+    if (h.maxProfessions === undefined || h.maxProfessions < PROFESSION_LIMIT) h.maxProfessions = PROFESSION_LIMIT;
     if (h.missionStartTime === undefined) h.missionStartTime = Date.now();
     if (h.missionDuration === undefined) h.missionDuration = h.missionTime || 0;
     if (h.lastTimeShown === undefined) h.lastTimeShown = 0;
@@ -1012,8 +1010,6 @@ async function loadGame() {
   if (villageChief.manaPotions === undefined) villageChief.manaPotions = 10;
   if (villageChief.energyPotions === undefined) villageChief.energyPotions = 10;
   if (villageChief.expPotions === undefined) villageChief.expPotions = 10;
-  if (villageChief.promoteCost === undefined) villageChief.promoteCost = 500;
-  promoteCost = villageChief.promoteCost;
   if (!villageChief.familiars || !Array.isArray(villageChief.familiars)) {
     villageChief.familiars = Array.from({ length: FAMILIAR_COUNT }, (_, i) => ({
       name: `No name${i + 1}`,
@@ -2021,7 +2017,6 @@ export function saveGame() {
     }
   });
 
-  villageChief.promoteCost = promoteCost;
   recalcSummonCost();
   const gameState = {
     version: SAVE_VERSION,
@@ -4480,17 +4475,101 @@ function renderVillageChief() {
 
   const prodTabs = [
     { id: 'life', label: 'LifeMissions' },
+    { id: 'diary', label: 'Diary' },
+    { id: 'weekplan', label: 'WeekPlan' },
     { id: 'habits', label: 'HabitsCalendar' },
     { id: 'projects', label: 'Projects' },
     { id: 'silence', label: 'SilenceTemple' },
     { id: 'pomodoro', label: 'PomodoroTower' }
   ];
 
-  prodTabs.forEach(({ id, label }) => {
+  // Crear filas para agrupar botones en pares
+  const createRow = (btn1Config, btn2Config) => {
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.gap = '4px';
+    row.style.width = '100%';
+    row.style.marginTop = '4px';
+    
+    [btn1Config, btn2Config].forEach(({ id, label }) => {
+      const btn = document.createElement('button');
+      btn.className = 'population-tab';
+      btn.textContent = label;
+      btn.style.flex = '1';
+      btn.onclick = () => {
+        if (id === 'silence') {
+          showSilenceTempleModal();
+        } else if (id === 'pomodoro') {
+          showPomodoroTowerModal();
+        } else {
+          const extraCard = document.getElementById('chief-extra');
+          if (!extraCard) return;
+          
+          if (currentChiefExtra === label) {
+            extraCard.innerHTML = '';
+            extraCard.style.display = 'none';
+            currentChiefExtra = '';
+          } else {
+            extraCard.innerHTML = '';
+            extraCard.style.display = 'block';
+            extraCard.style.position = 'relative';
+            currentChiefExtra = label;
+            
+            if (id === 'life') {
+              renderLifeMissions(extraCard);
+            } else if (id === 'diary') {
+              renderDiary(extraCard);
+            } else if (id === 'weekplan') {
+              renderWeekPlan(extraCard);
+            } else if (id === 'habits') {
+              renderHabits(extraCard);
+            } else if (id === 'projects') {
+              const iframe = document.createElement('iframe');
+              iframe.className = 'html-game-frame';
+              iframe.src = GAME_SOURCES.Projects;
+              iframe.onload = () => {
+                try {
+                  const chiefAbilities = (villageChief.habilities || [])
+                    .slice(0, villageChief.unlockedHabilities ?? unlockedHabilities)
+                    .map((a, idx) => ({
+                      id: a.id ?? a.number ?? String(idx + 1),
+                      label: a.label ?? a.name ?? `Ability ${idx + 1}`,
+                      name: a.name ?? a.label ?? `Ability ${idx + 1}`,
+                      level: a.level ?? a.lvl ?? a.abilityLevel ?? a.lvlAbility ?? a.skillLevel ?? 1
+                    }));
+                  iframe.contentWindow.postMessage({
+                    type: 'projectsData',
+                    partner: {
+                      unlockedPartnerAbilities: villageChief.unlockedHabilities ?? unlockedHabilities,
+                      abilities: chiefAbilities
+                    }
+                  }, '*');
+                } catch {}
+              };
+              extraCard.appendChild(iframe);
+            }
+          }
+        }
+      };
+      row.appendChild(btn);
+    });
+    return row;
+  };
+  
+  // Primera fila: LifeMissions y Diary
+  const row1 = createRow(prodTabs[0], prodTabs[1]);
+  row1.style.marginTop = '0';
+  prodCol.appendChild(row1);
+  
+  // Segunda fila: WeekPlan y HabitsCalendar
+  prodCol.appendChild(createRow(prodTabs[2], prodTabs[3]));
+  
+  // Resto de botones individuales (Projects, SilenceTemple, PomodoroTower)
+  prodTabs.slice(4).forEach(({ id, label }) => {
     const btn = document.createElement('button');
     btn.className = 'population-tab';
     btn.textContent = label;
-    btn.style.marginTop = id === 'life' ? '0' : '4px';
+    btn.style.marginTop = '4px';
     btn.style.width = '100%';
     btn.onclick = () => {
       if (id === 'silence') {
@@ -4498,27 +4577,20 @@ function renderVillageChief() {
       } else if (id === 'pomodoro') {
         showPomodoroTowerModal();
       } else {
-        // Para life, habits, projects: mostrar directamente debajo de chief-card
         const extraCard = document.getElementById('chief-extra');
         if (!extraCard) return;
         
         if (currentChiefExtra === label) {
-          // Si ya está abierto, cerrarlo
           extraCard.innerHTML = '';
           extraCard.style.display = 'none';
           currentChiefExtra = '';
         } else {
-          // Abrirlo
           extraCard.innerHTML = '';
           extraCard.style.display = 'block';
           extraCard.style.position = 'relative';
           currentChiefExtra = label;
           
-          if (id === 'life') {
-            renderLifeMissions(extraCard);
-          } else if (id === 'habits') {
-            renderHabits(extraCard);
-          } else if (id === 'projects') {
+          if (id === 'projects') {
             const iframe = document.createElement('iframe');
             iframe.className = 'html-game-frame';
             iframe.src = GAME_SOURCES.Projects;
@@ -4544,7 +4616,6 @@ function renderVillageChief() {
             extraCard.appendChild(iframe);
           }
           
-          // Botón de cierre en la esquina superior derecha (después de renderizar)
           const closeBtn = document.createElement('button');
           closeBtn.textContent = '❌';
           closeBtn.className = 'close-btn';
@@ -6610,6 +6681,20 @@ function renderLifeMissions(card) {
   title.style.textAlign = "center";
   card.appendChild(title);
 
+  // Botón de cerrar
+  const closeBtn = document.createElement("button");
+  closeBtn.textContent = "❌";
+  closeBtn.className = "close-btn";
+  closeBtn.onclick = () => {
+    const extraCard = document.getElementById('chief-extra');
+    if (extraCard) {
+      extraCard.style.display = 'none';
+      extraCard.innerHTML = '';
+      currentChiefExtra = null;
+    }
+  };
+  card.appendChild(closeBtn);
+
   const readOnly = currentView === "profiles";
 
   const grid = document.createElement("div");
@@ -6846,6 +6931,62 @@ function isHabitEditable(year, month, day) {
   return target >= earliest && target <= today;
 }
 
+function renderDiary(card) {
+  [...card.querySelectorAll(':scope > :not(.close-btn)')].forEach(el => el.remove());
+  const title = document.createElement("h3");
+  title.textContent = "Diary";
+  title.style.textAlign = "center";
+  card.appendChild(title);
+  
+  const placeholder = document.createElement('div');
+  placeholder.style.padding = '20px';
+  placeholder.style.textAlign = 'center';
+  placeholder.innerHTML = '<p>Coming soon...</p>';
+  card.appendChild(placeholder);
+
+  // Botón de cerrar
+  const closeBtn = document.createElement("button");
+  closeBtn.textContent = "❌";
+  closeBtn.className = "close-btn";
+  closeBtn.onclick = () => {
+    const extraCard = document.getElementById('chief-extra');
+    if (extraCard) {
+      extraCard.style.display = 'none';
+      extraCard.innerHTML = '';
+      currentChiefExtra = null;
+    }
+  };
+  card.appendChild(closeBtn);
+}
+
+function renderWeekPlan(card) {
+  [...card.querySelectorAll(':scope > :not(.close-btn)')].forEach(el => el.remove());
+  const title = document.createElement("h3");
+  title.textContent = "WeekPlan";
+  title.style.textAlign = "center";
+  card.appendChild(title);
+  
+  const placeholder = document.createElement('div');
+  placeholder.style.padding = '20px';
+  placeholder.style.textAlign = 'center';
+  placeholder.innerHTML = '<p>Coming soon...</p>';
+  card.appendChild(placeholder);
+
+  // Botón de cerrar
+  const closeBtn = document.createElement("button");
+  closeBtn.textContent = "❌";
+  closeBtn.className = "close-btn";
+  closeBtn.onclick = () => {
+    const extraCard = document.getElementById('chief-extra');
+    if (extraCard) {
+      extraCard.style.display = 'none';
+      extraCard.innerHTML = '';
+      currentChiefExtra = null;
+    }
+  };
+  card.appendChild(closeBtn);
+}
+
 function renderHabits(card) {
   habitsCardEl = card;
   checkHabitsMonth();
@@ -6856,6 +6997,21 @@ function renderHabits(card) {
   const currentStart = new Date(now.getFullYear(), now.getMonth());
   card.innerHTML = '';
   card.style.position = 'relative';
+  
+  // Botón de cerrar
+  const closeBtn = document.createElement("button");
+  closeBtn.textContent = "❌";
+  closeBtn.className = "close-btn";
+  closeBtn.onclick = () => {
+    const extraCard = document.getElementById('chief-extra');
+    if (extraCard) {
+      extraCard.style.display = 'none';
+      extraCard.innerHTML = '';
+      currentChiefExtra = null;
+    }
+  };
+  card.appendChild(closeBtn);
+  
   const title = document.createElement('h3');
   title.className = 'calendar-title';
   const prev = document.createElement('span');
@@ -6949,13 +7105,13 @@ function renderHabits(card) {
       'Diary'
     ];
     const iconMap = {
-      Training: '🏋',
-      'Mental Health': '😊',
+      Training: '💪',
+      'Mental Health': '🧠',
       Study: '📚',
       Work: '💼',
-      Other1: '✦',
-      Other2: '✦',
-      Diary: '📓'
+      Other1: '🍀',
+      Other2: '🛡️',
+      Diary: '💗'
     };
     order.forEach((k, idx) => {
       if (record[k]) {
@@ -7080,8 +7236,54 @@ function openHabitPopup(day, container, btn) {
     updateHabitStats();
     renderVillageChief();
     saveGame();
+    
+    // Actualizar el botón del día inmediatamente
+    if (btn && record) {
+      // Remover los iconos antiguos
+      const oldIcons = btn.querySelector('.calendar-icons');
+      if (oldIcons) oldIcons.remove();
+      
+      // Crear nuevos iconos
+      const icons = document.createElement('div');
+      icons.className = 'calendar-icons';
+      const rows = [0, 1, 2, 3].map(() => {
+        const r = document.createElement('div');
+        r.className = 'icon-row';
+        return r;
+      });
+      const order = ['Training', 'Mental Health', 'Study', 'Work', 'Other1', 'Other2', 'Diary'];
+      const iconMap = {
+        Training: '💪',
+        'Mental Health': '🧠',
+        Study: '📚',
+        Work: '💼',
+        Other1: '🍀',
+        Other2: '🛡️',
+        Diary: '💗'
+      };
+      order.forEach((k, idx) => {
+        if (record[k]) {
+          const span = document.createElement('span');
+          span.textContent = iconMap[k];
+          if (k === 'Diary') span.className = 'diary-icon';
+          if (k === 'Other1') span.className = 'other1-icon';
+          if (k === 'Other2') span.className = 'other2-icon';
+          const rowIdx = idx < 2 ? 0 : idx < 4 ? 1 : idx < 6 ? 2 : 3;
+          rows[rowIdx].appendChild(span);
+        }
+      });
+      rows.forEach(r => icons.appendChild(r));
+      
+      // Insertar los nuevos iconos antes de daily-stats
+      const dailyStats = btn.querySelector('.daily-stats');
+      if (dailyStats) {
+        btn.insertBefore(icons, dailyStats);
+      } else {
+        btn.appendChild(icons);
+      }
+    }
+    
     removeOverlay(overlay);
-    if (container && currentChiefExtra === 'Habits') renderHabits(container);
   };
   const closeBtn = document.createElement('button');
   closeBtn.textContent = 'Close';
@@ -12595,7 +12797,7 @@ function summonHero() {
     if (state.money < summonCost) return;
     const profession = profSelect.value;
     state.money -= summonCost;
-    const newHero = createHero(state.heroes, name, origin, profession, 1);
+    const newHero = createHero(state.heroes, name, origin, profession);
     newHero.avatar = avatarData;
     state.heroes.push(newHero);
     state.heroMap.set(newHero.id, newHero);
@@ -12644,77 +12846,6 @@ function summonHero() {
     }
   });
   focusNoScroll(nameInput);
-}
-
-
-function chooseHeroForPromotion(callback) {
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay card-modal';
-  const modal = document.createElement('div');
-  modal.className = 'modal';
-  const input = document.createElement('input');
-  input.setAttribute('list', 'promote-hero-list');
-  const list = document.createElement('datalist');
-  list.id = 'promote-hero-list';
-  const heroes = state.heroes
-    .filter(h => (h.maxProfessions ?? PROFESSION_LIMIT) < PROFESSION_MAX)
-    .sort((a,b)=>a.name.localeCompare(b.name));
-  heroes.forEach(h => {
-    const opt = document.createElement('option');
-    opt.value = h.name;
-    opt.dataset.id = h.id;
-    list.appendChild(opt);
-  });
-  if (heroes.length === 0) {
-    const msg = document.createElement('div');
-    msg.textContent = 'No hero available';
-    modal.appendChild(msg);
-  } else {
-    modal.appendChild(input);
-    modal.appendChild(list);
-  }
-  const buttons = document.createElement('div');
-  buttons.style.display = 'flex';
-  buttons.style.gap = '6px';
-  const ok = document.createElement('button');
-  ok.textContent = 'Ok';
-  ok.className = 'btn btn-blue';
-  ok.style.flex = '1';
-  ok.disabled = heroes.length === 0;
-  ok.onclick = () => {
-    const opt = list.querySelector(`option[value="${input.value}"]`);
-    if (!opt) return;
-    removeOverlay(overlay);
-    callback(parseInt(opt.dataset.id));
-  };
-  const cancel = document.createElement('button');
-  cancel.textContent = 'Cancel';
-  cancel.className = 'btn btn-green white-text';
-  cancel.style.flex = '1';
-  cancel.onclick = () => removeOverlay(overlay);
-  buttons.appendChild(ok); buttons.appendChild(cancel);
-  modal.appendChild(buttons);
-  overlay.appendChild(modal);
-  appendOverlay(overlay, document.getElementById('village-chief'));
-  if (heroes.length > 0) focusNoScroll(input);
-}
-
-function promoteHero() {
-  if (state.money < promoteCost) return;
-  chooseHeroForPromotion(id => {
-    const hero = state.heroMap.get(id);
-    if (!hero) return;
-    if ((hero.maxProfessions ?? PROFESSION_LIMIT) >= PROFESSION_MAX) return;
-    if (state.money < promoteCost) return;
-    state.money -= promoteCost;
-    hero.maxProfessions = (hero.maxProfessions ?? PROFESSION_LIMIT) + 1;
-    promoteCost += 20;
-    villageChief.promoteCost = promoteCost;
-    updateResourcesDisplay();
-    saveGame();
-    scheduleRenderHeroes();
-    renderVillageChief();
-  });
 }
 
 
@@ -12780,8 +12911,6 @@ function performReset() {
   unlockedHabilities = 3;
   villageChief.unlockedFamiliars = 3;
   villageChief.unlockedHabilities = 3;
-  promoteCost = 500;
-  villageChief.promoteCost = 500;
   setMaxFood(100);
   setMaxWood(100);
   setMaxStone(100);
@@ -14015,20 +14144,6 @@ function showPopulationTab(tab) {
     summonBtn.style.flex = '1';
     buttonsRow.appendChild(summonBtn);
     
-    // Botón PromoteHero
-    const promoteBtn = document.createElement('button');
-    promoteBtn.id = "promote-btn";
-    promoteBtn.textContent = `PromoteHero (${promoteCost} Gold)`;
-    promoteBtn.className = 'btn btn-green';
-    promoteBtn.title = "AllowExtraProfession";
-    promoteBtn.onclick = promoteHero;
-    const noGoldPromote = state.money < promoteCost;
-    const noEligible = !state.heroes.some(h => (h.maxProfessions ?? PROFESSION_LIMIT) < PROFESSION_MAX);
-    promoteBtn.disabled = noGoldPromote || noEligible;
-    promoteBtn.title = noGoldPromote ? "Not enough Gold" : "AllowExtraProfession";
-    promoteBtn.style.flex = '1';
-    buttonsRow.appendChild(promoteBtn);
-    
     populationContent.appendChild(buttonsRow);
 
     // Crear sección completa de My Heroes
@@ -14564,20 +14679,6 @@ function renderHeroesManagement(container) {
   }
   summonBtn.style.flex = '1';
   buttonsRow.appendChild(summonBtn);
-  
-  // Botón PromoteHero
-  const promoteBtn = document.createElement('button');
-  promoteBtn.id = "promote-btn";
-  promoteBtn.textContent = `PromoteHero (${promoteCost} Gold)`;
-  promoteBtn.className = 'btn btn-green';
-  promoteBtn.title = "AllowExtraProfession";
-  promoteBtn.onclick = promoteHero;
-  const noGoldPromote = state.money < promoteCost;
-  const noEligible = !state.heroes.some(h => (h.maxProfessions ?? PROFESSION_LIMIT) < PROFESSION_MAX);
-  promoteBtn.disabled = noGoldPromote || noEligible;
-  promoteBtn.title = noGoldPromote ? "Not enough Gold" : "AllowExtraProfession";
-  promoteBtn.style.flex = '1';
-  buttonsRow.appendChild(promoteBtn);
   
   container.appendChild(buttonsRow);
 }
@@ -15215,6 +15316,12 @@ function showProductivityTab(tab) {
   if (tab === 'life') {
     extraCard.style.display = 'block';
     renderLifeMissions(extraCard);
+  } else if (tab === 'diary') {
+    extraCard.style.display = 'block';
+    renderDiary(extraCard);
+  } else if (tab === 'weekplan') {
+    extraCard.style.display = 'block';
+    renderWeekPlan(extraCard);
   } else if (tab === 'habits') {
     extraCard.style.display = 'block';
     renderHabits(extraCard);

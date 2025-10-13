@@ -1965,7 +1965,7 @@ body.loading .content section {
 }
 
 .control-group input[type="checkbox"]:checked::after {
-  content: '✓';
+  content: '';
   color: white;
   font-weight: bold;
   display: block;

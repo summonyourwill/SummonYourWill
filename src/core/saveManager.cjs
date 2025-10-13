@@ -423,6 +423,28 @@ async function generateSpecialCitizensFile(specialCitizens) {
   }
 }
 
+// Función para generar archivo lifemissions.json
+async function generateLifeMissionsFile(lifeMissionsData) {
+  try {
+    const lifeMissionsForJson = {
+      tasks: lifeMissionsData.lifeTasks || Array.from({ length: 9 }, () => ({ text: "", difficulty: "", completed: false })),
+      tasksDay: lifeMissionsData.lifeTasksDay || new Date().toISOString().split('T')[0],
+      otherText: lifeMissionsData.lifeOtherText || "",
+      gold: lifeMissionsData.lifeGold || 0,
+      goldDay: lifeMissionsData.lifeGoldDay || new Date().toISOString().split('T')[0]
+    };
+    
+    const lifeMissionsPath = path.join(SAVE_DIR, 'lifemissions.json');
+    await fs.writeFile(lifeMissionsPath, JSON.stringify(lifeMissionsForJson, null, 2), 'utf-8');
+    logger.info('✅ Archivo lifemissions.json generado en:', lifeMissionsPath);
+    
+    return lifeMissionsForJson;
+  } catch (error) {
+    logger.error('❌ Error al generar lifemissions.json:', error);
+    return lifeMissionsData;
+  }
+}
+
 async function ensureSaveDir() {
   try {
     await fs.mkdir(SAVE_DIR, { recursive: true });
@@ -509,10 +531,33 @@ async function saveGame(data) {
       await generateSpecialCitizensFile(data.SpecialCitizens);
     }
     
+    // Generar lifemissions.json (siempre se genera para mantener consistencia)
+    await generateLifeMissionsFile({
+      lifeTasks: data.lifeTasks,
+      lifeTasksDay: data.lifeTasksDay,
+      lifeOtherText: data.lifeOtherText,
+      lifeGold: data.lifeGold,
+      lifeGoldDay: data.lifeGoldDay
+    });
+    
     logger.info('✅ Archivos JSON generados correctamente');
     
   } catch (error) {
     logger.error('❌ Error al guardar partida:', error);
+  }
+}
+
+async function loadLifeMissions() {
+  try {
+    const lifeMissionsPath = path.join(SAVE_DIR, 'lifemissions.json');
+    const data = await fs.readFile(lifeMissionsPath, 'utf-8');
+    logger.info('✅ LifeMissions cargado desde:', lifeMissionsPath);
+    return JSON.parse(data);
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      logger.warn('⚠️ Error al cargar lifemissions.json:', error.message);
+    }
+    return null;
   }
 }
 
@@ -521,7 +566,22 @@ async function loadGame(defaultData = {}) {
     await migrateLegacySave();
     const data = await fs.readFile(SAVE_FILE_PATH, 'utf-8');
     logger.info('✅ Partida cargada desde:', SAVE_FILE_PATH);
-    return JSON.parse(data);
+    const gameData = JSON.parse(data);
+    
+    // Intentar cargar lifemissions.json como respaldo si los datos no están en save.json
+    if (!gameData.lifeTasks && !gameData.lifeOtherText) {
+      const lifeMissions = await loadLifeMissions();
+      if (lifeMissions) {
+        gameData.lifeTasks = lifeMissions.tasks;
+        gameData.lifeTasksDay = lifeMissions.tasksDay;
+        gameData.lifeOtherText = lifeMissions.otherText;
+        gameData.lifeGold = lifeMissions.gold;
+        gameData.lifeGoldDay = lifeMissions.goldDay;
+        logger.info('✅ Datos de LifeMissions restaurados desde lifemissions.json');
+      }
+    }
+    
+    return gameData;
   } catch (error) {
     if (error.code === 'ENOENT') {
       logger.warn('⚠️ No se encontró save.json. Intentando cargar partida0.json como respaldo...');
