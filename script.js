@@ -13444,102 +13444,7 @@ async function init() {
   updatePetControls();
   showView("home");
 
-  const sortLevelBtn = document.getElementById("sort-level-btn");
-  if (sortLevelBtn) sortLevelBtn.onclick = () => {
-    if (heroSort === "level") {
-      heroSortAsc = !heroSortAsc;
-    } else {
-      heroSort = "level";
-      heroSortAsc = false;
-    }
-    currentHeroPage = 1;
-    scheduleRenderHeroes();
-  };
-
-  const sortNameBtn = document.getElementById("sort-name-btn");
-  if (sortNameBtn) sortNameBtn.onclick = () => {
-    if (heroSort === "name") {
-      heroSortAsc = !heroSortAsc;
-    } else {
-      heroSort = "name";
-      heroSortAsc = true;
-    }
-    currentHeroPage = 1;
-    scheduleRenderHeroes();
-  };
-
-  const originSel = document.getElementById("origin-filter");
-  if (originSel) originSel.onchange = e => {
-    heroFilterOrigin = e.target.value || null;
-    currentHeroPage = 1;
-    scheduleRenderHeroes();
-    updateHeroControls();
-  };
-
-  const profSel = document.getElementById("profession-filter");
-  if (profSel) profSel.onchange = e => {
-    heroFilterProfession = e.target.value || null;
-    currentHeroPage = 1;
-    scheduleRenderHeroes();
-    updateHeroControls();
-  };
-
-  const favCheck = document.getElementById("favorite-check");
-  if (favCheck) favCheck.onchange = e => {
-    heroFilterFavorites = e.target.checked;
-    currentHeroPage = 1;
-    scheduleRenderHeroes();
-    updateHeroControls();
-  };
-
-  const readyCheck = document.getElementById("ready-check");
-  if (readyCheck) readyCheck.onchange = e => {
-    heroFilterReady = e.target.checked;
-    currentHeroPage = 1;
-    scheduleRenderHeroes();
-    updateHeroControls();
-  };
-
-  const sexSel = document.getElementById("sex-filter");
-  if (sexSel) sexSel.onchange = e => {
-    heroFilterSex = e.target.value || null;
-    currentHeroPage = 1;
-    scheduleRenderHeroes();
-    updateHeroControls();
-  };
-
-  const searchInput = document.getElementById("hero-search");
-  if (searchInput) {
-    searchInput.oninput = e => {
-      const q = e.target.value.toLowerCase();
-      const list = document.getElementById("hero-search-list");
-      if (list) {
-        const names = [...new Set(state.heroes.map(h => h.name || "").filter(n => n.toLowerCase().includes(q)))]
-          .sort((a,b)=>a.localeCompare(b));
-        list.innerHTML = names.map(n => `<option value="${n}"></option>`).join("");
-      }
-    };
-    const applySearch = () => {
-      heroFilterSearch = searchInput.value.trim() || null;
-      currentHeroPage = 1;
-      scheduleRenderHeroes();
-      updateHeroControls();
-    };
-    searchInput.addEventListener('change', applySearch);
-    searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') applySearch(); });
-  }
-
-  const removeFilterBtn = document.getElementById("remove-filter-btn");
-  if (removeFilterBtn) removeFilterBtn.onclick = () => {
-    heroFilterOrigin = null;
-    heroFilterProfession = null;
-    heroFilterSex = null;
-    heroFilterSearch = null;
-    heroSort = "name";
-    currentHeroPage = 1;
-    scheduleRenderHeroes();
-    updateHeroControls();
-  };
+  // Los event listeners de héroes se asignan dinámicamente cuando se crean los controles
 
   const villainSearchInput = document.getElementById("villain-search");
   if (villainSearchInput) {
@@ -13954,6 +13859,105 @@ function initPopulationView() {
   // No mostrar ningún tab por defecto
 }
 
+function assignHeroEventListeners() {
+  const sortLevelBtn = document.getElementById("sort-level-btn");
+  if (sortLevelBtn) sortLevelBtn.onclick = () => {
+    if (heroSort === "level") {
+      heroSortAsc = !heroSortAsc;
+    } else {
+      heroSort = "level";
+      heroSortAsc = false;
+    }
+    currentHeroPage = 1;
+    scheduleRenderHeroes();
+  };
+
+  const sortNameBtn = document.getElementById("sort-name-btn");
+  if (sortNameBtn) sortNameBtn.onclick = () => {
+    if (heroSort === "name") {
+      heroSortAsc = !heroSortAsc;
+    } else {
+      heroSort = "name";
+      heroSortAsc = true;
+    }
+    currentHeroPage = 1;
+    scheduleRenderHeroes();
+  };
+
+  const originSel = document.getElementById("origin-filter");
+  if (originSel) originSel.onchange = e => {
+    heroFilterOrigin = e.target.value || null;
+    currentHeroPage = 1;
+    scheduleRenderHeroes();
+    updateHeroControls();
+  };
+
+  const profSel = document.getElementById("profession-filter");
+  if (profSel) profSel.onchange = e => {
+    heroFilterProfession = e.target.value || null;
+    currentHeroPage = 1;
+    scheduleRenderHeroes();
+    updateHeroControls();
+  };
+
+  const favCheck = document.getElementById("favorite-check");
+  if (favCheck) favCheck.onchange = e => {
+    heroFilterFavorites = e.target.checked;
+    currentHeroPage = 1;
+    scheduleRenderHeroes();
+    updateHeroControls();
+  };
+
+  const readyCheck = document.getElementById("ready-check");
+  if (readyCheck) readyCheck.onchange = e => {
+    heroFilterReady = e.target.checked;
+    currentHeroPage = 1;
+    scheduleRenderHeroes();
+    updateHeroControls();
+  };
+
+  const sexSel = document.getElementById("sex-filter");
+  if (sexSel) sexSel.onchange = e => {
+    heroFilterSex = e.target.value || null;
+    currentHeroPage = 1;
+    scheduleRenderHeroes();
+    updateHeroControls();
+  };
+
+  const searchInput = document.getElementById("hero-search");
+  if (searchInput) {
+    searchInput.oninput = e => {
+      const q = e.target.value.toLowerCase();
+      const list = document.getElementById("hero-search-list");
+      if (list) {
+        const names = [...new Set(state.heroes.map(h => h.name || "").filter(n => n.toLowerCase().includes(q)))]
+          .sort((a,b)=>a.localeCompare(b));
+        list.innerHTML = names.map(n => `<option value="${n}"></option>`).join("");
+      }
+    };
+    const applySearch = () => {
+      heroFilterSearch = searchInput.value.trim() || null;
+      currentHeroPage = 1;
+      scheduleRenderHeroes();
+      updateHeroControls();
+    };
+    searchInput.addEventListener('change', applySearch);
+    searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') applySearch(); });
+  }
+
+  const removeFilterBtn = document.getElementById("remove-filter-btn");
+  if (removeFilterBtn) removeFilterBtn.onclick = () => {
+    heroFilterOrigin = null;
+    heroFilterProfession = null;
+    heroFilterSex = null;
+    heroFilterSearch = null;
+    heroSort = "name";
+    currentHeroPage = 1;
+    scheduleRenderHeroes();
+    updateHeroControls();
+  };
+}
+
 function showPopulationTab(tab) {
   currentPopulationTab = tab;
   
@@ -14159,6 +14163,9 @@ function showPopulationTab(tab) {
     heroesSection.appendChild(heroPagination);
 
     populationContent.appendChild(heroesSection);
+
+    // Asignar event listeners a los controles de héroes
+    assignHeroEventListeners();
 
     // Renderizar heroes
     scheduleRenderHeroes();
