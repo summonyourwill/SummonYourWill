@@ -584,19 +584,9 @@ async function loadGame(defaultData = {}) {
     return gameData;
   } catch (error) {
     if (error.code === 'ENOENT') {
-      logger.warn('⚠️ No se encontró save.json. Intentando cargar partida0.json como respaldo...');
-      
-      // Intentar cargar partida0.json como respaldo
-      try {
-        const partida0Path = path.join(__dirname, '../../partida0.json');
-        const backupData = await fs.readFile(partida0Path, 'utf-8');
-        logger.info('✅ Partida de respaldo cargada desde:', partida0Path);
-        return JSON.parse(backupData);
-      } catch (backupError) {
-        logger.warn('⚠️ No se pudo cargar partida0.json. Usando datos por defecto.');
-        logger.error('Error al cargar partida0.json:', backupError);
-        return defaultData;
-      }
+      logger.warn('⚠️ No se encontró save.json. Usando datos por defecto (NO se carga partida0 automáticamente).');
+      // NO cargar partida0.json automáticamente - solo cuando el usuario hace reset explícito
+      return defaultData;
     } else {
       logger.error('❌ Error al cargar partida:', error);
       if (error.name === 'SyntaxError') {
@@ -604,21 +594,16 @@ async function loadGame(defaultData = {}) {
           const corrupt = SAVE_FILE_PATH + '.corrupt';
           await fs.rename(SAVE_FILE_PATH, corrupt);
           logger.warn('⚠️ Archivo de guardado corrupto renombrado a:', corrupt);
+          logger.warn('⚠️ Usar Reset para cargar partida0.json o importar un backup manual.');
         } catch (renameErr) {
           logger.error('❌ Error al renombrar archivo corrupto:', renameErr);
         }
       }
       
-      // Si hay error de sintaxis, también intentar cargar partida0.json
-      try {
-        const partida0Path = path.join(__dirname, '../../partida0.json');
-        const backupData = await fs.readFile(partida0Path, 'utf-8');
-        logger.info('✅ Cargando partida0.json como respaldo tras error de sintaxis');
-        return JSON.parse(backupData);
-      } catch (backupError) {
-        logger.warn('⚠️ No se pudo cargar partida0.json como respaldo. Usando datos por defecto.');
-        return defaultData;
-      }
+      // NO cargar partida0.json automáticamente tras un error
+      // El usuario debe hacer reset explícito si quiere comenzar de nuevo
+      logger.warn('⚠️ No se cargará partida0.json automáticamente. Use Reset o importe un backup.');
+      return defaultData;
     }
   }
 }

@@ -440,9 +440,9 @@ const UPGRADE_HERO_COUNTS = {
   Dungeons: 2,
   Pantry: 4,       // FoodStorage
   PetSanctuary: 3,
-  Quarry: 5,       // StoneStorage
+  Quarry: 4,       // StoneStorage
   Tower: 6,
-  Lumberyard: 6,   // WoodStorage
+  Lumberyard: 4,   // WoodStorage
   House: 3,
 };
 const UPGRADE_TIMES = {
@@ -4342,37 +4342,100 @@ function renderVillageChief() {
   pB2.onclick = showDailyTribute;
   actionRow.appendChild(pB2);
 
-  const pB1 = document.createElement("button");
-  pB1.textContent = "HeroOrders";
-  pB1.className = "btn btn-lightred";
-  pB1.style.flex = "1";
-  pB1.title = "Hero Management – Resting – Others";
-  pB1.onclick = () => {
-    if (!openHeroesManagement) {
-      openChiefFamiliars = false;
-      openChiefPopulation = false;
-      openChiefHabilities = false;
-    }
-    openHeroesManagement = !openHeroesManagement;
-    if (!openHeroesManagement) {
-      restOrderUsed = false;
-      cancelRestUsed = false;
-      autoAssignStage = 0;
-      const autoBtn = document.getElementById('autoclick-order-btn');
-      if (autoBtn) autoBtn.textContent = 'AssingAutoclickers';
-    }
-    renderVillageChief();
-  };
-  actionRow.appendChild(pB1);
-
   info.appendChild(actionRow);
 
-  // Enable autoclick centrado debajo de Shop/DailyTribute/HeroOrders
+  // Fila de AssignAutoclickers y CancelAutoclick
+  const autoclickManagementRow = document.createElement('div');
+  autoclickManagementRow.style.display = 'flex';
+  autoclickManagementRow.style.gap = '4px';
+  autoclickManagementRow.style.marginTop = '8px';
+  autoclickManagementRow.style.justifyContent = 'center';
+
+  const assignAutoBtn = document.createElement('button');
+  assignAutoBtn.id = 'assign-autoclickers-btn';
+  assignAutoBtn.textContent = 'FillAutoclickers';
+  assignAutoBtn.className = 'btn btn-green';
+  assignAutoBtn.style.flex = '1';
+  assignAutoBtn.onclick = () => {
+    if (autoAssignStage === 0) {
+      assignAutoBtn.textContent = 'Enable Autoclic';
+      autoAssignStage = 1;
+      return;
+    }
+    const readyHeroes = state.heroes.filter(h =>
+      h.state?.type === 'ready' &&
+      !isBusy(h) &&
+      h.restTime <= 0 &&
+      !state.companions.includes(h.id) &&
+      !state.farmers.includes(h.id) &&
+      !state.lumberjacks.includes(h.id) &&
+      !state.miners.includes(h.id)
+    );
+    const groups = [
+      { arr: state.companions, check: () => true },
+      { arr: state.farmers, check: () => state.food < MAX_FOOD },
+      { arr: state.lumberjacks, check: () => state.wood < MAX_WOOD },
+      { arr: state.miners, check: () => state.stone < MAX_STONE }
+    ];
+    let gIndex = 0;
+    readyHeroes.forEach(h => {
+      let attempts = 0;
+      while (attempts < groups.length) {
+        const g = groups[gIndex];
+        const slot = g.arr.indexOf(null);
+        if (slot !== -1 && g.check()) {
+          g.arr[slot] = h.id;
+          gIndex = (gIndex + 1) % groups.length;
+          return;
+        }
+        gIndex = (gIndex + 1) % groups.length;
+        attempts++;
+      }
+    });
+    if (!state.autoClickActive) toggleAutoClick();
+    saveGame();
+    scheduleRenderHeroes();
+    renderVillageChief();
+    renderMissions();
+    autoAssignStage = 0;
+    assignAutoBtn.textContent = 'FillAutoclickers';
+    // Actualizar vista de autoclickers si está abierta
+    if (currentChiefExtra === "Autoclick enabled") {
+      showChiefExtra("Autoclick enabled");
+    }
+  };
+  autoclickManagementRow.appendChild(assignAutoBtn);
+
+  const cancelAutoClickBtn = document.createElement('button');
+  cancelAutoClickBtn.textContent = 'RemoveAutoclickers';
+  cancelAutoClickBtn.className = 'btn btn-red';
+  cancelAutoClickBtn.style.flex = '1';
+  cancelAutoClickBtn.onclick = () => {
+    state.companions.fill(null);
+    state.farmers.fill(null);
+    state.lumberjacks.fill(null);
+    state.miners.fill(null);
+    if (state.autoClickActive) toggleAutoClick();
+    autoAssignStage = 0;
+    const assignBtn = document.getElementById('assign-autoclickers-btn');
+    if (assignBtn) assignBtn.textContent = 'FillAutoclickers';
+    scheduleRenderHeroes();
+    renderVillageChief();
+    // Actualizar vista de autoclickers si está abierta
+    if (currentChiefExtra === "Autoclick enabled") {
+      showChiefExtra("Autoclick enabled");
+    }
+  };
+  autoclickManagementRow.appendChild(cancelAutoClickBtn);
+
+  info.appendChild(autoclickManagementRow);
+
+  // Enable autoclic centrado debajo de AssignAutoclickers/CancelAutoclic
   const autoBtn = document.createElement("button");
   autoBtn.id = "auto-click-btn";
-  autoBtn.textContent = state.autoClickActive ? "Disable autoclick" : "Enable autoclick";
+  autoBtn.textContent = state.autoClickActive ? "Disable autoclic" : "Enable autoclic";
   autoBtn.className = "btn btn-lightyellow";
-  autoBtn.style.marginTop = "8px";
+  autoBtn.style.marginTop = "1px";
   autoBtn.style.minHeight = "24px";
   autoBtn.style.color = "#fff";
   autoBtn.onclick = toggleAutoClick;
@@ -4931,205 +4994,6 @@ function renderVillageChief() {
     popDiv.appendChild(popCard);
     card.appendChild(popDiv);
 
-    const hmDiv = document.createElement("div");
-    hmDiv.className = "stats";
-    hmDiv.id = "heroes-management";
-    if (openHeroesManagement) {
-      hmDiv.classList.add('expand-row');
-    }
-    hmDiv.style.display = openHeroesManagement ? 'flex' : 'none';
-    const hmClose = document.createElement("button");
-    hmClose.textContent = "❌";
-    hmClose.className = "close-btn";
-    hmClose.style.paddingBottom = '4px';
-    hmClose.onclick = () => {
-      openHeroesManagement = false;
-      restOrderUsed = false;
-      cancelRestUsed = false;
-      hmDiv.classList.remove('expand-row');
-      hmDiv.style.display = 'none';
-    };
-    hmDiv.appendChild(hmClose);
-    const hmTitle = document.createElement('div');
-    hmTitle.textContent = 'Heroes Management';
-    hmTitle.style.fontWeight = 'bold';
-    hmTitle.style.alignSelf = 'flex-start';
-    hmDiv.appendChild(hmTitle);
-    hmDiv.style.flexDirection = 'column';
-    hmDiv.style.alignItems = 'flex-start';
-    hmDiv.style.gap = '4px';
-    const btnRow = document.createElement('div');
-    btnRow.style.display = 'flex';
-    btnRow.style.gap = '4px';
-    btnRow.style.width = '100%';
-
-    const hmBtn = document.createElement('button');
-    hmBtn.textContent = 'RestOrder';
-    hmBtn.className = 'btn btn-green';
-    hmBtn.style.flex = '1';
-    hmBtn.disabled = restOrderUsed;
-    if (restOrderUsed) hmBtn.style.background = 'gray';
-    hmBtn.onclick = () => {
-      state.heroes.forEach(h => {
-        if (!isBusy(h) && h.restTime <= 0 && h.energia < 100) {
-          startRest(h);
-          const groups = [state.companions, state.farmers, state.lumberjacks, state.miners];
-          let found = false;
-          groups.forEach(arr => {
-            const i = arr.indexOf(h.id);
-            if (i !== -1) { arr[i] = null; found = true; }
-          });
-          if (found && state.autoClickActive) toggleAutoClick();
-        }
-      });
-      cancelRestUsed = false;
-      restOrderUsed = true;
-      saveGame();
-      scheduleRenderHeroes();
-      renderVillageChief();
-    };
-    btnRow.appendChild(hmBtn);
-
-    const autoOrderBtn = document.createElement('button');
-    autoOrderBtn.id = 'autoclick-order-btn';
-    autoOrderBtn.textContent = 'AssingAutoclickers';
-    autoOrderBtn.className = 'btn btn-green';
-    autoOrderBtn.style.flex = '1';
-    autoOrderBtn.onclick = () => {
-      if (autoAssignStage === 0) {
-        autoOrderBtn.textContent = 'Enable Autoclick';
-        autoAssignStage = 1;
-        return;
-      }
-      const readyHeroes = state.heroes.filter(h =>
-        h.state?.type === 'ready' &&
-        !isBusy(h) &&
-        h.restTime <= 0 &&
-        !state.companions.includes(h.id) &&
-        !state.farmers.includes(h.id) &&
-        !state.lumberjacks.includes(h.id) &&
-        !state.miners.includes(h.id)
-      );
-      const groups = [
-        { arr: state.companions, check: () => true },
-        { arr: state.farmers, check: () => state.food < MAX_FOOD },
-        { arr: state.lumberjacks, check: () => state.wood < MAX_WOOD },
-        { arr: state.miners, check: () => state.stone < MAX_STONE }
-      ];
-      let gIndex = 0;
-      readyHeroes.forEach(h => {
-        let attempts = 0;
-        while (attempts < groups.length) {
-          const g = groups[gIndex];
-          const slot = g.arr.indexOf(null);
-          if (slot !== -1 && g.check()) {
-            g.arr[slot] = h.id;
-            gIndex = (gIndex + 1) % groups.length;
-            return;
-          }
-          gIndex = (gIndex + 1) % groups.length;
-          attempts++;
-        }
-      });
-      if (!state.autoClickActive) toggleAutoClick();
-      saveGame();
-      scheduleRenderHeroes();
-      renderVillageChief();
-      renderMissions();
-      autoAssignStage = 0;
-      autoOrderBtn.textContent = 'AssingAutoclickers';
-    };
-    btnRow.appendChild(autoOrderBtn);
-
-    const workOrderBtn = document.createElement('button');
-    workOrderBtn.textContent = 'WorkOrder';
-    workOrderBtn.className = 'btn btn-yellow';
-    workOrderBtn.style.flex = '1';
-    workOrderBtn.onclick = () => {
-      const readyHeroes = state.heroes.filter(h =>
-        h.state?.type === 'ready' &&
-        !isBusy(h) &&
-        h.restTime <= 0 &&
-        h.energia > 0 &&
-        !state.companions.includes(h.id) &&
-        !state.farmers.includes(h.id) &&
-        !state.lumberjacks.includes(h.id) &&
-        !state.miners.includes(h.id)
-      );
-      readyHeroes.forEach(hero => {
-        if (hero.workTime > 0) return;
-        hero.workTime = 200 * TIME_MULTIPLIER;
-        hero.workLastShown = hero.workTime;
-        addTimer({
-          id: `work_${hero.id}`,
-          type: 'work',
-          heroId: hero.id,
-          startTime: Date.now(),
-          duration: 200 * TIME_MULTIPLIER * 1000,
-          paused: false,
-          completed: false,
-        });
-      });
-      saveGame();
-      scheduleRenderHeroes();
-    };
-    btnRow.appendChild(workOrderBtn);
-
-    const cancelRestBtn = document.createElement('button');
-    cancelRestBtn.textContent = 'CancelRest';
-    cancelRestBtn.className = 'btn btn-red';
-    cancelRestBtn.style.flex = '1';
-    cancelRestBtn.disabled = cancelRestUsed;
-    if (cancelRestUsed) cancelRestBtn.style.background = 'gray';
-      cancelRestBtn.onclick = () => {
-        state.heroes.forEach(h => {
-          if (h.restTime > 0) {
-            h.restTime = 0;
-            h.restStartTime = 0;
-            h.lastRestTick = 0;
-            h.restDuration = 0;
-            restingHeroes.delete(h);
-            h.energyEl = null;
-            h.lowEnergyEl = null;
-            h.restTimerEl = null;
-            removeTimer(`rest_${h.id}`);
-            h.state = { type: 'ready' };
-            const timerEl = document.getElementById(`rest-timer-${h.id}`);
-            if (timerEl) timerEl.textContent = '';
-            const btn = document.getElementById(`rest-btn-${h.id}`);
-            if (btn) {
-              btn.textContent = 'Rest';
-              btn.disabled = h.energia >= 100 || isBusy(h);
-            }
-          }
-        });
-        restOrderUsed = false;
-        cancelRestUsed = true;
-        saveGame();
-        scheduleRenderHeroes();
-        renderVillageChief();
-      };
-    btnRow.appendChild(cancelRestBtn);
-
-    const cancelAutoBtn = document.createElement('button');
-    cancelAutoBtn.textContent = 'CancelAutoclick';
-    cancelAutoBtn.className = 'btn btn-red';
-    cancelAutoBtn.style.flex = '1';
-    cancelAutoBtn.onclick = () => {
-      state.companions.fill(null);
-      state.farmers.fill(null);
-      state.lumberjacks.fill(null);
-      state.miners.fill(null);
-      if (state.autoClickActive) toggleAutoClick();
-      autoAssignStage = 0;
-      const autoBtn = document.getElementById('autoclick-order-btn');
-      if (autoBtn) autoBtn.textContent = 'AssingAutoclickers';
-      scheduleRenderHeroes();
-      renderVillageChief();
-    };
-    btnRow.appendChild(cancelAutoBtn);
-    hmDiv.appendChild(btnRow);
-    card.appendChild(hmDiv);
 
   const habDiv = document.createElement("div");
   habDiv.className = "stats";
@@ -11713,12 +11577,22 @@ function collectAllPetResources() {
 }
 
 function updateFullCollectIcons() {
-  const wrap = document.getElementById('full-collect-icons');
-  if (!wrap) return;
   const totals = getTotalPetResources();
-  Object.keys(PET_RESOURCE_ICONS).forEach(type => {
-    const span = document.getElementById(`full-${type}-count`);
-    if (span) span.textContent = `x${totals[type] || 0}`;
+  
+  // Buscar en ambos contextos: el original y el clonado en population
+  const contexts = [
+    document, // Contexto original
+    document.getElementById('population-content') // Contexto clonado en population
+  ].filter(Boolean);
+  
+  contexts.forEach(context => {
+    const wrap = context.querySelector('#full-collect-icons');
+    if (!wrap) return;
+    
+    Object.keys(PET_RESOURCE_ICONS).forEach(type => {
+      const span = wrap.querySelector(`#full-${type}-count`);
+      if (span) span.textContent = `x${totals[type] || 0}`;
+    });
   });
 }
 
@@ -12882,161 +12756,26 @@ function unlockPartnerAbility() {
 
 // startAbilityLearning function removed - all heroes now have abilities unlocked by default
 
-function performReset() {
-  state.money = 1000;
-  state.food = 100;
-  state.wood = 20;
-  state.stone = 10;
-  state.houses = 5;
-  state.terrain = 1;
-  setExtraHouses(0);
-  citizens = 0;
-  soldiers = 0;
-  unlockedFamiliars = 3;
-  unlockedHabilities = 3;
-  villageChief.unlockedFamiliars = 3;
-  villageChief.unlockedHabilities = 3;
-  setMaxFood(100);
-  setMaxWood(100);
-  setMaxStone(100);
-  CHIEF_MAX_LEVEL = 20;
-  PARTNER_MAX_LEVEL = 20;
-  Object.keys(CHIEF_MAX_STATS).forEach(k => CHIEF_MAX_STATS[k] = 15);
-  Object.keys(MAX_STATS).forEach(k => MAX_STATS[k] = 5);
-  Object.keys(PARTNER_MAX_STATS).forEach(k => PARTNER_MAX_STATS[k] = PARTNER_MAX_STAT);
-  MAX_PETS = 5;
-  Object.keys(state.upgradeTasks).forEach(k => state.upgradeTasks[k] = { heroIds: [], time: 0 });
-  Object.keys(BUILDING_IMAGES).forEach(k => state.buildingLevels[k] = 0);
-  Object.assign(state.buildingTask, { heroIds: [null, null, null], time: 0, cost: 0 });
-
-  state.heroes = [];
-  state.heroMap.clear();
-  const h1 = createHero(state.heroes, "First Warrior");
-  state.heroes.push(h1);
-  state.heroMap.set(h1.id, h1);
-  const h2 = createHero(state.heroes, "Second Warrior");
-  state.heroes.push(h2);
-  state.heroMap.set(h2.id, h2);
-  state.companions = Array(8).fill(null);
-  state.farmers = Array(8).fill(null);
-  state.lumberjacks = Array(8).fill(null);
-  state.miners = Array(8).fill(null);
-  recalcSummonCost();
-  fortuneDay = "";
-  fortuneLastPrize = "";
-  bossRushDay = getToday();
-  bossRushCount = 0;
-  enemyDay = getToday();
-  enemyCount = 0;
-  chiefSurvivalDay = getToday();
-  chiefSurvivalWins = 0;
-  giantBossLevel = 1;
-  lifeTasks = Array.from({ length: 9 }, () => ({ text: "", difficulty: "", completed: false }));
-  lifeTasksDay = getToday();
-  lifeOtherText = "";
-  lifeGoldDay = getToday();
-  lifeGold = 0;
-  habitsData = {};
-  habitsMonth = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
-  habitsLastProcessed = getToday();
-  Object.keys(bossStats).forEach(k => bossStats[k] = 1);
-  villageChief = {
-    name: "Village Chief",
-    avatar: "",
-    avatarOffset: 50,
-    avatarOffsetX: 50,
-    level: 1,
-    exp: 0,
-    hpPotions: 10,
-    manaPotions: 10,
-    energyPotions: 10,
-    expPotions: 10,
-    familiars: Array.from({ length: FAMILIAR_COUNT }, (_, i) => ({
-      name: `No name${i + 1}`,
-      img: "",
-      imgOffset: 50,
-      imgOffsetX: 50,
-      level: 1,
-      desc: "",
-      modified: Date.now(),
-      firstModified: Date.now(),
-      number: i + 1
-    })),
-    habilities: Array.from({ length: HABILITY_COUNT }, (_, i) => ({
-      name: `No name${i + 1}`,
-      img: "",
-      imgOffset: 50,
-      imgOffsetX: 50,
-      level: 1,
-      desc: "",
-      modified: Date.now(),
-      firstModified: Date.now(),
-      number: i + 1
-    })),
-    partnerAbilities: Array.from({ length: PARTNER_ABILITY_COUNT }, (_, i) => ({
-      name: `No name${i + 1}`,
-      img: "",
-      imgOffset: 50,
-      imgOffsetX: 50,
-      level: 1,
-      desc: "",
-      modified: Date.now(),
-      firstModified: Date.now(),
-      number: i + 1
-    })),
-    unlockedFamiliars: 3,
-    unlockedHabilities: 3,
-    unlockedPartnerAbilities: 3
-  };
-  partner = {
-    name: "Partner",
-    img: "",
-    imgOffset: 50,
-    imgOffsetX: 50,
-    level: 1,
-    exp: 0,
-    energia: 100,
-    hpPotions: 0,
-    manaPotions: 0,
-    energyPotions: 0,
-    expPotions: 0
-  };
-  Object.keys(partnerStats).forEach(k => partnerStats[k] = 1);
-  openStats = {};
-  openTraining = {};
-  openPartnerStats = false;
-  state.missions.length = 0;
-  state.missions.push(...Array.from({ length: missionExpRewards.length }, (_, i) => ({
-    id: i + 1,
-    heroId: null,
-    pendingHeroId: null,
-    completed: false,
-    expReward: missionExpRewards[i],
-  description: missionDescriptions[Math.floor(Math.random() * missionDescriptions.length)]
-  }))); 
-  villains = [];
-  nextVillainFloor = 1;
-  state.autoClickActive = false;
-  stopAutoClick();
-  openBossStats = false;
-  openPartnerStats = false;
-  openChiefInventory = false;
-  openChiefFamiliars = false;
-  openChiefPopulation = false;
-  openChiefHabilities = false;
-  openHeroesManagement = false;
-  updateResourcesDisplay();
-  scheduleSaveGame();
-  scheduleRenderHeroes();
-  currentPetPage = 1;
-  renderPets();
-  renderMissions();
-  renderTerrains();
-  renderVillageChief();
-  renderVillage();
-  renderVillains();
-  renderGames();
-  resetGameCompletely();
+async function performReset() {
+  // Usar resetToPartida0 del saveManager para copiar partida0.json a save.json
+  if (ipcRenderer) {
+    try {
+      const success = await ipcRenderer.invoke('reset-to-partida0');
+      if (success) {
+        console.log('Reset completado exitosamente, recargando...');
+        resetGameCompletely();
+      } else {
+        showAlert('Error al resetear el juego. Por favor intente nuevamente.');
+      }
+    } catch (error) {
+      console.error('Error al ejecutar reset:', error);
+      showAlert('Error al resetear el juego. Por favor intente nuevamente.');
+    }
+  } else {
+    // Fallback para navegador (sin Electron)
+    // Limpiar localStorage y recargar
+    resetGameCompletely();
+  }
 }
 
 function resetGameCompletely() {
@@ -14109,11 +13848,150 @@ function showPopulationTab(tab) {
   populationContent.innerHTML = '';
   
   if (tab === "heroes") {
-    // Agregar botones SummonHero y PromoteHero directamente
+    // Tarjeta con borde dorado para botones de acciones
+    const heroActionsCard = document.createElement('div');
+    heroActionsCard.style.background = 'white';
+    heroActionsCard.style.border = '2px solid #D4AF37';
+    heroActionsCard.style.borderRadius = '8px';
+    heroActionsCard.style.padding = '12px';
+    heroActionsCard.style.marginBottom = '20px';
+    heroActionsCard.style.boxShadow = '0 2px 8px rgba(212, 175, 55, 0.3)';
+
+    // Fila de botones de órdenes: WorkOrder, CancelWork, RestOrder, CancelRest
+    const ordersRow = document.createElement('div');
+    ordersRow.style.display = 'flex';
+    ordersRow.style.gap = '10px';
+    ordersRow.style.marginBottom = '10px';
+
+    const workOrderBtn = document.createElement('button');
+    workOrderBtn.textContent = 'WorkOrder';
+    workOrderBtn.className = 'btn btn-yellow';
+    workOrderBtn.style.flex = '1';
+    workOrderBtn.onclick = () => {
+      const readyHeroes = state.heroes.filter(h =>
+        h.state?.type === 'ready' &&
+        !isBusy(h) &&
+        h.restTime <= 0 &&
+        h.energia > 0 &&
+        !state.companions.includes(h.id) &&
+        !state.farmers.includes(h.id) &&
+        !state.lumberjacks.includes(h.id) &&
+        !state.miners.includes(h.id)
+      );
+      readyHeroes.forEach(hero => {
+        if (hero.workTime > 0) return;
+        hero.workTime = 200 * TIME_MULTIPLIER;
+        hero.workLastShown = hero.workTime;
+        addTimer({
+          id: `work_${hero.id}`,
+          type: 'work',
+          heroId: hero.id,
+          startTime: Date.now(),
+          duration: 200 * TIME_MULTIPLIER * 1000,
+          paused: false,
+          completed: false,
+        });
+      });
+      saveGame();
+      scheduleRenderHeroes();
+    };
+    ordersRow.appendChild(workOrderBtn);
+
+    const cancelWorkBtn = document.createElement('button');
+    cancelWorkBtn.textContent = 'CancelWork';
+    cancelWorkBtn.className = 'btn btn-red';
+    cancelWorkBtn.style.flex = '1';
+    cancelWorkBtn.onclick = () => {
+      state.heroes.forEach(h => {
+        if (h.workTime > 0) {
+          h.workTime = 0;
+          h.workStartTime = 0;
+          h.workLastShown = 0;
+          removeTimer(`work_${h.id}`);
+          h.state = { type: 'ready' };
+          const timerEl = document.getElementById(`work-timer-${h.id}`);
+          if (timerEl) timerEl.textContent = '';
+          const btn = document.getElementById(`work-btn-${h.id}`);
+          if (btn) {
+            btn.textContent = 'Work';
+            btn.disabled = h.energia <= 0 || isBusy(h);
+          }
+        }
+      });
+      saveGame();
+      scheduleRenderHeroes();
+    };
+    ordersRow.appendChild(cancelWorkBtn);
+
+    const restOrderBtn = document.createElement('button');
+    restOrderBtn.textContent = 'RestOrder';
+    restOrderBtn.className = 'btn btn-green';
+    restOrderBtn.style.flex = '1';
+    restOrderBtn.disabled = restOrderUsed;
+    if (restOrderUsed) restOrderBtn.style.background = 'gray';
+    restOrderBtn.onclick = () => {
+      state.heroes.forEach(h => {
+        if (!isBusy(h) && h.restTime <= 0 && h.energia < 100) {
+          startRest(h);
+          const groups = [state.companions, state.farmers, state.lumberjacks, state.miners];
+          let found = false;
+          groups.forEach(arr => {
+            const i = arr.indexOf(h.id);
+            if (i !== -1) { arr[i] = null; found = true; }
+          });
+          if (found && state.autoClickActive) toggleAutoClick();
+        }
+      });
+      cancelRestUsed = false;
+      restOrderUsed = true;
+      saveGame();
+      scheduleRenderHeroes();
+      renderVillageChief();
+    };
+    ordersRow.appendChild(restOrderBtn);
+
+    const cancelRestBtn = document.createElement('button');
+    cancelRestBtn.textContent = 'CancelRest';
+    cancelRestBtn.className = 'btn btn-red';
+    cancelRestBtn.style.flex = '1';
+    cancelRestBtn.disabled = cancelRestUsed;
+    if (cancelRestUsed) cancelRestBtn.style.background = 'gray';
+    cancelRestBtn.onclick = () => {
+      state.heroes.forEach(h => {
+        if (h.restTime > 0) {
+          h.restTime = 0;
+          h.restStartTime = 0;
+          h.lastRestTick = 0;
+          h.restDuration = 0;
+          restingHeroes.delete(h);
+          h.energyEl = null;
+          h.lowEnergyEl = null;
+          h.restTimerEl = null;
+          removeTimer(`rest_${h.id}`);
+          h.state = { type: 'ready' };
+          const timerEl = document.getElementById(`rest-timer-${h.id}`);
+          if (timerEl) timerEl.textContent = '';
+          const btn = document.getElementById(`rest-btn-${h.id}`);
+          if (btn) {
+            btn.textContent = 'Rest';
+            btn.disabled = h.energia >= 100 || isBusy(h);
+          }
+        }
+      });
+      restOrderUsed = false;
+      cancelRestUsed = true;
+      saveGame();
+      scheduleRenderHeroes();
+      renderVillageChief();
+    };
+    ordersRow.appendChild(cancelRestBtn);
+    
+    heroActionsCard.appendChild(ordersRow);
+
+    // Agregar botones SummonHero y PromoteHero
     const buttonsRow = document.createElement('div');
     buttonsRow.style.display = 'flex';
     buttonsRow.style.gap = '10px';
-    buttonsRow.style.marginBottom = '20px';
     
     // Botón SummonHero
     const summonBtn = document.createElement('button');
@@ -14133,7 +14011,8 @@ function showPopulationTab(tab) {
     summonBtn.style.flex = '1';
     buttonsRow.appendChild(summonBtn);
     
-    populationContent.appendChild(buttonsRow);
+    heroActionsCard.appendChild(buttonsRow);
+    populationContent.appendChild(heroActionsCard);
 
     // Crear sección completa de My Heroes
     const heroesSection = document.createElement('div');

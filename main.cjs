@@ -267,6 +267,21 @@ ipcMain.on('set-game-state', (_event, data) => {
 });
 ipcMain.on('skip-save-on-quit', () => { skipSaveOnQuit = true; });
 
+// Handler para resetear a partida0.json
+ipcMain.handle('reset-to-partida0', async () => {
+  try {
+    const success = await resetToPartida0();
+    if (success) {
+      // Recargar el estado desde el save.json recién creado
+      currentGameState = await loadGame({});
+    }
+    return success;
+  } catch (error) {
+    console.error('Error al resetear a partida0:', error);
+    return false;
+  }
+});
+
 ipcMain.on('electron-store-get', (event, key) => {
   event.returnValue = electronStore?.get(key);
 });
