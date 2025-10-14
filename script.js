@@ -3580,13 +3580,13 @@ export function updateBuildButtonHeight() {
   if (houseCol) {
     const btn = houseCol.querySelector('button');
     if (btn) {
-      btn.style.minHeight = state.buildingTask.time > 0 ? '40px' : '50px';
+      btn.style.minHeight = state.buildingTask.time > 0 ? '' : '50px';
     }
   }
   document.querySelectorAll('#build-house-card button[id^="btn-"]').forEach(b => {
     const label = b.id.replace('btn-','');
     const t = state.upgradeTasks[label];
-    b.style.minHeight = t && t.time > 0 ? '40px' : '50px';
+    b.style.minHeight = t && t.time > 0 ? '' : '50px';
   });
 }
 
@@ -6773,11 +6773,23 @@ function renderDiary(card) {
   title.style.textAlign = "center";
   card.appendChild(title);
   
-  const placeholder = document.createElement('div');
-  placeholder.style.padding = '20px';
-  placeholder.style.textAlign = 'center';
-  placeholder.innerHTML = '<p>Coming soon...</p>';
-  card.appendChild(placeholder);
+  // Crear iframe para cargar diary.html
+  const iframeContainer = document.createElement('div');
+  iframeContainer.style.width = '100%';
+  iframeContainer.style.height = '80vh';
+  iframeContainer.style.overflow = 'hidden';
+  iframeContainer.style.borderRadius = '8px';
+  iframeContainer.style.marginTop = '10px';
+  
+  const iframe = document.createElement('iframe');
+  iframe.src = 'diary.html';
+  iframe.style.width = '100%';
+  iframe.style.height = '100%';
+  iframe.style.border = 'none';
+  iframe.style.borderRadius = '8px';
+  
+  iframeContainer.appendChild(iframe);
+  card.appendChild(iframeContainer);
 
   // Botón de cerrar
   const closeBtn = document.createElement("button");

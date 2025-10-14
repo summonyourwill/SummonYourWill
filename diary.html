@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Daily Codex - Medieval Journal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Crimson+Text:wght@400;600;700&family=Cardo:wght@400;700&family=Cormorant+Garamond:wght@400;600&family=IM+Fell+English+SC&family=Special+Elite&display=swap" rel="stylesheet">
+    <script type="module" src="https://unpkg.com/emoji-picker-element@^1/index.js"></script>
+    <style>
+        /* ================================== */
+        /* STYLES (CSS)                       */
+        /* ================================== */
+
+        :root {
+            /* Medieval Color Palette */
+            --color-parchment: #fef7e6; /* Manuscript background */
+            --color-ink: #3d342d;       /* Main text color */
+            --color-dark-ink: #1f1a16;
+            --color-wood: #a0522d;      /* Brown for structure */
+            --color-copper: #b87333;    /* For buttons or details */
+            --color-border: #704214;    /* Darker border */
+        }
+
+        body {
+            background-color: #e0d0b0; /* A subtle "plank" background or atmosphere */
+            font-family: 'Cormorant Garamond', serif; /* Readable base font with a classic feel */
+            color: var(--color-ink);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            user-select: none; /* Prevent text selection by default */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+
+        .journal-container {
+            width: 90%;
+            max-width: 800px;
+            box-shadow: 10px 10px 20px rgba(0, 0, 0, 0.5); /* Shadow for depth */
+            border: 10px solid var(--color-wood); /* "Wood" frame */
+            background: linear-gradient(to bottom, #f3e9d7 0%, var(--color-parchment) 100%); /* Aging effect */
+            padding: 30px;
+            border-radius: 5px;
+        }
+
+        /* --- Titles and Header --- */
+
+        .title-script {
+            font-family: 'Cinzel Decorative', serif; /* More stylized font for the main title */
+            font-size: 2.5em;
+            color: var(--color-dark-ink);
+            text-align: center;
+            margin-bottom: 5px;
+            text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.7);
+        }
+
+        .journal-header {
+            border-bottom: 2px solid var(--color-copper); /* Copper separator */
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .date-navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .date-script {
+            font-family: 'IM Fell English SC', serif;
+            font-size: 1.5em;
+            color: var(--color-border);
+            margin: 0 10px;
+            text-align: center;
+            flex-grow: 1; /* Allows space to expand */
+        }
+
+        .nav-button {
+            background-color: var(--color-copper);
+            color: white;
+            border: 2px solid var(--color-border);
+            padding: 8px 15px;
+            cursor: pointer;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 0.9em;
+            border-radius: 3px;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .nav-button:hover {
+            background-color: #d4a06b;
+            transform: translateY(-1px);
+        }
+
+        .nav-button:disabled {
+            background-color: #888;
+            border-color: #555;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* --- Toolbar --- */
+
+        .toolbar-parchment {
+            background-color: #e3d8c1; /* Lighter parchment tone for the toolbar */
+            border: 1px solid var(--color-border);
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: center;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: stretch;
+        }
+
+        .toolbar-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .tool-btn, .tool-dropdown {
+            background-color: var(--color-ink);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-family: 'Cormorant Garamond', serif;
+            border-radius: 3px;
+            transition: background-color 0.2s;
+            font-size: 1em;
+            line-height: 1;
+        }
+
+        .tool-btn:hover, .tool-dropdown:hover {
+            background-color: var(--color-dark-ink);
+        }
+
+        .tool-btn.active {
+            background-color: var(--color-copper);
+            border: 2px solid var(--color-border);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .tool-dropdown {
+            /* Specific adjustment for select */
+            padding-right: 20px; 
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22white%22%20d%3D%22M287%2069.4L146.2%20208.7L5.4%2069.4h281.6z%22%2F%3E%3C%2Fsvg%3E');
+            background-repeat: no-repeat;
+            background-position: right 8px top 50%;
+            background-size: 0.65em auto;
+        }
+
+        .format-btn {
+            font-weight: bold;
+        }
+
+        #underlineBtn {
+            text-decoration: underline;
+        }
+
+        .settings-btn {
+            background-color: transparent;
+            border: 1px solid var(--color-ink);
+            color: var(--color-ink);
+            padding: 6px 10px;
+            font-size: 0.9em;
+        }
+
+        .settings-btn:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        #colorPicker {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            width: 40px;
+            height: 35px;
+            background: transparent;
+            border: 2px solid var(--color-ink);
+            border-radius: 3px;
+            cursor: pointer;
+            padding: 1px;
+        }
+
+        #colorPicker::-webkit-color-swatch-wrapper { padding: 0; }
+        #colorPicker::-webkit-color-swatch { border: none; border-radius: 2px; }
+
+        /* --- Typical Colors Section --- */
+        .typical-colors-section {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-left: auto;
+            position: relative;
+        }
+
+        .preset-label {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 0.8em;
+            color: #7a5a40;
+            margin-right: 5px;
+        }
+
+        .preset-colors-row {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .preset-swatch {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid var(--color-border);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .preset-swatch:hover {
+            transform: scale(1.15);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+        }
+
+        .preset-swatch:active {
+            transform: scale(1.05);
+        }
+
+        /* Posicionar el primer color (negro) debajo del selector de color */
+        .preset-swatch:first-child {
+            position: relative;
+            margin-left: 20px; /* Espacio para alinearse debajo del color picker */
+        }
+
+        /* Crear una línea visual que conecte el primer color con el selector */
+        .preset-swatch:first-child::before {
+            content: '';
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 25px;
+            background-color: #ccc;
+            z-index: -1;
+        }
+
+        .separator {
+            color: var(--color-ink);
+            font-weight: bold;
+        }
+
+        /* --- Color Swatches --- */
+        .recent-label {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 0.8em;
+            color: #7a5a40;
+            margin-right: 5px;
+            margin-left: 5px;
+        }
+
+        #recentColorsContainer {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .color-swatch {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid var(--color-border);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .color-swatch:hover {
+            transform: scale(1.15);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+        }
+
+        .color-swatch:active {
+            transform: scale(1.05);
+        }
+
+        /* --- Modal for Custom Button --- */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: var(--color-parchment);
+            border: 3px solid var(--color-border);
+            border-radius: 5px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .modal-title {
+            font-family: 'Cinzel Decorative', serif;
+            font-size: 1.5em;
+            color: var(--color-dark-ink);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .modal-field {
+            margin-bottom: 15px;
+        }
+
+        .modal-field label {
+            display: block;
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--color-ink);
+        }
+
+        .modal-field input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--color-border);
+            border-radius: 3px;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1em;
+            background-color: white;
+            box-sizing: border-box;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 3px;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .modal-btn-save {
+            background-color: var(--color-copper);
+            color: white;
+        }
+
+        .modal-btn-save:hover {
+            background-color: #d4a06b;
+        }
+
+        .modal-btn-cancel {
+            background-color: #888;
+            color: white;
+        }
+
+        .modal-btn-cancel:hover {
+            background-color: #666;
+        }
+
+        /* --- Emoji Picker Styles --- */
+        .emoji-input-wrap {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .btn-ghost {
+            background: #f3e6cf;
+            border: 1px solid #b5905e;
+            border-radius: 8px;
+            padding: 0.25rem 0.5rem;
+            cursor: pointer;
+            font-family: 'Cormorant Garamond', serif;
+            transition: background-color 0.2s;
+        }
+
+        .btn-ghost:hover {
+            background: #e8d5b7;
+        }
+
+        .popover {
+            background: #fffaf0;
+            border: 1px solid #c9b08a;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            z-index: 9999;
+            position: fixed;
+        }
+
+        .popover.hidden {
+            display: none;
+        }
+
+        /* --- Editing Area (The Manuscript) --- */
+
+        .editor-area {
+            min-height: 400px;
+            padding: 25px;
+            line-height: 1.6;
+            font-size: 1.1em;
+            font-family: 'Crimson Text', serif;
+            outline: none;
+            border: 1px dashed var(--color-border); /* Subtle, non-intrusive border */
+            background-color: var(--color-parchment);
+            overflow-y: auto;
+            cursor: text;
+            white-space: pre-wrap; /* Allows text to wrap with font style */
+            margin-bottom: 20px;
+            user-select: text; /* Allow text selection only in editor area */
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+        }
+
+        /* Font families for editor */
+        .font-serif { font-family: 'Crimson Text', serif; }
+        .font-handwriting { font-family: 'Cardo', serif; }
+        .font-typewriter { font-family: 'Special Elite', monospace; }
+
+        /* Placeholder for editable area (CSS trick) */
+        .editor-area:empty:not(:focus):before {
+            content: attr(data-placeholder);
+            color: #999;
+            font-style: italic;
+            pointer-events: none;
+            display: block;
+        }
+
+        /* Styles for Today I Learned text */
+        .learned-today {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #fffacd; /* A subtle yellow, like an illuminator highlight */
+            border-left: 5px solid #ffae42; /* A golden "rule" */
+            font-weight: bold;
+            font-style: italic;
+            color: var(--color-ink);
+            border-radius: 2px;
+        }
+
+        /* --- Footer --- */
+        .journal-footer {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1px solid var(--color-copper);
+            font-style: italic;
+            font-size: 0.9em;
+            color: var(--color-border);
+        }
+    </style>
+</head>
+<body>
+    <div class="journal-container">
+        <header class="journal-header">
+            <h1 class="title-script">The Daily Codex</h1>
+            <div class="date-navigation">
+                <button id="prevDay" class="nav-button">◀️ Previous Day</button>
+                <h2 id="currentDate" class="date-script"></h2>
+                <button id="nextDay" class="nav-button">Next Day ▶️</button>
+            </div>
+        </header>
+        
+        <div class="toolbar-parchment">
+            <div id="toolbar" class="toolbar">
+                <!-- Row 1: Typography Styles + Colors -->
+                <div class="toolbar-row">
+                    <button id="boldBtn" class="tool-btn format-btn" title="Bold">𝐁</button>
+                    <button id="italicBtn" class="tool-btn format-btn" title="Italic">𝑰</button>
+                    <button id="underlineBtn" class="tool-btn format-btn" title="Underline">𝐔</button>
+                
+                <span class="separator">|</span>
+
+                    <select id="fontSelector" class="tool-dropdown" title="Font Family">
+                        <option value="serif">Serif</option>
+                        <option value="handwriting">Handwriting</option>
+                        <option value="typewriter">Typewriter</option>
+                </select>
+
+                <span class="separator">|</span>
+
+                    <span style="color: #7a5a40; font-size: 0.9em;">🎨</span>
+                    <input type="color" id="colorPicker" title="Ink Color">
+                    
+                    <span class="recent-label">Recent:</span>
+                    <div id="recentColorsContainer"></div>
+                </div>
+                
+                <!-- Row 2: Functional Buttons + Typical Colors -->
+                <div class="toolbar-row">
+                    <button id="customBtn" class="tool-btn learned-btn" title="Custom Quick Entry">🧠 Today I Learned</button>
+                    <button id="settingsBtn" class="settings-btn" title="Customize Button">⚙️</button>
+                    <button id="emojiBtn" class="settings-btn" title="Insert Emoji">😀</button>
+                    
+                    <div class="typical-colors-section">
+                        <span class="preset-label">Typical:</span>
+                        <div id="presetColorsContainer" class="preset-colors-row"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="editor" class="editor-area" contenteditable="true" data-placeholder="Write your daily chronicles here...">
+        </div>
+
+        <footer class="journal-footer">
+            <p>~ End of Chronicle ~</p>
+        </footer>
+
+    </div>
+
+    <!-- Modal for customizing button -->
+    <div id="customModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="modal-title">Customize Quick Entry</h2>
+            <div class="modal-field">
+                <label for="emojiInput">Emoji:</label>
+                <div class="emoji-input-wrap">
+                    <input type="text" id="emojiInput" maxlength="2" placeholder="🧠">
+                    <button id="openEmojiPicker" type="button" class="btn-ghost">🙂</button>
+                </div>
+            </div>
+            <div class="modal-field">
+                <label for="textInput">Text:</label>
+                <input type="text" id="textInput" placeholder="Today I Learned">
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-cancel" id="modalCancel">Cancel</button>
+                <button class="modal-btn modal-btn-save" id="modalSave">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Emoji Picker Popover for Modal -->
+    <div id="emojiPickerWrap" class="popover hidden">
+        <emoji-picker id="emojiPicker" locale="en" skin-tone-emoji="👍"></emoji-picker>
+    </div>
+
+    <!-- Emoji Picker Popover for Toolbar -->
+    <div id="toolbarEmojiPickerWrap" class="popover hidden">
+        <emoji-picker id="toolbarEmojiPicker" locale="en" skin-tone-emoji="👍"></emoji-picker>
+    </div>
+
+    <script>
+        // ==================================
+        //         FUNCTIONALITY (JS)
+        // ==================================
+
+        // Constants for DOM elements
+        const currentDateEl = document.getElementById('currentDate');
+        const editorEl = document.getElementById('editor');
+        const prevDayBtn = document.getElementById('prevDay');
+        const nextDayBtn = document.getElementById('nextDay');
+        const boldBtn = document.getElementById('boldBtn');
+        const italicBtn = document.getElementById('italicBtn');
+        const underlineBtn = document.getElementById('underlineBtn');
+        const colorPicker = document.getElementById('colorPicker');
+        const customBtn = document.getElementById('customBtn');
+        const settingsBtn = document.getElementById('settingsBtn');
+        const fontSelector = document.getElementById('fontSelector');
+        const recentColorsContainer = document.getElementById('recentColorsContainer');
+        const presetColorsContainer = document.getElementById('presetColorsContainer');
+        const customModal = document.getElementById('customModal');
+        const emojiInput = document.getElementById('emojiInput');
+        const textInput = document.getElementById('textInput');
+        const modalSave = document.getElementById('modalSave');
+        const modalCancel = document.getElementById('modalCancel');
+        const openEmojiPicker = document.getElementById('openEmojiPicker');
+        const emojiPickerWrap = document.getElementById('emojiPickerWrap');
+        const emojiPicker = document.getElementById('emojiPicker');
+        const emojiBtn = document.getElementById('emojiBtn');
+        const toolbarEmojiPickerWrap = document.getElementById('toolbarEmojiPickerWrap');
+        const toolbarEmojiPicker = document.getElementById('toolbarEmojiPicker');
+
+        // State variable for current displayed date (initialized to today)
+        let currentDate = new Date();
+        currentDate.setHours(0, 0, 0, 0); // Normalize to midnight
+
+        // Maximum number of recent colors to display
+        const MAX_RECENT_COLORS = 8;
+
+        // Preset color palette (2 columns layout)
+        const presetColors = [
+            '#000000', // black
+            '#1E90FF', // blue
+            '#FF0000', // red
+            '#228B22', // green
+            '#FFD700', // gold
+            '#800080', // purple
+            '#FFFFFF', // white
+            '#FF8C00', // orange
+            '#A52A2A', // brown
+            '#808080'  // gray
+        ];
+
+        // --- Utility and Date Functions ---
+
+        /**
+         * Formats a Date object to the desired format: "Tuesday, October 14, 2025"
+         * @param {Date} date - The date to format.
+         * @returns {string} The formatted date.
+         */
+        function formatDate(date) {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const formatted = date.toLocaleDateString('en-US', options);
+            return formatted;
+        }
+
+        /**
+         * Generates a unique key for localStorage based on the date.
+         * @param {Date} date - The date.
+         * @returns {string} The storage key (Ex: "diary_2025-10-14").
+         */
+        function getStorageKey(date) {
+            return `diary_${date.toISOString().split('T')[0]}`;
+        }
+
+        /**
+         * Updates the DOM with the current date and loads saved content.
+         */
+        function updateDiaryView() {
+            const formattedDate = formatDate(currentDate);
+            currentDateEl.textContent = formattedDate;
+
+            const key = getStorageKey(currentDate);
+            const content = localStorage.getItem(key) || ''; // Load content or empty
+
+            editorEl.innerHTML = content;
+            // This ensures the Next Day button is disabled if it's today
+            checkNextDayButton();
+        }
+
+        /**
+         * Saves the current content of the editor to localStorage.
+         */
+        function saveContent() {
+            const key = getStorageKey(currentDate);
+            // Use innerHTML to save formatting (bold, italic, etc.)
+            localStorage.setItem(key, editorEl.innerHTML);
+        }
+
+        // --- Navigation and Events ---
+
+        /**
+         * Navigates to the previous day, saves current content and updates the view.
+         */
+        function goToPreviousDay() {
+            saveContent(); // Save before changing
+            currentDate.setDate(currentDate.getDate() - 1);
+            updateDiaryView();
+        }
+
+        /**
+         * Navigates to the next day, saves current content and updates the view.
+         */
+        function goToNextDay() {
+            // Prevent going beyond the current day (can't write the future)
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Normalize to midnight for comparison
+
+            // Only allow advancing if the current view date is strictly before today
+            if (currentDate.getTime() < today.getTime()) {
+                saveContent(); // Save before changing
+                currentDate.setDate(currentDate.getDate() + 1);
+                updateDiaryView();
+            }
+        }
+
+        /**
+         * Enables or disables the Next Day button if it's today.
+         */
+        function checkNextDayButton() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); 
+            
+            const currentViewDate = new Date(currentDate); // Copy
+            currentViewDate.setHours(0, 0, 0, 0);
+
+            // Disable if current view date is equal to or later than today
+            nextDayBtn.disabled = currentViewDate.getTime() >= today.getTime();
+        }
+
+        // --- Formatting Functionality (Rich Text) ---
+
+        /**
+         * Applies formatting to selected text in the editor.
+         * @param {string} command - Formatting command (Ex: 'bold', 'italic', 'foreColor').
+         * @param {string} [value=null] - Value for the command (Ex: color code).
+         */
+        function formatText(command, value = null) {
+            // document.execCommand is the standard way to apply formatting to contentEditable
+            document.execCommand(command, false, value);
+            // Needed so focus returns to editor after a toolbar click
+            editorEl.focus();
+            saveContent(); // Save when applying format
+            updateButtonStates(); // Update visual state of buttons
+        }
+
+        /**
+         * Updates the visual state of format buttons based on current selection.
+         */
+        function updateButtonStates() {
+            // Check if bold is active
+            boldBtn.classList.toggle('active', document.queryCommandState('bold'));
+            // Check if italic is active
+            italicBtn.classList.toggle('active', document.queryCommandState('italic'));
+            // Check if underline is active
+            underlineBtn.classList.toggle('active', document.queryCommandState('underline'));
+        }
+
+        /**
+         * Inserts a custom marker with special styling based on user preferences.
+         */
+        function insertCustomTag() {
+            const customConfig = loadCustomButton();
+            editorEl.focus();
+            // Create a special div for CSS styling
+            document.execCommand('insertHTML', false, `<div class="learned-today">${customConfig.emoji} ${customConfig.text}: </div><br>`);
+            saveContent();
+        }
+
+        // --- Custom Button Management ---
+
+        /**
+         * Loads custom button configuration from localStorage.
+         * @returns {Object} Configuration with emoji and text.
+         */
+        function loadCustomButton() {
+            const saved = localStorage.getItem('customEntryButton');
+            return saved ? JSON.parse(saved) : { emoji: '🧠', text: 'Today I Learned' };
+        }
+
+        /**
+         * Saves custom button configuration to localStorage.
+         * @param {string} emoji - The emoji to use.
+         * @param {string} text - The text to display.
+         */
+        function saveCustomButton(emoji, text) {
+            localStorage.setItem('customEntryButton', JSON.stringify({ emoji, text }));
+            updateCustomButton();
+        }
+
+        /**
+         * Updates the custom button display with current configuration.
+         */
+        function updateCustomButton() {
+            const config = loadCustomButton();
+            customBtn.innerHTML = `${config.emoji} ${config.text}`;
+        }
+
+        /**
+         * Opens the customization modal.
+         */
+        function openModal() {
+            const config = loadCustomButton();
+            emojiInput.value = config.emoji;
+            textInput.value = config.text;
+            customModal.classList.add('active');
+            // Hide emoji picker if it's open
+            emojiPickerWrap.classList.add('hidden');
+        }
+
+        /**
+         * Closes the customization modal.
+         */
+        function closeModal() {
+            customModal.classList.remove('active');
+        }
+
+        /**
+         * Saves the modal inputs and closes it.
+         */
+        function saveModal() {
+            const emoji = emojiInput.value.trim() || '🧠';
+            const text = textInput.value.trim() || 'Today I Learned';
+            saveCustomButton(emoji, text);
+            closeModal();
+        }
+
+        // --- Emoji Picker Management ---
+
+        /**
+         * Toggles the emoji picker visibility and positions it.
+         */
+        function toggleEmojiPicker() {
+            emojiPickerWrap.classList.toggle('hidden');
+            
+            if (!emojiPickerWrap.classList.contains('hidden')) {
+                // Position the popover next to the button
+                const rect = openEmojiPicker.getBoundingClientRect();
+                emojiPickerWrap.style.position = 'fixed';
+                emojiPickerWrap.style.left = `${rect.left}px`;
+                emojiPickerWrap.style.top = `${rect.bottom + 8}px`;
+            }
+        }
+
+        /**
+         * Handles emoji selection from the modal picker.
+         */
+        function handleEmojiSelection(event) {
+            emojiInput.value = event.detail.unicode;
+            emojiPickerWrap.classList.add('hidden');
+            emojiInput.focus();
+        }
+
+        /**
+         * Toggles the toolbar emoji picker visibility and positions it.
+         */
+        function toggleToolbarEmojiPicker() {
+            toolbarEmojiPickerWrap.classList.toggle('hidden');
+            
+            if (!toolbarEmojiPickerWrap.classList.contains('hidden')) {
+                // Position the popover next to the button
+                const rect = emojiBtn.getBoundingClientRect();
+                toolbarEmojiPickerWrap.style.position = 'fixed';
+                toolbarEmojiPickerWrap.style.left = `${rect.left}px`;
+                toolbarEmojiPickerWrap.style.top = `${rect.bottom + 8}px`;
+            }
+        }
+
+        /**
+         * Handles emoji selection from the toolbar picker.
+         */
+        function handleToolbarEmojiSelection(event) {
+            // Insert emoji at cursor position in editor
+            editorEl.focus();
+            document.execCommand('insertText', false, event.detail.unicode);
+            toolbarEmojiPickerWrap.classList.add('hidden');
+            saveContent();
+        }
+
+        // --- Font and Size Management ---
+
+        /**
+         * Changes the font family of the editor.
+         * @param {string} fontType - The font type (serif, handwriting, typewriter).
+         */
+        function changeFont(fontType) {
+            // Remove all font classes
+            editorEl.classList.remove('font-serif', 'font-handwriting', 'font-typewriter');
+            // Add the selected font class
+            editorEl.classList.add(`font-${fontType}`);
+        }
+
+        // --- Recent Colors Management ---
+
+        /**
+         * Gets the list of recent colors from localStorage.
+         * @returns {Array} Array of color hex codes.
+         */
+        function getRecentColors() {
+            const colors = localStorage.getItem('recentColors');
+            return colors ? JSON.parse(colors) : [];
+        }
+
+        /**
+         * Saves a color to the recent colors list.
+         * @param {string} color - The hex color code.
+         */
+        function addRecentColor(color) {
+            let recentColors = getRecentColors();
+            
+            // Remove the color if it already exists (to move it to front)
+            recentColors = recentColors.filter(c => c.toLowerCase() !== color.toLowerCase());
+            
+            // Add the new color at the beginning
+            recentColors.unshift(color);
+            
+            // Keep only the maximum number of colors
+            recentColors = recentColors.slice(0, MAX_RECENT_COLORS);
+            
+            // Save to localStorage
+            localStorage.setItem('recentColors', JSON.stringify(recentColors));
+            
+            // Update the display
+            renderRecentColors();
+        }
+
+        /**
+         * Renders the recent color swatches in the DOM.
+         */
+        function renderRecentColors() {
+            const recentColors = getRecentColors();
+            recentColorsContainer.innerHTML = '';
+            
+            recentColors.forEach(color => {
+                const swatch = document.createElement('div');
+                swatch.className = 'color-swatch';
+                swatch.style.backgroundColor = color;
+                swatch.title = color;
+                swatch.addEventListener('click', () => {
+                    formatText('foreColor', color);
+                    // Update the color picker to show the selected color
+                    colorPicker.value = color;
+                });
+                recentColorsContainer.appendChild(swatch);
+            });
+        }
+
+        /**
+         * Renders the preset color swatches in the DOM.
+         */
+        function renderPresetColors() {
+            presetColorsContainer.innerHTML = '';
+            
+            presetColors.forEach(color => {
+                const swatch = document.createElement('div');
+                swatch.className = 'preset-swatch';
+                swatch.style.backgroundColor = color;
+                swatch.title = color;
+                swatch.addEventListener('click', () => {
+                    formatText('foreColor', color);
+                    // Update the color picker to show the selected color
+                    colorPicker.value = color;
+                    // Add to recent colors
+                    addRecentColor(color);
+                });
+                presetColorsContainer.appendChild(swatch);
+            });
+        }
+
+        // --- Initialization ---
+
+        // 1. Load initial view (current date)
+        updateDiaryView(); 
+
+        // 2. Event Listeners for navigation
+        prevDayBtn.addEventListener('click', goToPreviousDay);
+        nextDayBtn.addEventListener('click', goToNextDay);
+
+        // 3. Event Listeners for toolbar
+        boldBtn.addEventListener('click', () => formatText('bold'));
+        italicBtn.addEventListener('click', () => formatText('italic'));
+        underlineBtn.addEventListener('click', () => formatText('underline'));
+        colorPicker.addEventListener('change', (e) => {
+            const color = e.target.value;
+            formatText('foreColor', color);
+            addRecentColor(color);
+        });
+        customBtn.addEventListener('click', insertCustomTag);
+        settingsBtn.addEventListener('click', openModal);
+        emojiBtn.addEventListener('click', toggleToolbarEmojiPicker);
+        fontSelector.addEventListener('change', (e) => changeFont(e.target.value));
+
+        // 4. Event Listeners for modal
+        modalSave.addEventListener('click', saveModal);
+        modalCancel.addEventListener('click', closeModal);
+        customModal.addEventListener('click', (e) => {
+            // Close modal if clicking outside the content
+            if (e.target === customModal) {
+                closeModal();
+            }
+        });
+
+        // 5. Event Listeners for emoji picker
+        openEmojiPicker.addEventListener('click', toggleEmojiPicker);
+        emojiPicker.addEventListener('emoji-click', handleEmojiSelection);
+        toolbarEmojiPicker.addEventListener('emoji-click', handleToolbarEmojiSelection);
+        
+        // Hide emoji picker when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!openEmojiPicker.contains(e.target) && !emojiPickerWrap.contains(e.target)) {
+                emojiPickerWrap.classList.add('hidden');
+            }
+            if (!emojiBtn.contains(e.target) && !toolbarEmojiPickerWrap.contains(e.target)) {
+                toolbarEmojiPickerWrap.classList.add('hidden');
+            }
+        });
+
+        // 5. Listener to automatically save when typing and update button states
+        // Use 'input' to save text changes
+        editorEl.addEventListener('input', saveContent);
+        
+        // Update button states when selection changes
+        editorEl.addEventListener('mouseup', updateButtonStates);
+        editorEl.addEventListener('keyup', updateButtonStates);
+        editorEl.addEventListener('focus', updateButtonStates);
+
+        // 6. Initialize custom button, colors, and font settings
+        updateCustomButton();
+        renderRecentColors();
+        renderPresetColors();
+        changeFont('serif'); // Set default font
+        updateButtonStates(); // Initialize button states
+
+        // 7. Ensure Next button is properly disabled at startup
+        checkNextDayButton();
+    </script>
+</body>
+</html>

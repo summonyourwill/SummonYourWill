@@ -680,6 +680,19 @@ body.loading .content section {
   align-items: center;
   justify-content: center;
 }
+
+/* Timers de upgrade de construcciones */
+div#upgrade-timer-Lumberyard.timer,
+div#upgrade-timer-Quarry.timer,
+div#upgrade-timer-Pantry.timer,
+div#upgrade-timer-PetSanctuary.timer,
+div#upgrade-timer-Tower.timer,
+div#upgrade-timer-Castle.timer,
+div#upgrade-timer-Dungeons.timer,
+div#upgrade-timer-Hospital.timer {
+  padding-bottom: 10px;
+}
+
 .auto-note {
   color: red;
   display: block;
