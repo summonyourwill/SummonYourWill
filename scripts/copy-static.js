@@ -94,6 +94,11 @@ async function copyFileIfNeeded(src, dest) {
   await copyFile(path.join(projectRoot, 'idlebossrush.css'), path.join(buildSrcDir, 'idlebossrush.css'));
   await copyFile(path.join(projectRoot, 'idlebossrush.js'), path.join(buildSrcDir, 'idlebossrush.js'));
   
+  // Copy additional HTML files
+  await copyFile(path.join(projectRoot, 'diary.html'), path.join(buildSrcDir, 'diary.html'));
+  await copyFile(path.join(projectRoot, 'weekplan.html'), path.join(buildSrcDir, 'weekplan.html'));
+  await copyFile(path.join(projectRoot, 'projects.html'), path.join(buildSrcDir, 'projects.html'));
+  
   // Copy minigames directory
   await copyDirectory(path.join(projectRoot, 'minigames'), path.join(buildSrcDir, 'minigames'));
   

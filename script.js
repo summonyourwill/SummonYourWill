@@ -6766,14 +6766,14 @@ function isHabitEditable(year, month, day) {
   return target >= earliest && target <= today;
 }
 
-function renderDiary(card) {
+async function renderDiary(card) {
   [...card.querySelectorAll(':scope > :not(.close-btn)')].forEach(el => el.remove());
   const title = document.createElement("h3");
   title.textContent = "Diary";
   title.style.textAlign = "center";
   card.appendChild(title);
   
-  // Crear iframe para cargar diary.html
+  // Crear iframe para cargar diary con srcdoc
   const iframeContainer = document.createElement('div');
   iframeContainer.style.width = '100%';
   iframeContainer.style.height = '80vh';
@@ -6782,38 +6782,52 @@ function renderDiary(card) {
   iframeContainer.style.marginTop = '10px';
   
   const iframe = document.createElement('iframe');
-  iframe.src = 'diary.html';
   iframe.style.width = '100%';
   iframe.style.height = '100%';
   iframe.style.border = 'none';
   iframe.style.borderRadius = '8px';
   
-  // Listener para recibir mensajes del iframe del diary
-  const diaryMessageHandler = (event) => {
-    if (event.data && event.data.type === 'dailyReward') {
-      // Dar el oro
-      state.money += event.data.amount;
-      updateResourcesDisplay();
-      saveGame();
+  // Cargar el contenido usando el sistema de caché de minijuegos
+  try {
+    const htmlContent = await fetchMinigameHtml('diary.html');
+    if (!htmlContent) {
+      throw new Error('No content loaded');
     }
-  };
-  
-  // Agregar el listener cuando el iframe carga
-  iframe.onload = () => {
-    window.addEventListener('message', diaryMessageHandler);
-  };
-  
-  iframeContainer.appendChild(iframe);
-  card.appendChild(iframeContainer);
+    
+    // Usar srcdoc en lugar de src para evitar problemas de seguridad
+    iframe.srcdoc = htmlContent;
+    
+    // Listener para recibir mensajes del iframe del diary
+    const diaryMessageHandler = (event) => {
+      if (event.data && event.data.type === 'dailyReward') {
+        // Dar el oro
+        state.money += event.data.amount;
+        updateResourcesDisplay();
+        saveGame();
+      }
+    };
+    
+    // Agregar el listener cuando el iframe carga
+    iframe.onload = () => {
+      window.addEventListener('message', diaryMessageHandler);
+    };
+    
+    iframeContainer.appendChild(iframe);
+    card.appendChild(iframeContainer);
+  } catch (error) {
+    console.error('Error loading diary.html:', error);
+    const errorDiv = document.createElement('div');
+    errorDiv.textContent = 'Error loading diary content';
+    errorDiv.style.padding = '20px';
+    errorDiv.style.color = 'red';
+    card.appendChild(errorDiv);
+  }
 
   // Botón de cerrar
   const closeBtn = document.createElement("button");
   closeBtn.textContent = "❌";
   closeBtn.className = "close-btn";
   closeBtn.onclick = () => {
-    // Remover el listener cuando se cierra
-    window.removeEventListener('message', diaryMessageHandler);
-    
     const extraCard = document.getElementById('chief-extra');
     if (extraCard) {
       extraCard.style.display = 'none';
@@ -6824,14 +6838,14 @@ function renderDiary(card) {
   card.appendChild(closeBtn);
 }
 
-function renderWeekPlan(card) {
+async function renderWeekPlan(card) {
   [...card.querySelectorAll(':scope > :not(.close-btn)')].forEach(el => el.remove());
   const title = document.createElement("h3");
   title.textContent = "WeekPlan";
   title.style.textAlign = "center";
   card.appendChild(title);
   
-  // Crear iframe para cargar weekplan.html
+  // Crear iframe para cargar weekplan con srcdoc
   const iframeContainer = document.createElement('div');
   iframeContainer.style.width = '100%';
   iframeContainer.style.height = '80vh';
@@ -6840,14 +6854,31 @@ function renderWeekPlan(card) {
   iframeContainer.style.marginTop = '10px';
   
   const iframe = document.createElement('iframe');
-  iframe.src = 'weekplan.html';
   iframe.style.width = '100%';
   iframe.style.height = '100%';
   iframe.style.border = 'none';
   iframe.style.borderRadius = '8px';
   
-  iframeContainer.appendChild(iframe);
-  card.appendChild(iframeContainer);
+  // Cargar el contenido usando el sistema de caché de minijuegos
+  try {
+    const htmlContent = await fetchMinigameHtml('weekplan.html');
+    if (!htmlContent) {
+      throw new Error('No content loaded');
+    }
+    
+    // Usar srcdoc en lugar de src para evitar problemas de seguridad
+    iframe.srcdoc = htmlContent;
+    
+    iframeContainer.appendChild(iframe);
+    card.appendChild(iframeContainer);
+  } catch (error) {
+    console.error('Error loading weekplan.html:', error);
+    const errorDiv = document.createElement('div');
+    errorDiv.textContent = 'Error loading weekplan content';
+    errorDiv.style.padding = '20px';
+    errorDiv.style.color = 'red';
+    card.appendChild(errorDiv);
+  }
 
   // Botón de cerrar
   const closeBtn = document.createElement("button");
@@ -11759,16 +11790,32 @@ function preloadAssets(urls = []) {
 }
 
 let minigameHtmlCache = null;
-function fetchMinigameHtml(src) {
-  if (!src) return Promise.resolve(null);
+async function fetchMinigameHtml(src) {
+  if (!src) return null;
   // Inicializar cache si aún no existe
   if (!minigameHtmlCache) minigameHtmlCache = lru;
   const cached = minigameHtmlCache.get(src);
-  if (cached) return Promise.resolve(cached);
-  return fetch(src)
-    .then(r => r.text())
-    .then(html => { minigameHtmlCache.set(src, html); return html; })
-    .catch(() => null);
+  if (cached) return cached;
+  
+  try {
+    // Intentar usar el método de Electron si está disponible
+    if (window.electronAPI && window.electronAPI.invoke) {
+      const html = await window.electronAPI.invoke('read-html-file', src);
+      if (html) {
+        minigameHtmlCache.set(src, html);
+        return html;
+      }
+    }
+    
+    // Fallback a fetch para desarrollo o navegadores
+    const response = await fetch(src);
+    const html = await response.text();
+    minigameHtmlCache.set(src, html);
+    return html;
+  } catch (error) {
+    console.error(`Error loading ${src}:`, error);
+    return null;
+  }
 }
 
 function scheduleIdleTask(task){

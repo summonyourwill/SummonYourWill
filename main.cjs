@@ -409,6 +409,21 @@ ipcMain.handle('music:exportSnapshot', async () => {
   return visibleIndex();
 });
 
+ipcMain.handle('read-html-file', async (_event, filename) => {
+  try {
+    const filePath = path.join(
+      __dirname,
+      app.isPackaged ? 'build-src' : '.',
+      filename
+    );
+    const content = await fsp.readFile(filePath, 'utf8');
+    return content;
+  } catch (error) {
+    console.error(`Error reading HTML file ${filename}:`, error);
+    return null;
+  }
+});
+
 ipcMain.handle('music:importSnapshot', async (_event, snapshot) => {
   const incoming = Array.isArray(snapshot) ? snapshot : [];
   const idx = [];
