@@ -420,7 +420,7 @@ const BUILDING_IMAGES = {
 export const GAME_SOURCES = {
   PetExploration: "src/OtherMinigames/PetExploration.html",
   ChiefSurvival: "src/OtherMinigames/ChiefSurvival.html",
-  Projects: "src/OtherMinigames/Projects.html",
+  Projects: "projects.html",
   FightIntruders: "src/OtherMinigames/FightIntruders.html",
 };
 
@@ -6788,6 +6788,21 @@ function renderDiary(card) {
   iframe.style.border = 'none';
   iframe.style.borderRadius = '8px';
   
+  // Listener para recibir mensajes del iframe del diary
+  const diaryMessageHandler = (event) => {
+    if (event.data && event.data.type === 'dailyReward') {
+      // Dar el oro
+      state.money += event.data.amount;
+      updateResourcesDisplay();
+      saveGame();
+    }
+  };
+  
+  // Agregar el listener cuando el iframe carga
+  iframe.onload = () => {
+    window.addEventListener('message', diaryMessageHandler);
+  };
+  
   iframeContainer.appendChild(iframe);
   card.appendChild(iframeContainer);
 
@@ -6796,6 +6811,9 @@ function renderDiary(card) {
   closeBtn.textContent = "❌";
   closeBtn.className = "close-btn";
   closeBtn.onclick = () => {
+    // Remover el listener cuando se cierra
+    window.removeEventListener('message', diaryMessageHandler);
+    
     const extraCard = document.getElementById('chief-extra');
     if (extraCard) {
       extraCard.style.display = 'none';

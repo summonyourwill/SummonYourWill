@@ -1,0 +1,2120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚔️ Medieval Project Management</title>
+    <script type="module" src="https://unpkg.com/emoji-picker-element@^1/index.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=MedievalSharp&family=Cinzel:wght@400;600&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cinzel', serif;
+            background: linear-gradient(135deg, #2c1810 0%, #4a2c1a 100%);
+            color: #2d1b0e;
+            min-height: 100vh;
+            padding: 20px;
+            user-select: none;
+        }
+
+        /* Allow text selection in input fields */
+        input, textarea, select {
+            user-select: text;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect fill="%23f4e8d0" width="200" height="200"/><path d="M0 0 L200 200 M200 0 L0 200" stroke="%23d4c4a0" stroke-width="0.5" opacity="0.1"/></svg>');
+            background-color: #f4e8d0;
+            border: 8px solid #4a2810;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.7), inset 0 0 50px rgba(139,90,43,0.1);
+            position: relative;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(139,90,43,0.03) 2px,
+                rgba(139,90,43,0.03) 4px
+            );
+            pointer-events: none;
+            border-radius: 5px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px double #8b5a2b;
+            position: relative;
+        }
+
+        h1 {
+            font-family: 'MedievalSharp', cursive;
+            font-size: 3em;
+            color: #4a2810;
+            text-shadow: 2px 2px 4px rgba(139,90,43,0.3);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            color: #6b4423;
+            font-style: italic;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: 3px solid #4a2810;
+            background: linear-gradient(135deg, #d4a574 0%, #b8915f 100%);
+            color: #2d1b0e;
+            font-family: 'Cinzel', serif;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            background: linear-gradient(135deg, #e4b584 0%, #c8a16f 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.3);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #8b5a2b 0%, #6b4423 100%);
+            color: #f4e8d0;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #9b6a3b 0%, #7b5433 100%);
+        }
+
+        .projects-container {
+            position: relative;
+        }
+
+        .project-card {
+            background: linear-gradient(135deg, #fff8e7 0%, #f4e8d0 100%);
+            border: 4px solid #8b5a2b;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.5);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .project-card:hover {
+            box-shadow: 0 12px 30px rgba(0,0,0,0.4), inset 0 2px 4px rgba(255,255,255,0.5);
+            transform: translateY(-2px);
+        }
+
+        .project-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .project-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .project-emoji {
+            font-size: 2em;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .project-name {
+            font-size: 1.8em;
+            font-weight: 600;
+            color: #4a2810;
+        }
+
+        .project-status {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            border: 2px solid;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #90ee90;
+            border-color: #228b22;
+            color: #006400;
+        }
+
+        .status-paused {
+            background: #ffd700;
+            border-color: #daa520;
+            color: #8b6914;
+        }
+
+        .status-finished {
+            background: #d3d3d3;
+            border-color: #808080;
+            color: #2f4f4f;
+        }
+
+        .project-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: rgba(139,90,43,0.1);
+            border-radius: 8px;
+            border: 2px dashed #8b5a2b;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .meta-label {
+            font-size: 0.85em;
+            color: #6b4423;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .meta-value {
+            font-size: 1em;
+            color: #2d1b0e;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 25px;
+            background: #d4c4a0;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 3px solid #8b5a2b;
+            position: relative;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #228b22 0%, #90ee90 100%);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .project-description {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: rgba(255,255,255,0.5);
+            border-left: 4px solid #8b5a2b;
+            border-radius: 4px;
+            font-style: italic;
+            color: #4a2810;
+        }
+
+        .learning-section {
+            margin: 15px 0;
+            padding: 15px;
+            background: linear-gradient(135deg, #fffacd 0%, #ffeaa7 100%);
+            border: 3px solid #daa520;
+            border-radius: 8px;
+        }
+
+        .learning-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #8b6914;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .learning-content {
+            color: #4a2810;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .expand-btn {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            padding: 5px;
+        }
+
+        .expand-btn.expanded {
+            transform: rotate(90deg);
+        }
+
+        .project-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.9em;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #ec4555 0%, #d83343 100%);
+        }
+
+        .tasks-container {
+            margin-top: 20px;
+            margin-left: 20px;
+            border-left: 4px solid #8b5a2b;
+            padding-left: 20px;
+            display: none;
+        }
+
+        .tasks-container.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                max-height: 0;
+            }
+            to {
+                opacity: 1;
+                max-height: 5000px;
+            }
+        }
+
+        .task-card {
+            background: linear-gradient(135deg, #fef9f0 0%, #fdf5e6 100%);
+            border: 3px solid #b8915f;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            position: relative;
+            cursor: grab;
+            transition: all 0.3s ease;
+        }
+
+        .task-card:hover {
+            box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+            transform: translateX(5px);
+        }
+
+        .task-card.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .task-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #4a2810;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .task-difficulty {
+            display: flex;
+            gap: 3px;
+            font-size: 1.2em;
+        }
+
+        .task-mood {
+            font-size: 1.5em;
+            margin-left: 10px;
+        }
+
+        .task-meta {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+
+        .task-description {
+            margin-bottom: 10px;
+            padding: 10px;
+            background: rgba(255,255,255,0.6);
+            border-radius: 5px;
+            font-size: 0.95em;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .task-status-badge {
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: 600;
+            border: 2px solid;
+        }
+
+        .task-pending {
+            background: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+
+        .task-progress {
+            background: #cfe2ff;
+            border-color: #0d6efd;
+            color: #084298;
+        }
+
+        .task-completed {
+            background: #d1e7dd;
+            border-color: #198754;
+            color: #0f5132;
+        }
+
+        .subtasks-container {
+            margin-top: 15px;
+            margin-left: 15px;
+            border-left: 3px dashed #b8915f;
+            padding-left: 15px;
+            display: none;
+        }
+
+        .subtasks-container.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        .subtask-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255,255,255,0.7);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 2px solid #d4c4a0;
+            transition: all 0.2s ease;
+            cursor: grab;
+        }
+
+        .subtask-item:hover {
+            background: rgba(255,255,255,0.9);
+            border-color: #b8915f;
+            transform: translateX(3px);
+        }
+
+        .subtask-item.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .subtask-drag-handle {
+            cursor: grab;
+            user-select: none;
+            color: #8b5a2b;
+            font-size: 16px;
+            padding: 0 4px;
+            line-height: 1;
+        }
+
+        .subtask-drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .subtask-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .subtask-emoji {
+            font-size: 1.2em;
+        }
+
+        .subtask-name {
+            flex: 1;
+            font-size: 0.95em;
+        }
+
+        .subtask-name.completed {
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+
+        .subtask-time {
+            font-size: 0.85em;
+            color: #6b4423;
+            padding: 2px 8px;
+            background: #f4e8d0;
+            border-radius: 10px;
+        }
+
+        .subtask-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2em;
+            padding: 5px;
+            transition: transform 0.2s ease;
+        }
+
+        .btn-icon:hover {
+            transform: scale(1.2);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: #f4e8d0;
+            border: 6px solid #4a2810;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+            animation: slideIn 0.3s ease;
+            position: relative;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            font-size: 1.8em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #4a2810;
+            text-align: center;
+            border-bottom: 3px double #8b5a2b;
+            padding-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #4a2810;
+            font-size: 1em;
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 3px solid #8b5a2b;
+            border-radius: 8px;
+            background: #fff8e7;
+            font-family: 'Cinzel', serif;
+            font-size: 1em;
+            color: #2d1b0e;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: #6b4423;
+            box-shadow: 0 0 10px rgba(139,90,43,0.3);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 25px;
+        }
+
+        .priority-badge {
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: 600;
+            border: 2px solid;
+        }
+
+        .priority-low {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+
+        .priority-medium {
+            background: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+
+        .priority-high {
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b4423;
+            font-style: italic;
+        }
+
+        .empty-state-icon {
+            font-size: 5em;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 2em;
+            cursor: pointer;
+            color: #4a2810;
+            transition: transform 0.2s ease;
+        }
+
+        .close-modal:hover {
+            transform: scale(1.2) rotate(90deg);
+        }
+
+        .seal-animation {
+            position: fixed;
+            font-size: 5em;
+            pointer-events: none;
+            animation: seal 1s ease forwards;
+            z-index: 2000;
+        }
+
+        @keyframes seal {
+            0% {
+                transform: scale(0) rotate(0deg);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.2) rotate(180deg);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(0.8) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .scroll-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #8b5a2b 0%, #6b4423 100%);
+            color: #f4e8d0;
+            border: 3px solid #4a2810;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .scroll-top.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .scroll-top:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.6);
+        }
+
+        /* Emoji Picker Styles */
+        .emoji-picker-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .emoji-btn {
+            background: linear-gradient(135deg, #d4a574 0%, #b8915f 100%);
+            border: 2px solid #4a2810;
+            color: #2d1b0e;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.2em;
+            transition: all 0.3s ease;
+        }
+
+        .emoji-btn:hover {
+            background: linear-gradient(135deg, #e4b584 0%, #c8a16f 100%);
+            transform: translateY(-1px);
+        }
+
+        .emoji-popover {
+            position: fixed;
+            z-index: 2000;
+            background: #f4e8d0;
+            border: 4px solid #4a2810;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            padding: 10px;
+        }
+
+        .emoji-popover.hidden {
+            display: none;
+        }
+
+        emoji-picker {
+            --border-radius: 8px;
+            --category-emoji-size: 1.5rem;
+        }
+
+        /* Custom Alert and Confirm Modals */
+        .custom-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 3000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .custom-modal-overlay.show {
+            display: flex;
+        }
+
+        .custom-modal-box {
+            background: linear-gradient(135deg, #fff8e7 0%, #f4e8d0 100%);
+            border: 6px solid #4a2810;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+            animation: modalSlideIn 0.3s ease;
+            text-align: center;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .custom-modal-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .custom-modal-title {
+            font-family: 'MedievalSharp', cursive;
+            font-size: 1.8em;
+            color: #4a2810;
+            margin-bottom: 15px;
+        }
+
+        .custom-modal-message {
+            font-size: 1.2em;
+            color: #2d1b0e;
+            margin-bottom: 25px;
+            line-height: 1.6;
+            white-space: pre-line;
+        }
+
+        .custom-modal-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .custom-modal-btn {
+            padding: 12px 30px;
+            border: 3px solid #4a2810;
+            font-family: 'Cinzel', serif;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .custom-modal-btn-primary {
+            background: linear-gradient(135deg, #8b5a2b 0%, #6b4423 100%);
+            color: #f4e8d0;
+        }
+
+        .custom-modal-btn-primary:hover {
+            background: linear-gradient(135deg, #9b6a3b 0%, #7b5433 100%);
+            transform: translateY(-2px);
+        }
+
+        .custom-modal-btn-secondary {
+            background: linear-gradient(135deg, #d4a574 0%, #b8915f 100%);
+            color: #2d1b0e;
+        }
+
+        .custom-modal-btn-secondary:hover {
+            background: linear-gradient(135deg, #e4b584 0%, #c8a16f 100%);
+            transform: translateY(-2px);
+        }
+
+        .custom-modal-btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+        }
+
+        .custom-modal-btn-danger:hover {
+            background: linear-gradient(135deg, #ec4555 0%, #d83343 100%);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .project-meta,
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚔️ Medieval Project Management ⚔️</h1>
+            <p class="subtitle">Your grimoire of conquests and achievements</p>
+        </header>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="openProjectModal()">➕ New Project</button>
+            <button class="btn" onclick="openTaskModal()">➕ New Task</button>
+            <button class="btn" onclick="openSubtaskModal()">➕ New Subtask</button>
+            <button class="btn" onclick="exportData()">💾 Export Data</button>
+            <button class="btn" onclick="importData()">📥 Import Data</button>
+        </div>
+
+        <div class="projects-container" id="projectsContainer">
+            <div class="empty-state">
+                <div class="empty-state-icon">📜</div>
+                <h2>No projects yet</h2>
+                <p>Start your adventure by creating a new project</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Modal -->
+    <div class="modal" id="projectModal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeModal('projectModal')">×</button>
+            <div class="modal-header">🏰 Create Project</div>
+            <form onsubmit="saveProject(event)">
+                <div class="form-group">
+                    <label class="form-label">Project Name</label>
+                    <input type="text" class="form-input" id="projectName" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Representative Emoji</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="text" class="form-input" id="projectEmoji" placeholder="📘" maxlength="2" style="flex: 1;">
+                        <button type="button" class="emoji-btn" id="projectEmojiBtn" title="Select emoji">😀</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" id="projectDescription"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Category</label>
+                        <select class="form-select" id="projectCategory">
+                            <option value="Writing">📝 Writing</option>
+                            <option value="Programming">💻 Programming</option>
+                            <option value="Design">🎨 Design</option>
+                            <option value="Study">📚 Study</option>
+                            <option value="Music">🎵 Music</option>
+                            <option value="Other">⚙️ Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" id="projectStatus">
+                            <option value="active">✅ Active</option>
+                            <option value="paused">⏸️ Paused</option>
+                            <option value="finished">🏁 Finished</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Priority</label>
+                        <select class="form-select" id="projectPriority">
+                            <option value="low">🟢 Low</option>
+                            <option value="medium">🟡 Medium</option>
+                            <option value="high">🔴 High</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Color</label>
+                        <input type="color" class="form-input" id="projectColor" value="#fff8e7">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" class="form-input" id="projectStartDate">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Estimated End Date</label>
+                        <input type="date" class="form-input" id="projectEndDate">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">💡 What I Learned (reusable learnings)</label>
+                    <textarea class="form-textarea" id="projectLearning" placeholder="Write here what you have learned..."></textarea>
+                </div>
+                <input type="hidden" id="projectId">
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">💾 Save Project</button>
+                    <button type="button" class="btn" onclick="closeModal('projectModal')">❌ Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Task Modal -->
+    <div class="modal" id="taskModal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeModal('taskModal')">×</button>
+            <div class="modal-header">⚔️ Create Task</div>
+            <form onsubmit="saveTask(event)">
+                <div class="form-group">
+                    <label class="form-label">Project</label>
+                    <select class="form-select" id="taskProject" required></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Task Title</label>
+                    <input type="text" class="form-input" id="taskTitle" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Emoji</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="text" class="form-input" id="taskEmoji" placeholder="🐞" maxlength="2" style="flex: 1;">
+                        <button type="button" class="emoji-btn" id="taskEmojiBtn" title="Select emoji">😀</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" id="taskDescription"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Difficulty (1-5)</label>
+                        <select class="form-select" id="taskDifficulty">
+                            <option value="1">🪶 1 - Very Easy</option>
+                            <option value="2">⚡ 2 - Easy</option>
+                            <option value="3">⚙️ 3 - Medium</option>
+                            <option value="4">⚔️ 4 - Hard</option>
+                            <option value="5">🐉 5 - Very Hard</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Mood</label>
+                        <select class="form-select" id="taskMood">
+                            <option value="😄">😄 Fun</option>
+                            <option value="😊">😊 Pleasant</option>
+                            <option value="😐">😐 Neutral</option>
+                            <option value="😕">😕 Boring</option>
+                            <option value="😫">😫 Tedious</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" id="taskStatus">
+                            <option value="pending">⏳ Pending</option>
+                            <option value="progress">🔄 In Progress</option>
+                            <option value="completed">✅ Completed</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Estimated Time (minutes)</label>
+                        <input type="number" class="form-input" id="taskTime" min="0" placeholder="120">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Deadline</label>
+                    <input type="date" class="form-input" id="taskDeadline">
+                </div>
+                <input type="hidden" id="taskId">
+                <input type="hidden" id="taskProjectId">
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">💾 Save Task</button>
+                    <button type="button" class="btn" onclick="closeModal('taskModal')">❌ Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Subtask Modal -->
+    <div class="modal" id="subtaskModal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeModal('subtaskModal')">×</button>
+            <div class="modal-header">✏️ Create Subtask</div>
+            <form onsubmit="saveSubtask(event)">
+                <div class="form-group">
+                    <label class="form-label">Project</label>
+                    <select class="form-select" id="subtaskProject" required onchange="updateTaskSelect()"></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Task</label>
+                    <select class="form-select" id="subtaskTask" required></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Subtask Name</label>
+                    <input type="text" class="form-input" id="subtaskName" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Emoji</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="text" class="form-input" id="subtaskEmoji" placeholder="✏️" maxlength="2" style="flex: 1;">
+                        <button type="button" class="emoji-btn" id="subtaskEmojiBtn" title="Select emoji">😀</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Estimated Time (minutes)</label>
+                    <input type="number" class="form-input" id="subtaskTime" min="0" placeholder="30">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Comment / Note</label>
+                    <textarea class="form-textarea" id="subtaskComment" rows="3"></textarea>
+                </div>
+                <input type="hidden" id="subtaskId">
+                <input type="hidden" id="subtaskTaskId">
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">💾 Save Subtask</button>
+                    <button type="button" class="btn" onclick="closeModal('subtaskModal')">❌ Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="scroll-top" id="scrollTop" onclick="scrollToTop()">↑</div>
+
+    <!-- Emoji Pickers -->
+    <div id="projectEmojiPicker" class="emoji-popover hidden">
+        <emoji-picker locale="en"></emoji-picker>
+    </div>
+    <div id="taskEmojiPicker" class="emoji-popover hidden">
+        <emoji-picker locale="en"></emoji-picker>
+    </div>
+    <div id="subtaskEmojiPicker" class="emoji-popover hidden">
+        <emoji-picker locale="en"></emoji-picker>
+    </div>
+
+    <!-- Custom Alert Modal -->
+    <div id="customAlertModal" class="custom-modal-overlay">
+        <div class="custom-modal-box">
+            <div class="custom-modal-icon" id="alertIcon"></div>
+            <div class="custom-modal-title" id="alertTitle"></div>
+            <div class="custom-modal-message" id="alertMessage"></div>
+            <div class="custom-modal-buttons">
+                <button class="custom-modal-btn custom-modal-btn-primary" id="alertOkBtn">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Confirm Modal -->
+    <div id="customConfirmModal" class="custom-modal-overlay">
+        <div class="custom-modal-box">
+            <div class="custom-modal-icon" id="confirmIcon"></div>
+            <div class="custom-modal-title" id="confirmTitle"></div>
+            <div class="custom-modal-message" id="confirmMessage"></div>
+            <div class="custom-modal-buttons">
+                <button class="custom-modal-btn custom-modal-btn-danger" id="confirmYesBtn">Yes</button>
+                <button class="custom-modal-btn custom-modal-btn-secondary" id="confirmNoBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Application state
+        let projects = JSON.parse(localStorage.getItem('medievalProjects')) || [];
+        let draggedTask = null;
+        let draggedTaskProject = null;
+
+        // Custom Alert and Confirm Functions
+        function showCustomAlert(message, title = 'Notice', icon = '📜') {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('customAlertModal');
+                const iconEl = document.getElementById('alertIcon');
+                const titleEl = document.getElementById('alertTitle');
+                const messageEl = document.getElementById('alertMessage');
+                const okBtn = document.getElementById('alertOkBtn');
+                
+                iconEl.textContent = icon;
+                titleEl.textContent = title;
+                messageEl.textContent = message;
+                
+                modal.classList.add('show');
+                
+                const handleOk = () => {
+                    modal.classList.remove('show');
+                    okBtn.removeEventListener('click', handleOk);
+                    resolve();
+                };
+                
+                okBtn.addEventListener('click', handleOk);
+            });
+        }
+
+        function showCustomConfirm(message, title = 'Confirm', icon = '⚔️') {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('customConfirmModal');
+                const iconEl = document.getElementById('confirmIcon');
+                const titleEl = document.getElementById('confirmTitle');
+                const messageEl = document.getElementById('confirmMessage');
+                const yesBtn = document.getElementById('confirmYesBtn');
+                const noBtn = document.getElementById('confirmNoBtn');
+                
+                iconEl.textContent = icon;
+                titleEl.textContent = title;
+                messageEl.textContent = message;
+                
+                modal.classList.add('show');
+                
+                const handleYes = () => {
+                    modal.classList.remove('show');
+                    yesBtn.removeEventListener('click', handleYes);
+                    noBtn.removeEventListener('click', handleNo);
+                    resolve(true);
+                };
+                
+                const handleNo = () => {
+                    modal.classList.remove('show');
+                    yesBtn.removeEventListener('click', handleYes);
+                    noBtn.removeEventListener('click', handleNo);
+                    resolve(false);
+                };
+                
+                yesBtn.addEventListener('click', handleYes);
+                noBtn.addEventListener('click', handleNo);
+            });
+        }
+
+        // Initialization
+        document.addEventListener('DOMContentLoaded', () => {
+            renderProjects();
+            setupScrollButton();
+        });
+
+        // Rendering functions
+        function renderProjects() {
+            const container = document.getElementById('projectsContainer');
+            
+            if (projects.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📜</div>
+                        <h2>No projects yet</h2>
+                        <p>Start your adventure by creating a new project</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = projects.map((project, index) => `
+                <div class="project-card" style="background: linear-gradient(135deg, ${project.color || '#fff8e7'} 0%, ${adjustColor(project.color || '#fff8e7', -10)} 100%);">
+                    <div class="project-header" onclick="toggleProject(${index})">
+                        <div class="project-title">
+                            <button class="expand-btn ${project.expanded ? 'expanded' : ''}" id="expand-${index}">▶</button>
+                            <span class="project-emoji">${project.emoji || '📘'}</span>
+                            <span class="project-name">${project.name}</span>
+                        </div>
+                        <div class="project-status status-${project.status}">${getStatusText(project.status)}</div>
+                    </div>
+
+                    <div class="project-description">${project.description || 'No description'}</div>
+
+                    <div class="project-meta">
+                        <div class="meta-item">
+                            <span class="meta-label">📁 Category</span>
+                            <span class="meta-value">${project.category}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">⚡ Priority</span>
+                            <span class="meta-value priority-badge priority-${project.priority}">${getPriorityText(project.priority)}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">📅 Start</span>
+                            <span class="meta-value">${formatDate(project.startDate)}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">🏁 Estimated End</span>
+                            <span class="meta-value">${formatDate(project.endDate)}</span>
+                        </div>
+                    </div>
+
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="width: ${calculateProjectProgress(project)}%">
+                            ${calculateProjectProgress(project)}%
+                        </div>
+                    </div>
+
+                    ${project.learning ? `
+                        <div class="learning-section">
+                            <div class="learning-title">💡 What I Learned</div>
+                            <div class="learning-content">${project.learning}</div>
+                        </div>
+                    ` : ''}
+
+                    <div class="project-actions">
+                        <button class="btn btn-small" onclick="event.stopPropagation(); editProject(${index})">✏️ Edit</button>
+                        <button class="btn btn-small" onclick="event.stopPropagation(); addTaskToProject(${index})">➕ Add Task</button>
+                        <button class="btn btn-small btn-danger" onclick="event.stopPropagation(); deleteProject(${index})">🗑️ Delete</button>
+                    </div>
+
+                    <div class="tasks-container ${project.expanded ? 'show' : ''}" id="tasks-${index}">
+                        ${renderTasks(project, index)}
+                    </div>
+                </div>
+            `).join('');
+
+            setupDragAndDrop();
+            setupSubtaskDragAndDrop();
+        }
+
+        function renderTasks(project, projectIndex) {
+            if (!project.tasks || project.tasks.length === 0) {
+                return '<p style="text-align: center; color: #6b4423; font-style: italic; padding: 20px;">No tasks in this project</p>';
+            }
+
+            return project.tasks.map((task, taskIndex) => {
+                const difficultyIcons = getDifficultyIcons(task.difficulty);
+                const bgColor = getTaskBackgroundColor(task);
+                
+                return `
+                    <div class="task-card" draggable="true" data-project="${projectIndex}" data-task="${taskIndex}" style="background: ${bgColor};">
+                        <div class="task-header" onclick="toggleTask(${projectIndex}, ${taskIndex})">
+                            <div class="task-title">
+                                <button class="expand-btn ${task.expanded ? 'expanded' : ''}" id="expand-task-${projectIndex}-${taskIndex}">▶</button>
+                                <span>${task.emoji || '⚔️'}</span>
+                                <span>${task.title}</span>
+                                <span class="task-mood">${task.mood || '😐'}</span>
+                            </div>
+                            <span class="task-status-badge task-${task.status}">${getTaskStatusText(task.status)}</span>
+                        </div>
+
+                        <div class="task-meta">
+                            <span class="task-difficulty" title="Difficulty">${difficultyIcons}</span>
+                            <span>⏱️ ${formatTime(task.time)}</span>
+                            ${task.deadline ? `<span>📅 ${formatDate(task.deadline)}</span>` : ''}
+                        </div>
+
+                        ${task.description ? `<div class="task-description">${task.description}</div>` : ''}
+
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" style="width: ${calculateTaskProgress(task)}%">
+                                ${calculateTaskProgress(task)}%
+                            </div>
+                        </div>
+
+                        <div class="task-actions">
+                            <button class="btn btn-small" onclick="event.stopPropagation(); editTask(${projectIndex}, ${taskIndex})">✏️ Edit</button>
+                            <button class="btn btn-small" onclick="event.stopPropagation(); addSubtaskToTask(${projectIndex}, ${taskIndex})">➕ Subtask</button>
+                            <button class="btn btn-small" onclick="event.stopPropagation(); toggleTaskStatus(${projectIndex}, ${taskIndex})">✅ Change Status</button>
+                            <button class="btn btn-small btn-danger" onclick="event.stopPropagation(); deleteTask(${projectIndex}, ${taskIndex})">🗑️ Delete</button>
+                        </div>
+
+                        <div class="subtasks-container ${task.expanded ? 'show' : ''}" id="subtasks-${projectIndex}-${taskIndex}">
+                            ${renderSubtasks(task, projectIndex, taskIndex)}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderSubtasks(task, projectIndex, taskIndex) {
+            if (!task.subtasks || task.subtasks.length === 0) {
+                return '<p style="text-align: center; color: #6b4423; font-style: italic; padding: 15px;">No subtasks</p>';
+            }
+
+            return task.subtasks.map((subtask, subtaskIndex) => `
+                <div class="subtask-item" draggable="true" data-project="${projectIndex}" data-task="${taskIndex}" data-subtask="${subtaskIndex}">
+                    <span class="subtask-drag-handle" title="Drag to reorder">⋮⋮</span>
+                    <input type="checkbox" class="subtask-checkbox" ${subtask.completed ? 'checked' : ''} 
+                           onchange="toggleSubtask(${projectIndex}, ${taskIndex}, ${subtaskIndex})">
+                    <span class="subtask-emoji">${subtask.emoji || '✏️'}</span>
+                    <span class="subtask-name ${subtask.completed ? 'completed' : ''}">${subtask.name}</span>
+                    ${subtask.time ? `<span class="subtask-time">⏱️ ${subtask.time}min</span>` : ''}
+                    <div class="subtask-actions">
+                        <button class="btn-icon" onclick="editSubtask(${projectIndex}, ${taskIndex}, ${subtaskIndex})" title="Edit">✏️</button>
+                        <button class="btn-icon" onclick="deleteSubtask(${projectIndex}, ${taskIndex}, ${subtaskIndex})" title="Delete">🗑️</button>
+                    </div>
+                </div>
+                ${subtask.comment ? `<div style="margin-left: 50px; font-size: 0.85em; color: #6b4423; font-style: italic;">💬 ${subtask.comment}</div>` : ''}
+            `).join('');
+        }
+
+        // Modal functions
+        function openProjectModal() {
+            document.getElementById('projectModal').classList.add('show');
+            document.getElementById('projectId').value = '';
+            document.getElementById('projectName').focus();
+        }
+
+        async function openTaskModal() {
+            const modal = document.getElementById('taskModal');
+            const projectSelect = document.getElementById('taskProject');
+            
+            projectSelect.innerHTML = projects.map((p, i) => 
+                `<option value="${i}">${p.emoji || '📘'} ${p.name}</option>`
+            ).join('');
+            
+            if (projects.length === 0) {
+                await showCustomAlert('You must create a project first', 'Warning', '⚠️');
+                return;
+            }
+            
+            modal.classList.add('show');
+            document.getElementById('taskId').value = '';
+        }
+
+        async function openSubtaskModal() {
+            const modal = document.getElementById('subtaskModal');
+            const projectSelect = document.getElementById('subtaskProject');
+            
+            projectSelect.innerHTML = projects.map((p, i) => 
+                `<option value="${i}">${p.emoji || '📘'} ${p.name}</option>`
+            ).join('');
+            
+            if (projects.length === 0) {
+                await showCustomAlert('You must create a project and a task first', 'Warning', '⚠️');
+                return;
+            }
+            
+            updateTaskSelect();
+            modal.classList.add('show');
+            document.getElementById('subtaskId').value = '';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+            // Reset forms
+            document.querySelectorAll(`#${modalId} form`)[0].reset();
+        }
+
+        function updateTaskSelect() {
+            const projectIndex = document.getElementById('subtaskProject').value;
+            const taskSelect = document.getElementById('subtaskTask');
+            
+            if (projectIndex === '' || !projects[projectIndex].tasks) {
+                taskSelect.innerHTML = '<option value="">No tasks available</option>';
+                return;
+            }
+            
+            const project = projects[projectIndex];
+            taskSelect.innerHTML = project.tasks.map((t, i) => 
+                `<option value="${i}">${t.emoji || '⚔️'} ${t.title}</option>`
+            ).join('');
+        }
+
+        // Save functions
+        function saveProject(event) {
+            event.preventDefault();
+            
+            const projectId = document.getElementById('projectId').value;
+            const projectData = {
+                name: document.getElementById('projectName').value,
+                emoji: document.getElementById('projectEmoji').value || '📘',
+                description: document.getElementById('projectDescription').value,
+                category: document.getElementById('projectCategory').value,
+                status: document.getElementById('projectStatus').value,
+                priority: document.getElementById('projectPriority').value,
+                color: document.getElementById('projectColor').value,
+                startDate: document.getElementById('projectStartDate').value,
+                endDate: document.getElementById('projectEndDate').value,
+                learning: document.getElementById('projectLearning').value,
+                expanded: false,
+                tasks: []
+            };
+
+            if (projectId === '') {
+                // Nuevo proyecto
+                projects.push(projectData);
+            } else {
+                // Editar proyecto existente
+                const index = parseInt(projectId);
+                projectData.tasks = projects[index].tasks || [];
+                projectData.expanded = projects[index].expanded;
+                projects[index] = projectData;
+            }
+
+            saveToLocalStorage();
+            renderProjects();
+            closeModal('projectModal');
+        }
+
+        function saveTask(event) {
+            event.preventDefault();
+            
+            const taskId = document.getElementById('taskId').value;
+            const projectIndex = parseInt(document.getElementById('taskProject').value);
+            
+            const taskData = {
+                title: document.getElementById('taskTitle').value,
+                emoji: document.getElementById('taskEmoji').value || '⚔️',
+                description: document.getElementById('taskDescription').value,
+                difficulty: parseInt(document.getElementById('taskDifficulty').value),
+                mood: document.getElementById('taskMood').value,
+                status: document.getElementById('taskStatus').value,
+                time: parseInt(document.getElementById('taskTime').value) || 0,
+                deadline: document.getElementById('taskDeadline').value,
+                expanded: false,
+                subtasks: []
+            };
+
+            if (!projects[projectIndex].tasks) {
+                projects[projectIndex].tasks = [];
+            }
+
+            if (taskId === '') {
+                // Nueva tarea
+                projects[projectIndex].tasks.push(taskData);
+            } else {
+                // Editar tarea existente
+                const taskIndex = parseInt(document.getElementById('taskProjectId').value);
+                taskData.subtasks = projects[projectIndex].tasks[taskIndex].subtasks || [];
+                taskData.expanded = projects[projectIndex].tasks[taskIndex].expanded;
+                projects[projectIndex].tasks[taskIndex] = taskData;
+            }
+
+            saveToLocalStorage();
+            renderProjects();
+            closeModal('taskModal');
+        }
+
+        function saveSubtask(event) {
+            event.preventDefault();
+            
+            const subtaskId = document.getElementById('subtaskId').value;
+            const projectIndex = parseInt(document.getElementById('subtaskProject').value);
+            const taskIndex = parseInt(document.getElementById('subtaskTask').value);
+            
+            const subtaskData = {
+                name: document.getElementById('subtaskName').value,
+                emoji: document.getElementById('subtaskEmoji').value || '✏️',
+                time: parseInt(document.getElementById('subtaskTime').value) || 0,
+                comment: document.getElementById('subtaskComment').value,
+                completed: false
+            };
+
+            if (!projects[projectIndex].tasks[taskIndex].subtasks) {
+                projects[projectIndex].tasks[taskIndex].subtasks = [];
+            }
+
+            if (subtaskId === '') {
+                // Nueva subtarea
+                projects[projectIndex].tasks[taskIndex].subtasks.push(subtaskData);
+            } else {
+                // Editar subtarea existente
+                const subtaskIndex = parseInt(document.getElementById('subtaskTaskId').value);
+                subtaskData.completed = projects[projectIndex].tasks[taskIndex].subtasks[subtaskIndex].completed;
+                projects[projectIndex].tasks[taskIndex].subtasks[subtaskIndex] = subtaskData;
+            }
+
+            saveToLocalStorage();
+            renderProjects();
+            closeModal('subtaskModal');
+            showSealAnimation();
+        }
+
+        // Edit functions
+        function editProject(index) {
+            const project = projects[index];
+            
+            document.getElementById('projectId').value = index;
+            document.getElementById('projectName').value = project.name;
+            document.getElementById('projectEmoji').value = project.emoji || '';
+            document.getElementById('projectDescription').value = project.description || '';
+            document.getElementById('projectCategory').value = project.category;
+            document.getElementById('projectStatus').value = project.status;
+            document.getElementById('projectPriority').value = project.priority;
+            document.getElementById('projectColor').value = project.color || '#fff8e7';
+            document.getElementById('projectStartDate').value = project.startDate || '';
+            document.getElementById('projectEndDate').value = project.endDate || '';
+            document.getElementById('projectLearning').value = project.learning || '';
+            
+            document.getElementById('projectModal').classList.add('show');
+        }
+
+        function editTask(projectIndex, taskIndex) {
+            const task = projects[projectIndex].tasks[taskIndex];
+            const projectSelect = document.getElementById('taskProject');
+            
+            projectSelect.innerHTML = projects.map((p, i) => 
+                `<option value="${i}" ${i === projectIndex ? 'selected' : ''}>${p.emoji || '📘'} ${p.name}</option>`
+            ).join('');
+            
+            document.getElementById('taskId').value = taskIndex;
+            document.getElementById('taskProjectId').value = taskIndex;
+            document.getElementById('taskTitle').value = task.title;
+            document.getElementById('taskEmoji').value = task.emoji || '';
+            document.getElementById('taskDescription').value = task.description || '';
+            document.getElementById('taskDifficulty').value = task.difficulty;
+            document.getElementById('taskMood').value = task.mood;
+            document.getElementById('taskStatus').value = task.status;
+            document.getElementById('taskTime').value = task.time || '';
+            document.getElementById('taskDeadline').value = task.deadline || '';
+            
+            document.getElementById('taskModal').classList.add('show');
+        }
+
+        function editSubtask(projectIndex, taskIndex, subtaskIndex) {
+            const subtask = projects[projectIndex].tasks[taskIndex].subtasks[subtaskIndex];
+            const projectSelect = document.getElementById('subtaskProject');
+            
+            projectSelect.innerHTML = projects.map((p, i) => 
+                `<option value="${i}" ${i === projectIndex ? 'selected' : ''}>${p.emoji || '📘'} ${p.name}</option>`
+            ).join('');
+            
+            updateTaskSelect();
+            document.getElementById('subtaskTask').value = taskIndex;
+            
+            document.getElementById('subtaskId').value = subtaskIndex;
+            document.getElementById('subtaskTaskId').value = subtaskIndex;
+            document.getElementById('subtaskName').value = subtask.name;
+            document.getElementById('subtaskEmoji').value = subtask.emoji || '';
+            document.getElementById('subtaskTime').value = subtask.time || '';
+            document.getElementById('subtaskComment').value = subtask.comment || '';
+            
+            document.getElementById('subtaskModal').classList.add('show');
+        }
+
+        // Delete functions
+        async function deleteProject(index) {
+            const confirmed = await showCustomConfirm(
+                'Are you sure you want to delete this project and all its tasks?',
+                'Delete Project',
+                '🗑️'
+            );
+            if (confirmed) {
+                projects.splice(index, 1);
+                saveToLocalStorage();
+                renderProjects();
+            }
+        }
+
+        async function deleteTask(projectIndex, taskIndex) {
+            const confirmed = await showCustomConfirm(
+                'Are you sure you want to delete this task and all its subtasks?',
+                'Delete Task',
+                '🗑️'
+            );
+            if (confirmed) {
+                projects[projectIndex].tasks.splice(taskIndex, 1);
+                saveToLocalStorage();
+                renderProjects();
+            }
+        }
+
+        async function deleteSubtask(projectIndex, taskIndex, subtaskIndex) {
+            const confirmed = await showCustomConfirm(
+                'Are you sure you want to delete this subtask?',
+                'Delete Subtask',
+                '🗑️'
+            );
+            if (confirmed) {
+                projects[projectIndex].tasks[taskIndex].subtasks.splice(subtaskIndex, 1);
+                saveToLocalStorage();
+                renderProjects();
+            }
+        }
+
+        // Toggle functions
+        function toggleProject(index) {
+            projects[index].expanded = !projects[index].expanded;
+            renderProjects();
+        }
+
+        function toggleTask(projectIndex, taskIndex) {
+            projects[projectIndex].tasks[taskIndex].expanded = !projects[projectIndex].tasks[taskIndex].expanded;
+            renderProjects();
+        }
+
+        function toggleSubtask(projectIndex, taskIndex, subtaskIndex) {
+            projects[projectIndex].tasks[taskIndex].subtasks[subtaskIndex].completed = 
+                !projects[projectIndex].tasks[taskIndex].subtasks[subtaskIndex].completed;
+            saveToLocalStorage();
+            renderProjects();
+            showSealAnimation();
+        }
+
+        function toggleTaskStatus(projectIndex, taskIndex) {
+            const task = projects[projectIndex].tasks[taskIndex];
+            const statuses = ['pending', 'progress', 'completed'];
+            const currentIndex = statuses.indexOf(task.status);
+            task.status = statuses[(currentIndex + 1) % statuses.length];
+            saveToLocalStorage();
+            renderProjects();
+        }
+
+        // Utility functions
+        function addTaskToProject(projectIndex) {
+            const modal = document.getElementById('taskModal');
+            const projectSelect = document.getElementById('taskProject');
+            
+            projectSelect.innerHTML = projects.map((p, i) => 
+                `<option value="${i}" ${i === projectIndex ? 'selected' : ''}>${p.emoji || '📘'} ${p.name}</option>`
+            ).join('');
+            
+            modal.classList.add('show');
+            document.getElementById('taskId').value = '';
+        }
+
+        function addSubtaskToTask(projectIndex, taskIndex) {
+            const modal = document.getElementById('subtaskModal');
+            const projectSelect = document.getElementById('subtaskProject');
+            
+            projectSelect.innerHTML = projects.map((p, i) => 
+                `<option value="${i}" ${i === projectIndex ? 'selected' : ''}>${p.emoji || '📘'} ${p.name}</option>`
+            ).join('');
+            
+            projectSelect.value = projectIndex;
+            updateTaskSelect();
+            document.getElementById('subtaskTask').value = taskIndex;
+            
+            modal.classList.add('show');
+            document.getElementById('subtaskId').value = '';
+        }
+
+        // Drag and Drop - SUBTASKS
+        let draggedSubtask = null;
+        let draggedSubtaskProject = null;
+        let draggedSubtaskTask = null;
+
+        function setupSubtaskDragAndDrop() {
+            const subtaskItems = document.querySelectorAll('.subtask-item');
+            
+            subtaskItems.forEach(item => {
+                item.addEventListener('dragstart', handleSubtaskDragStart);
+                item.addEventListener('dragend', handleSubtaskDragEnd);
+                item.addEventListener('dragover', handleSubtaskDragOver);
+                item.addEventListener('drop', handleSubtaskDrop);
+            });
+        }
+
+        function handleSubtaskDragStart(e) {
+            draggedSubtask = parseInt(this.dataset.subtask);
+            draggedSubtaskProject = parseInt(this.dataset.project);
+            draggedSubtaskTask = parseInt(this.dataset.task);
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleSubtaskDragEnd(e) {
+            this.classList.remove('dragging');
+        }
+
+        function handleSubtaskDragOver(e) {
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+            e.dataTransfer.dropEffect = 'move';
+            return false;
+        }
+
+        function handleSubtaskDrop(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+            
+            const dropProject = parseInt(this.dataset.project);
+            const dropTask = parseInt(this.dataset.task);
+            const dropSubtask = parseInt(this.dataset.subtask);
+            
+            if (draggedSubtaskProject === dropProject && 
+                draggedSubtaskTask === dropTask && 
+                draggedSubtask !== dropSubtask) {
+                const subtasks = projects[dropProject].tasks[dropTask].subtasks;
+                const draggedItem = subtasks[draggedSubtask];
+                subtasks.splice(draggedSubtask, 1);
+                subtasks.splice(dropSubtask, 0, draggedItem);
+                saveToLocalStorage();
+                renderProjects();
+            }
+            
+            return false;
+        }
+
+        // Drag and Drop
+        function setupDragAndDrop() {
+            const taskCards = document.querySelectorAll('.task-card');
+            
+            taskCards.forEach(card => {
+                card.addEventListener('dragstart', handleDragStart);
+                card.addEventListener('dragend', handleDragEnd);
+                card.addEventListener('dragover', handleDragOver);
+                card.addEventListener('drop', handleDrop);
+            });
+        }
+
+        function handleDragStart(e) {
+            draggedTask = parseInt(this.dataset.task);
+            draggedTaskProject = parseInt(this.dataset.project);
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+        }
+
+        function handleDragOver(e) {
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+            e.dataTransfer.dropEffect = 'move';
+            return false;
+        }
+
+        function handleDrop(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+            
+            const dropProject = parseInt(this.dataset.project);
+            const dropTask = parseInt(this.dataset.task);
+            
+            if (draggedTaskProject === dropProject && draggedTask !== dropTask) {
+                const tasks = projects[dropProject].tasks;
+                const draggedItem = tasks[draggedTask];
+                tasks.splice(draggedTask, 1);
+                tasks.splice(dropTask, 0, draggedItem);
+                saveToLocalStorage();
+                renderProjects();
+            }
+            
+            return false;
+        }
+
+        // Calculations
+        function calculateProjectProgress(project) {
+            if (!project.tasks || project.tasks.length === 0) return 0;
+            
+            const totalTasks = project.tasks.length;
+            const completedTasks = project.tasks.filter(t => t.status === 'completed').length;
+            
+            return Math.round((completedTasks / totalTasks) * 100);
+        }
+
+        function calculateTaskProgress(task) {
+            if (!task.subtasks || task.subtasks.length === 0) {
+                return task.status === 'completed' ? 100 : task.status === 'progress' ? 50 : 0;
+            }
+            
+            const totalSubtasks = task.subtasks.length;
+            const completedSubtasks = task.subtasks.filter(s => s.completed).length;
+            
+            return Math.round((completedSubtasks / totalSubtasks) * 100);
+        }
+
+        // Formatting
+        function formatDate(dateString) {
+            if (!dateString) return 'Not defined';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        function formatTime(minutes) {
+            if (!minutes) return 'Not defined';
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            return hours > 0 ? `${hours}h ${mins}min` : `${mins}min`;
+        }
+
+        function getStatusText(status) {
+            const statuses = {
+                active: '✅ Active',
+                paused: '⏸️ Paused',
+                finished: '🏁 Finished'
+            };
+            return statuses[status] || status;
+        }
+
+        function getPriorityText(priority) {
+            const priorities = {
+                low: '🟢 Low',
+                medium: '🟡 Medium',
+                high: '🔴 High'
+            };
+            return priorities[priority] || priority;
+        }
+
+        function getTaskStatusText(status) {
+            const statuses = {
+                pending: '⏳ Pending',
+                progress: '🔄 In Progress',
+                completed: '✅ Completed'
+            };
+            return statuses[status] || status;
+        }
+
+        function getDifficultyIcons(difficulty) {
+            const icons = ['🪶', '⚡', '⚙️', '⚔️', '🐉'];
+            return icons.slice(0, difficulty).join('');
+        }
+
+        function getTaskBackgroundColor(task) {
+            if (task.status === 'completed') {
+                return 'linear-gradient(135deg, #d1e7dd 0%, #c1d7cd 100%)';
+            }
+            
+            if (task.difficulty >= 4) {
+                return 'linear-gradient(135deg, #f8d7da 0%, #e8c7ca 100%)';
+            }
+            
+            if (task.difficulty === 1) {
+                return 'linear-gradient(135deg, #d1e7dd 0%, #c1d7cd 100%)';
+            }
+            
+            return 'linear-gradient(135deg, #fef9f0 0%, #fdf5e6 100%)';
+        }
+
+        function adjustColor(color, amount) {
+            const num = parseInt(color.replace('#', ''), 16);
+            const r = Math.max(0, Math.min(255, (num >> 16) + amount));
+            const g = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amount));
+            const b = Math.max(0, Math.min(255, (num & 0x0000FF) + amount));
+            return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+        }
+
+        // Animations
+        function showSealAnimation() {
+            const seal = document.createElement('div');
+            seal.className = 'seal-animation';
+            seal.textContent = '🔏';
+            seal.style.left = Math.random() * (window.innerWidth - 100) + 'px';
+            seal.style.top = Math.random() * (window.innerHeight - 100) + 'px';
+            document.body.appendChild(seal);
+            
+            setTimeout(() => {
+                seal.remove();
+            }, 1000);
+        }
+
+        // Storage
+        function saveToLocalStorage() {
+            localStorage.setItem('medievalProjects', JSON.stringify(projects));
+        }
+
+        // Export / Import
+        function exportData() {
+            const dataStr = JSON.stringify(projects, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `medieval-projects-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'application/json';
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    try {
+                        const importedData = JSON.parse(event.target.result);
+                        const replace = await showCustomConfirm(
+                            'Do you want to replace all current data or merge it?\n\nYes = Replace\nCancel = Merge',
+                            'Import Data',
+                            '📥'
+                        );
+                        if (replace) {
+                            projects = importedData;
+                        } else {
+                            projects = [...projects, ...importedData];
+                        }
+                        saveToLocalStorage();
+                        renderProjects();
+                        await showCustomAlert('Data imported successfully', 'Success', '✅');
+                    } catch (error) {
+                        await showCustomAlert('Error importing data: ' + error.message, 'Error', '❌');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        // Scroll button
+        function setupScrollButton() {
+            const scrollBtn = document.getElementById('scrollTop');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 300) {
+                    scrollBtn.classList.add('show');
+                } else {
+                    scrollBtn.classList.remove('show');
+                }
+            });
+        }
+
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Emoji Picker Functions
+        const projectEmojiBtn = document.getElementById('projectEmojiBtn');
+        const taskEmojiBtn = document.getElementById('taskEmojiBtn');
+        const subtaskEmojiBtn = document.getElementById('subtaskEmojiBtn');
+        
+        const projectEmojiPicker = document.getElementById('projectEmojiPicker');
+        const taskEmojiPicker = document.getElementById('taskEmojiPicker');
+        const subtaskEmojiPicker = document.getElementById('subtaskEmojiPicker');
+        
+        const projectEmojiInput = document.getElementById('projectEmoji');
+        const taskEmojiInput = document.getElementById('taskEmoji');
+        const subtaskEmojiInput = document.getElementById('subtaskEmoji');
+
+        function toggleEmojiPicker(picker, button) {
+            // Hide all other pickers
+            [projectEmojiPicker, taskEmojiPicker, subtaskEmojiPicker].forEach(p => {
+                if (p !== picker) p.classList.add('hidden');
+            });
+            
+            picker.classList.toggle('hidden');
+            
+            if (!picker.classList.contains('hidden')) {
+                const rect = button.getBoundingClientRect();
+                picker.style.left = `${rect.left}px`;
+                picker.style.top = `${rect.bottom + 8}px`;
+            }
+        }
+
+        projectEmojiBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleEmojiPicker(projectEmojiPicker, projectEmojiBtn);
+        });
+
+        taskEmojiBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleEmojiPicker(taskEmojiPicker, taskEmojiBtn);
+        });
+
+        subtaskEmojiBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleEmojiPicker(subtaskEmojiPicker, subtaskEmojiBtn);
+        });
+
+        // Handle emoji selection
+        projectEmojiPicker.querySelector('emoji-picker').addEventListener('emoji-click', (event) => {
+            projectEmojiInput.value = event.detail.unicode;
+            projectEmojiPicker.classList.add('hidden');
+        });
+
+        taskEmojiPicker.querySelector('emoji-picker').addEventListener('emoji-click', (event) => {
+            taskEmojiInput.value = event.detail.unicode;
+            taskEmojiPicker.classList.add('hidden');
+        });
+
+        subtaskEmojiPicker.querySelector('emoji-picker').addEventListener('emoji-click', (event) => {
+            subtaskEmojiInput.value = event.detail.unicode;
+            subtaskEmojiPicker.classList.add('hidden');
+        });
+
+        // Close emoji pickers when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!projectEmojiBtn.contains(e.target) && !projectEmojiPicker.contains(e.target)) {
+                projectEmojiPicker.classList.add('hidden');
+            }
+            if (!taskEmojiBtn.contains(e.target) && !taskEmojiPicker.contains(e.target)) {
+                taskEmojiPicker.classList.add('hidden');
+            }
+            if (!subtaskEmojiBtn.contains(e.target) && !subtaskEmojiPicker.contains(e.target)) {
+                subtaskEmojiPicker.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
+

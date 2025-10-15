@@ -2653,11 +2653,11 @@ section h1::before {
 }
 
 #village-overview-card {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-evenly;
-  gap: 10px;
-  padding-bottom: 10px;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 0;
+  padding: 10px 5px;
+  width: 100%;
 }
 
 @media (max-width: 1000px) {
@@ -2678,7 +2678,9 @@ section h1::before {
   align-items: center;
   text-align: center;
   font-size: 1em;
-  flex: 0 0 calc(12.5% - 10px);
+  width: 100%;
+  min-width: 0;
+  max-width: none;
 }
 
 @media (max-width: 1000px) {

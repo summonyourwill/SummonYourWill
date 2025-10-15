@@ -31,11 +31,6 @@ export function renderVillage() {
   if (!card) return;
   if (overview) {
     overview.innerHTML = "";
-    const container = document.createElement("div");
-    container.style.display = "flex";
-    container.style.flexWrap = "wrap";
-    container.style.justifyContent = "space-evenly";
-    container.style.gap = "10px";
 
     const b = state.buildingLevels;
     const lvl = label => `Lv ${b[label] ?? 0}`;
@@ -43,14 +38,14 @@ export function renderVillage() {
     // Calcular capacidad real de mascotas basada en el nivel de PetSanctuary
     const actualMaxPets = 5 + (b.PetSanctuary || 0);
     const items = [
-      ["\u{1F3E0}", `House ${state.houses}/${MAX_HOUSES}`],
-      ["\u{1F43E}", `PetSanct. ${totalPets}/${actualMaxPets}`],
-      ["\u{1F357}", `FoodStor ${lvl("Pantry")}`],
-      ["\u{1FAB5}", `WoodStor ${lvl("Lumberyard")}`],
-      ["\u{1FAA8}", `StoneStor ${lvl("Quarry")}`],
-      ["\u{1F5FC}", `Tower ${lvl("Tower")}`],
-      ["\u{1F3F0}", `Castle ${lvl("Castle")}`],
-      ["\u{1F300}\u{1F4B0}", `Dungeon ${lvl("Dungeons")}`],
+      ["\u{1F3E0}", `House\n${state.houses}/${MAX_HOUSES}`],
+      ["\u{1F43E}", `PetSanct.\n${totalPets}/${actualMaxPets}`],
+      ["\u{1F357}", `FoodStor\n${lvl("Pantry")}`],
+      ["\u{1FAB5}", `WoodStor\n${lvl("Lumberyard")}`],
+      ["\u{1FAA8}", `StoneStor\n${lvl("Quarry")}`],
+      ["\u{1F5FC}", `Tower\n${lvl("Tower")}`],
+      ["\u{1F3F0}", `Castle\n${lvl("Castle")}`],
+      ["\u{1F4B0}", `Dungeon\n${lvl("Dungeons")}`],
       // Edificios ocultos (posiciones 9-16) - Pueden volver a usarse en el futuro
       // ["\u{1F94A}", `BoxRing ${lvl("BoxingRing")}`],
       // ["\u{1F3CB}\uFE0F", `Gym ${lvl("Gym")}`],
@@ -68,12 +63,11 @@ export function renderVillage() {
       i.className = "icon";
       i.textContent = icon;
       const t = document.createElement("div");
-      t.textContent = text;
+      t.innerHTML = text.replace(/\n/g, '<br>');
       d.appendChild(i);
       d.appendChild(t);
-      container.appendChild(d);
+      overview.appendChild(d);
     });
-    overview.appendChild(container);
   }
   if (selectCard) {
     const upgrading = Object.values(state.upgradeTasks).some(t => t.time > 0);

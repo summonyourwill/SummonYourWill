@@ -489,12 +489,46 @@
             font-size: 0.9em;
             color: var(--color-border);
         }
+
+        /* --- Botón de recompensa diaria --- */
+        .gold-btn {
+            background: linear-gradient(145deg, #f4d03f, #f7dc6f);
+            color: #8b4513;
+            border: 2px solid #b8860b;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            font-family: 'Cormorant Garamond', serif;
+        }
+
+        .gold-btn:hover {
+            background: linear-gradient(145deg, #f7dc6f, #f4d03f);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .gold-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
 <body>
     <div class="journal-container">
         <header class="journal-header">
             <h1 class="title-script">The Daily Codex</h1>
+            
+            <!-- Botón de recompensa diaria -->
+            <div class="reward-section" style="text-align:center; margin:15px 0;">
+                <button id="reward-btn" class="gold-btn">💰 Claim 10,000 Gold</button>
+            </div>
+            
             <div class="date-navigation">
                 <button id="prevDay" class="nav-button">◀️ Previous Day</button>
                 <h2 id="currentDate" class="date-script"></h2>
@@ -1026,6 +1060,38 @@
 
         // 7. Ensure Next button is properly disabled at startup
         checkNextDayButton();
+
+        // 8. Botón de recompensa diaria
+        const rewardBtn = document.getElementById('reward-btn');
+        if (rewardBtn) {
+            // Verificar si ya se reclamó la recompensa hoy
+            const today = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+            const dailyRewards = JSON.parse(localStorage.getItem('dailyRewards') || '{}');
+            const claimedToday = dailyRewards[today];
+            
+            if (claimedToday) {
+                rewardBtn.textContent = '💰 Claimed 10,000 Gold';
+                rewardBtn.disabled = true;
+            } else {
+                rewardBtn.onclick = () => {
+                    // Comunicar con la ventana padre para dar oro
+                    if (window.parent && window.parent !== window) {
+                        window.parent.postMessage({
+                            type: 'dailyReward',
+                            amount: 10000
+                        }, '*');
+                    }
+                    
+                    // Marcar como reclamado hoy
+                    dailyRewards[today] = true;
+                    localStorage.setItem('dailyRewards', JSON.stringify(dailyRewards));
+                    
+                    // Actualizar el botón
+                    rewardBtn.textContent = '💰 Claimed 10,000 Gold';
+                    rewardBtn.disabled = true;
+                };
+            }
+        }
     </script>
 </body>
 </html>
