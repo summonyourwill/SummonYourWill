@@ -12621,10 +12621,60 @@ function summonHero() {
 
   const existing = document.querySelector(".summon-overlay");
   if (existing) existing.remove();
-  const overlay = document.createElement("div");
-  overlay.className = "modal-overlay summon-overlay card-modal";
-  const modal = document.createElement("div");
-  modal.className = "modal";
+  
+  // Buscar la card que contiene el botón SummonHero
+  const summonBtn = document.getElementById("summon-btn");
+  const heroActionsCard = summonBtn ? summonBtn.closest('div') : null;
+  
+  let overlay, modal;
+  
+  if (heroActionsCard) {
+    // Crear overlay que se posiciona relativo a la card
+    overlay = document.createElement("div");
+    overlay.className = "modal-overlay summon-overlay";
+    overlay.style.position = "absolute";
+    overlay.style.top = "0";
+    overlay.style.left = "0";
+    overlay.style.width = "100%";
+    overlay.style.height = "100%";
+    overlay.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+    overlay.style.zIndex = "9999";
+    overlay.style.display = "flex";
+    overlay.style.alignItems = "center";
+    overlay.style.justifyContent = "center";
+    
+    modal = document.createElement("div");
+    modal.className = "modal";
+    
+    overlay.appendChild(modal);
+    
+    // Asegurar que la card tenga position: relative para que el overlay se posicione correctamente
+    const originalPosition = heroActionsCard.style.position;
+    if (getComputedStyle(heroActionsCard).position === 'static') {
+      heroActionsCard.style.position = 'relative';
+    }
+    
+    // Agregar el overlay a la card
+    heroActionsCard.appendChild(overlay);
+  } else {
+    // Fallback: usar overlay normal si no se encuentra la card
+    overlay = document.createElement("div");
+    overlay.className = "modal-overlay summon-overlay";
+    overlay.style.position = "fixed";
+    overlay.style.top = "0";
+    overlay.style.left = "0";
+    overlay.style.width = "100vw";
+    overlay.style.height = "100vh";
+    overlay.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+    overlay.style.zIndex = "9999";
+    overlay.style.display = "flex";
+    overlay.style.alignItems = "center";
+    overlay.style.justifyContent = "center";
+    
+    modal = document.createElement("div");
+    modal.className = "modal";
+    overlay.appendChild(modal);
+  }
 
   const nameInput = document.createElement("input");
   nameInput.type = "text";
@@ -12751,15 +12801,19 @@ function summonHero() {
   modal.appendChild(imgInput);
   modal.appendChild(profSelect);
   modal.appendChild(buttons);
-  overlay.appendChild(modal);
   
-  console.log('📦 About to append overlay');
-  const modalRoot = document.getElementById('modal-root');
-  console.log('📦 Modal root element:', modalRoot);
-  
-  appendOverlay(overlay);
-  
-  console.log('✅ Overlay appended');
+  // El modal ya está dentro del overlay, no necesitamos agregarlo de nuevo
+  // Solo agregar al DOM si no se agregó a la card
+  if (!heroActionsCard) {
+    console.log('📦 About to append overlay');
+    const modalRoot = document.getElementById('modal-root');
+    console.log('📦 Modal root element:', modalRoot);
+    
+    appendOverlay(overlay);
+    console.log('✅ Overlay appended');
+  } else {
+    console.log('✅ Overlay already appended to heroActionsCard');
+  }
   overlay.tabIndex = -1;
   overlay.addEventListener('keydown', e => {
     if (e.key === 'Enter') {

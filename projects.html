@@ -2066,8 +2066,37 @@
             
             if (!picker.classList.contains('hidden')) {
                 const rect = button.getBoundingClientRect();
-                picker.style.left = `${rect.left}px`;
-                picker.style.top = `${rect.bottom + 8}px`;
+                const pickerWidth = 320; // Ancho aproximado del emoji picker
+                const pickerHeight = 400; // Altura aproximada del emoji picker
+                
+                // Calcular posición a la derecha del botón
+                let leftPosition = rect.right + 8; // 8px de separación
+                let topPosition = rect.top;
+                
+                // Verificar si hay espacio suficiente a la derecha
+                if (leftPosition + pickerWidth > window.innerWidth) {
+                    // Si no hay espacio, posicionar a la izquierda del botón
+                    leftPosition = rect.left - pickerWidth - 8;
+                }
+                
+                // Verificar si hay espacio suficiente arriba
+                if (topPosition + pickerHeight > window.innerHeight) {
+                    // Ajustar hacia arriba si es necesario
+                    topPosition = window.innerHeight - pickerHeight - 20;
+                }
+                
+                // Asegurar que no se salga por la izquierda
+                if (leftPosition < 20) {
+                    leftPosition = 20;
+                }
+                
+                // Asegurar que no se salga por arriba
+                if (topPosition < 20) {
+                    topPosition = 20;
+                }
+                
+                picker.style.left = `${leftPosition}px`;
+                picker.style.top = `${topPosition}px`;
             }
         }
 
