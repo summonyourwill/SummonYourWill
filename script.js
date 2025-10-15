@@ -6831,11 +6831,23 @@ function renderWeekPlan(card) {
   title.style.textAlign = "center";
   card.appendChild(title);
   
-  const placeholder = document.createElement('div');
-  placeholder.style.padding = '20px';
-  placeholder.style.textAlign = 'center';
-  placeholder.innerHTML = '<p>Coming soon...</p>';
-  card.appendChild(placeholder);
+  // Crear iframe para cargar weekplan.html
+  const iframeContainer = document.createElement('div');
+  iframeContainer.style.width = '100%';
+  iframeContainer.style.height = '80vh';
+  iframeContainer.style.overflow = 'hidden';
+  iframeContainer.style.borderRadius = '8px';
+  iframeContainer.style.marginTop = '10px';
+  
+  const iframe = document.createElement('iframe');
+  iframe.src = 'weekplan.html';
+  iframe.style.width = '100%';
+  iframe.style.height = '100%';
+  iframe.style.border = 'none';
+  iframe.style.borderRadius = '8px';
+  
+  iframeContainer.appendChild(iframe);
+  card.appendChild(iframeContainer);
 
   // Botón de cerrar
   const closeBtn = document.createElement("button");
