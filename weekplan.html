@@ -899,6 +899,8 @@
         <div class="filters-section">
             <div class="filters-title">⚜️ Categories & Quest Types ⚜️</div>
             <div class="category-filters">
+                <button class="nav-button" id="undoBtn" title="Undo (Ctrl+Z)" style="padding: 8px 12px; font-size: 0.9em;">↶ Undo</button>
+                <button class="nav-button" id="redoBtn" title="Redo (Ctrl+Y)" style="padding: 8px 12px; font-size: 0.9em;">↷ Redo</button>
                 <div class="category-filter active" data-category="work">
                     <span class="category-icon">⚙️</span>
                     <span class="category-name">Work</span>
@@ -920,6 +922,7 @@
                     <span class="category-name">Leisure</span>
                 </div>
                 <button class="add-event-btn" id="addEventBtn">✨ Add Event</button>
+                <button class="nav-button" id="cleanAllBtn" title="Delete all events" style="padding: 8px 16px; font-size: 0.9em; background-color: #dc3545; border-color: #bd2130;">🗡️ Clean All</button>
             </div>
         </div>
 
@@ -1005,6 +1008,45 @@
                 </select>
             </div>
             <div class="modal-field">
+                <label>
+                    <input type="checkbox" id="eventHabit" style="width: auto; margin-right: 5px;">
+                    Habit
+                </label>
+            </div>
+            <div class="modal-field" id="habitDaysField" style="display: none;">
+                <label>Repeat on:</label>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 5px;">
+                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                        <input type="checkbox" class="habit-day-checkbox" value="0" style="width: auto;">
+                        Mon
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                        <input type="checkbox" class="habit-day-checkbox" value="1" style="width: auto;">
+                        Tue
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                        <input type="checkbox" class="habit-day-checkbox" value="2" style="width: auto;">
+                        Wed
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                        <input type="checkbox" class="habit-day-checkbox" value="3" style="width: auto;">
+                        Thu
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                        <input type="checkbox" class="habit-day-checkbox" value="4" style="width: auto;">
+                        Fri
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                        <input type="checkbox" class="habit-day-checkbox" value="5" style="width: auto;">
+                        Sat
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                        <input type="checkbox" class="habit-day-checkbox" value="6" style="width: auto;">
+                        Sun
+                    </label>
+                </div>
+            </div>
+            <div class="modal-field">
                 <label for="eventStartTime">Start Time:</label>
                 <input type="time" id="eventStartTime" value="09:00">
             </div>
@@ -1067,6 +1109,11 @@
         let activeCategories = new Set(['work', 'study', 'health', 'projects', 'leisure']);
         let draggedEvent = null;
         let dragStartY = 0;
+        
+        // History for Undo/Redo
+        let historyStack = [];
+        let historyIndex = -1;
+        const MAX_HISTORY = 50;
         let dragStartX = 0;
         let dragStartTop = 0;
         let isDragging = false;
@@ -1086,8 +1133,8 @@
         const SLOT_HEIGHT = 60; // Height in px for 1 hour
         const MIN_DURATION_MINUTES = 15; // Minimum event duration
         
-        // Hour view control - initialize to current hour
-        let startHourView = Math.max(0, Math.min(new Date().getHours(), 24 - HOURS_TO_SHOW));
+        // Hour view control - initialize to 6 AM (or earlier if current time is before 6 AM)
+        let startHourView = Math.max(0, Math.min(6, 24 - HOURS_TO_SHOW));
 
         // ================================
         // CUSTOM ALERT AND CONFIRM
@@ -1213,6 +1260,54 @@
         function saveEvents() {
             localStorage.setItem('weekPlanEvents', JSON.stringify(events));
         }
+        
+        // History Management
+        function saveToHistory() {
+            // Remove any forward history if we're not at the end
+            if (historyIndex < historyStack.length - 1) {
+                historyStack = historyStack.slice(0, historyIndex + 1);
+            }
+            
+            // Add current state
+            historyStack.push(JSON.parse(JSON.stringify(events)));
+            
+            // Limit history size
+            if (historyStack.length > MAX_HISTORY) {
+                historyStack.shift();
+            } else {
+                historyIndex++;
+            }
+            
+            updateUndoRedoButtons();
+        }
+        
+        function undo() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                events = JSON.parse(JSON.stringify(historyStack[historyIndex]));
+                saveEvents();
+                renderCalendar();
+                updateUndoRedoButtons();
+            }
+        }
+        
+        function redo() {
+            if (historyIndex < historyStack.length - 1) {
+                historyIndex++;
+                events = JSON.parse(JSON.stringify(historyStack[historyIndex]));
+                saveEvents();
+                renderCalendar();
+                updateUndoRedoButtons();
+            }
+        }
+        
+        function updateUndoRedoButtons() {
+            const undoBtn = document.getElementById('undoBtn');
+            const redoBtn = document.getElementById('redoBtn');
+            
+            if (undoBtn) undoBtn.disabled = historyIndex <= 0;
+            if (redoBtn) redoBtn.disabled = historyIndex >= historyStack.length - 1;
+        }
 
 
         // ================================
@@ -1297,12 +1392,13 @@
             // Clear existing events
             document.querySelectorAll('.event').forEach(el => el.remove());
 
+            const weekEnd = new Date(currentWeekStart);
+            weekEnd.setDate(weekEnd.getDate() + 7);
+
             // Render all events
             events.forEach(event => {
                 // Check if event is in current week
                 const eventDate = new Date(event.date);
-                const weekEnd = new Date(currentWeekStart);
-                weekEnd.setDate(weekEnd.getDate() + 7);
                 
                 if (eventDate < currentWeekStart || eventDate >= weekEnd) {
                     return;
@@ -1325,7 +1421,10 @@
                 return;
             }
             
-            const cell = document.querySelector(`.hour-cell[data-day="${event.day}"][data-hour="${event.startTime.split(':')[0]}"]`);
+            // Use parsed integer for hour to match dataset.hour (which is a number, not "06")
+            const cellSelector = `.hour-cell[data-day="${event.day}"][data-hour="${eventHour}"]`;
+            
+            const cell = document.querySelector(cellSelector);
             if (!cell) {
                 return;
             }
@@ -1874,6 +1973,11 @@
             document.getElementById('eventEndTime').value = `${(hour + 1).toString().padStart(2, '0')}:00`;
             document.getElementById('modalDelete').style.display = 'none';
             
+            // Reset Habit checkbox
+            document.getElementById('eventHabit').checked = false;
+            document.getElementById('habitDaysField').style.display = 'none';
+            document.querySelectorAll('.habit-day-checkbox').forEach(cb => cb.checked = false);
+            
             const daySelect = document.getElementById('eventDay');
             daySelect.innerHTML = '';
             for (let i = 0; i < 7; i++) {
@@ -1928,43 +2032,129 @@
             }
             
             const day = parseInt(document.getElementById('eventDay').value);
+            const isHabit = document.getElementById('eventHabit').checked;
+            const habitId = generateId(); // ID compartido para todos los eventos habit
+            
+            const startTime = document.getElementById('eventStartTime').value;
+            const endTime = document.getElementById('eventEndTime').value;
+            
             const eventData = {
                 title,
                 description: document.getElementById('eventDescription').value.trim(),
                 category: document.getElementById('eventCategory').value,
                 day,
                 date: getDayDate(day).toISOString().split('T')[0],
-                startTime: document.getElementById('eventStartTime').value,
-                endTime: document.getElementById('eventEndTime').value
+                startTime,
+                endTime
             };
             
             if (editingEventId) {
                 const event = events.find(e => e.id === editingEventId);
                 Object.assign(event, eventData);
             } else {
-                eventData.id = generateId();
-                events.push(eventData);
+                // Save to history before making changes
+                saveToHistory();
+                
+                if (isHabit) {
+                    // Get selected days
+                    const selectedDays = Array.from(document.querySelectorAll('.habit-day-checkbox:checked'))
+                        .map(cb => parseInt(cb.value));
+                    
+                    if (selectedDays.length === 0) {
+                        await showCustomAlert('Please select at least one day for the habit', 'Missing Information', '⚠️');
+                        return;
+                    }
+                    
+                    // Create events for 5 weeks
+                    for (let week = 0; week < 5; week++) {
+                        for (const selectedDay of selectedDays) {
+                            const weekDate = new Date(currentWeekStart);
+                            weekDate.setDate(weekDate.getDate() + (week * 7) + selectedDay);
+                            
+                            const habitEvent = {
+                                ...eventData,
+                                id: generateId(),
+                                habitId: habitId, // Mark as habit event
+                                date: weekDate.toISOString().split('T')[0],
+                                day: selectedDay
+                            };
+                            
+                            events.push(habitEvent);
+                        }
+                    }
+                } else {
+                    eventData.id = generateId();
+                    events.push(eventData);
+                }
             }
             
             saveEvents();
-            renderCalendar();
+            
+            // Adjust view to show the new event if it's outside visible range
+            const eventStartHour = parseInt(eventData.startTime.split(':')[0]);
+            
+            if (eventStartHour < startHourView) {
+                startHourView = Math.max(0, eventStartHour);
+                updateHourView();
+            } else if (eventStartHour >= startHourView + HOURS_TO_SHOW) {
+                startHourView = Math.min(24 - HOURS_TO_SHOW, eventStartHour);
+                updateHourView();
+            } else {
+                renderCalendar();
+            }
+            
             closeEventModal();
         }
 
         async function deleteEvent() {
             if (!editingEventId) return;
             
+            const eventToDelete = events.find(e => e.id === editingEventId);
+            if (!eventToDelete) return;
+            
+            let confirmMessage = 'Are you sure you want to delete this event?';
+            if (eventToDelete.habitId) {
+                confirmMessage = 'This is a habit event. All related occurrences will be deleted. Continue?';
+            }
+            
             const confirmed = await showCustomConfirm(
-                'Are you sure you want to delete this event?',
+                confirmMessage,
                 'Delete Event',
                 '🗡️'
             );
             
             if (confirmed) {
-                events = events.filter(e => e.id !== editingEventId);
+                // Save to history before making changes
+                saveToHistory();
+                
+                if (eventToDelete.habitId) {
+                    // Delete all events with the same habitId
+                    events = events.filter(e => e.habitId !== eventToDelete.habitId);
+                } else {
+                    events = events.filter(e => e.id !== editingEventId);
+                }
+                
                 saveEvents();
                 renderCalendar();
                 closeEventModal();
+            }
+        }
+        
+        async function cleanAll() {
+            const confirmed = await showCustomConfirm(
+                'This will delete ALL events from the week plan. This action cannot be undone through Undo/Redo. Continue?',
+                'Clean All Events',
+                '🗡️'
+            );
+            
+            if (confirmed) {
+                // Save to history before making changes
+                saveToHistory();
+                
+                events = [];
+                saveEvents();
+                renderCalendar();
+                await showCustomAlert('All events have been deleted', 'Success', '✅');
             }
         }
 
@@ -2045,8 +2235,9 @@
 
         function goToToday() {
             currentWeekStart = getMonday(new Date());
-            // Reset to current hour when going to today
-            startHourView = Math.max(0, Math.min(new Date().getHours(), 24 - HOURS_TO_SHOW));
+            // Reset to 6 AM when going to today (or current hour if earlier)
+            const currentHour = new Date().getHours();
+            startHourView = Math.max(0, Math.min(currentHour < 6 ? currentHour : 6, 24 - HOURS_TO_SHOW));
             updateWeekView();
             updateHourView();
         }
@@ -2209,6 +2400,34 @@
         document.getElementById('modalSave').addEventListener('click', saveEvent);
         document.getElementById('modalCancel').addEventListener('click', closeEventModal);
         document.getElementById('modalDelete').addEventListener('click', deleteEvent);
+        
+        // Habit checkbox toggle
+        document.getElementById('eventHabit').addEventListener('change', (e) => {
+            const habitDaysField = document.getElementById('habitDaysField');
+            if (e.target.checked) {
+                habitDaysField.style.display = 'block';
+            } else {
+                habitDaysField.style.display = 'none';
+                // Desmarcar todos los checkboxes de días
+                document.querySelectorAll('.habit-day-checkbox').forEach(cb => cb.checked = false);
+            }
+        });
+        
+        // Undo/Redo/CleanAll buttons
+        document.getElementById('undoBtn').addEventListener('click', undo);
+        document.getElementById('redoBtn').addEventListener('click', redo);
+        document.getElementById('cleanAllBtn').addEventListener('click', cleanAll);
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
+                e.preventDefault();
+                undo();
+            } else if (e.ctrlKey && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+                e.preventDefault();
+                redo();
+            }
+        });
 
         // Category filters
         document.querySelectorAll('.category-filter').forEach(filter => {
@@ -2274,6 +2493,10 @@
         updateWeekView();
         updateCategoryFilters();
         renderCalendar();
+        
+        // Initialize history with current state
+        saveToHistory();
+        updateUndoRedoButtons();
     </script>
 </body>
 </html>

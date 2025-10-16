@@ -25,7 +25,7 @@ function onInteractionStart() {
     samples.push(duration);
     if (samples.length > 20) samples.shift();
     uiPerfMetrics.interactionAvg = samples.reduce((a, b) => a + b, 0) / samples.length;
-    if (!isProd) console.log('interaction', duration.toFixed(2), 'ms');
+    //if (!isProd) console.log('interaction', duration.toFixed(2), 'ms');
     performance.clearMarks('ui:interaction:start');
     performance.clearMarks('ui:interaction:end');
     performance.clearMeasures(name);

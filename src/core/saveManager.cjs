@@ -445,6 +445,28 @@ async function generateLifeMissionsFile(lifeMissionsData) {
   }
 }
 
+// Función para generar archivo projects.json
+async function generateProjectsFile(projectsData) {
+  try {
+    // Validar que projects sea un array, si no lo es, usar array vacío
+    let projectsArray = projectsData.projects || [];
+    if (!Array.isArray(projectsArray)) {
+      logger.warn('⚠️ projects no es un array, usando array vacío. Valor recibido:', typeof projectsArray);
+      projectsArray = [];
+    }
+    
+    // Guardar SOLO el array de proyectos (sin wrapper), igual que el export de projects.html
+    const projectsPath = path.join(SAVE_DIR, 'projects.json');
+    await fs.writeFile(projectsPath, JSON.stringify(projectsArray, null, 2), 'utf-8');
+    logger.info('✅ Archivo projects.json generado en:', projectsPath);
+    
+    return projectsArray;
+  } catch (error) {
+    logger.error('❌ Error al generar projects.json:', error);
+    return [];
+  }
+}
+
 async function ensureSaveDir() {
   try {
     await fs.mkdir(SAVE_DIR, { recursive: true });
@@ -540,6 +562,12 @@ async function saveGame(data) {
       lifeGoldDay: data.lifeGoldDay
     });
     
+    // Generar projects.json (siempre se genera para mantener consistencia)
+    await generateProjectsFile({
+      projects: data.projects,
+      projectPoints: data.projectPoints
+    });
+    
     logger.info('✅ Archivos JSON generados correctamente');
     
   } catch (error) {
@@ -556,6 +584,28 @@ async function loadLifeMissions() {
   } catch (error) {
     if (error.code !== 'ENOENT') {
       logger.warn('⚠️ Error al cargar lifemissions.json:', error.message);
+    }
+    return null;
+  }
+}
+
+async function loadProjects() {
+  try {
+    const projectsPath = path.join(SAVE_DIR, 'projects.json');
+    const data = await fs.readFile(projectsPath, 'utf-8');
+    logger.info('✅ Projects cargado desde:', projectsPath);
+    const parsed = JSON.parse(data);
+    
+    // projects.json debe contener directamente el array
+    if (Array.isArray(parsed)) {
+      return parsed;
+    } else {
+      logger.warn('⚠️ projects.json no contiene un array válido');
+      return null;
+    }
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      logger.warn('⚠️ Error al cargar projects.json:', error.message);
     }
     return null;
   }
@@ -579,6 +629,26 @@ async function loadGame(defaultData = {}) {
         gameData.lifeGoldDay = lifeMissions.goldDay;
         logger.info('✅ Datos de LifeMissions restaurados desde lifemissions.json');
       }
+    }
+    
+    // Intentar cargar projects.json como respaldo si los datos no están en save.json
+    if (gameData.projects === undefined) {
+      const projectsArray = await loadProjects();
+      if (projectsArray && Array.isArray(projectsArray)) {
+        gameData.projects = projectsArray;
+        logger.info('✅ Datos de Projects restaurados desde projects.json');
+      }
+    }
+    
+    // Validar que projects sea siempre un array
+    if (!Array.isArray(gameData.projects)) {
+      logger.warn('⚠️ gameData.projects no es un array, corrigiendo a array vacío');
+      gameData.projects = [];
+    }
+    
+    // Asegurar que projectPoints exista
+    if (gameData.projectPoints === undefined) {
+      gameData.projectPoints = 0;
     }
     
     return gameData;
