@@ -11578,7 +11578,10 @@ export function startMission(hero, slot) {
     completed: false
   });
   scheduleRenderHeroes();
-  renderMissions();
+  // Forzar actualización inmediata del DOM
+  setTimeout(() => {
+    renderMissions();
+  }, 0);
   renderDailyMissions();
   scheduleSaveGame();
 }
@@ -13006,6 +13009,14 @@ function isHeroBusy(heroId) {
   }
   
   if (state?.builder?.current?.heroId === heroId) return true;
+  
+  // Verificar si está en Missions individuales
+  if (state?.missions) {
+    const busyInMission = state.missions.some(mission => 
+      mission.heroId === heroId && mission.heroId !== null
+    );
+    if (busyInMission) return true;
+  }
   
   // Verificar si está en Group Missions
   for (const gm of state.groupMissions || []) {

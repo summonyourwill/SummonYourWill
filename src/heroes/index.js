@@ -180,6 +180,13 @@ export function isBusy(hero) {
     return true;
   }
   
+  // Check if hero is in an individual Mission
+  if (state.missions && state.missions.some(mission => 
+    mission.heroId === hero.id && mission.heroId !== null
+  )) {
+    return true;
+  }
+  
   // Check if hero is in a Group Mission
   if (state.groupMissions && state.groupMissions.some(gm => 
     gm.status === 'running' && gm.heroIds && gm.heroIds.includes(hero.id)

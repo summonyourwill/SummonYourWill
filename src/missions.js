@@ -107,67 +107,69 @@ export function renderMissions() {
         if (!hero.avatar) avatar.classList.add("empty");
         box.appendChild(avatar);
 
-        if (hero.missionTime > 0) {
-          const timer = document.createElement("div");
-          timer.className = "timer";
-          timer.id = `mission-timer-${slot.id}`;
-          const dur = missionDuration(slot.id);
-          let label;
-          switch (dur) {
-            case 43200:
-              label = '12h';
-              break;
-            case 28800:
-              label = '8h';
-              break;
-            case 10800:
-              label = '3h';
-              break;
-            case 7200:
-              label = '2h';
-              break;
-            case 3600:
-              label = '1h';
-              break;
-            default:
-              label = '30m';
-          }
-          timer.textContent = label;
-          box.appendChild(timer);
-          const stopBtn = document.createElement("button");
-          stopBtn.textContent = "❌";
-          stopBtn.style.background = "none";
-          stopBtn.style.border = "none";
-          stopBtn.style.color = "#c00";
-          stopBtn.style.cursor = "pointer";
-          stopBtn.style.marginLeft = "4px";
-          stopBtn.onclick = () => {
-            console.log('🚫 Cancelando misión - Estado ANTES:', {
-              villageChief: { level: window.villageChief?.level, exp: window.villageChief?.exp, name: window.villageChief?.name },
-              partner: { level: window.partner?.level, exp: window.partner?.exp, name: window.partner?.name }
-            });
-            
-            hero.missionTime = 0;
-            hero.missionStartTime = 0;
-            hero.missionDuration = 0;
-            hero.state = { type: 'ready' };
-            removeTimer(`mission_${slot.id}`);
-            slot.heroId = null;
-            slot.completed = false;
-            slot.description = missionDescriptions[Math.floor(Math.random() * missionDescriptions.length)];
-            
-            console.log('🚫 Cancelando misión - Estado DESPUÉS de limpiar misión:', {
-              villageChief: { level: window.villageChief?.level, exp: window.villageChief?.exp, name: window.villageChief?.name },
-              partner: { level: window.partner?.level, exp: window.partner?.exp, name: window.partner?.name }
-            });
-            
-            scheduleSaveGame();
-            renderMissions();
-            scheduleRenderHeroes();
-            renderDailyMissions();
-          };
-          box.appendChild(stopBtn);
-        } else if (slot.completed) {
+        // Siempre mostrar timer y botón X cuando hay héroe asignado
+        const timer = document.createElement("div");
+        timer.className = "timer";
+        timer.id = `mission-timer-${slot.id}`;
+        const dur = missionDuration(slot.id);
+        let label;
+        switch (dur) {
+          case 43200:
+            label = '12h';
+            break;
+          case 28800:
+            label = '8h';
+            break;
+          case 10800:
+            label = '3h';
+            break;
+          case 7200:
+            label = '2h';
+            break;
+          case 3600:
+            label = '1h';
+            break;
+          default:
+            label = '30m';
+        }
+        timer.textContent = label;
+        box.appendChild(timer);
+        
+        const stopBtn = document.createElement("button");
+        stopBtn.textContent = "❌";
+        stopBtn.style.background = "none";
+        stopBtn.style.border = "none";
+        stopBtn.style.color = "#c00";
+        stopBtn.style.cursor = "pointer";
+        stopBtn.style.marginLeft = "4px";
+        stopBtn.onclick = () => {
+          console.log('🚫 Cancelando misión - Estado ANTES:', {
+            villageChief: { level: window.villageChief?.level, exp: window.villageChief?.exp, name: window.villageChief?.name },
+            partner: { level: window.partner?.level, exp: window.partner?.exp, name: window.partner?.name }
+          });
+          
+          hero.missionTime = 0;
+          hero.missionStartTime = 0;
+          hero.missionDuration = 0;
+          hero.state = { type: 'ready' };
+          removeTimer(`mission_${slot.id}`);
+          slot.heroId = null;
+          slot.completed = false;
+          slot.description = missionDescriptions[Math.floor(Math.random() * missionDescriptions.length)];
+          
+          console.log('🚫 Cancelando misión - Estado DESPUÉS de limpiar misión:', {
+            villageChief: { level: window.villageChief?.level, exp: window.villageChief?.exp, name: window.villageChief?.name },
+            partner: { level: window.partner?.level, exp: window.partner?.exp, name: window.partner?.name }
+          });
+          
+          scheduleSaveGame();
+          renderMissions();
+          scheduleRenderHeroes();
+          renderDailyMissions();
+        };
+        box.appendChild(stopBtn);
+        
+        if (slot.completed) {
           const done = document.createElement("div");
           done.textContent = "Completed!";
           done.className = "mission-done";
@@ -250,6 +252,10 @@ export function renderMissions() {
         } else {
           slot.heroId = id;
           startMission(hero, slot);
+          // Forzar actualización inmediata después de asignar héroe
+          setTimeout(() => {
+            renderMissions();
+          }, 0);
         }
       };
 

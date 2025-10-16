@@ -177,9 +177,10 @@ function buildHeroMissionContent(box, slot) {
   if (!hero.avatar) avatar.classList.add("empty");
   box.appendChild(avatar);
 
-  if (hero.missionTime > 0) {
-    buildActiveMissionContent(box, slot, hero);
-  } else if (slot.completed) {
+  // Siempre mostrar timer y botón X cuando hay héroe asignado
+  buildActiveMissionContent(box, slot, hero);
+  
+  if (slot.completed) {
     buildCompletedMissionContent(box, slot);
   }
 }
@@ -331,6 +332,10 @@ function buildEmptyMissionContent(box, slot) {
     } else {
       slot.heroId = id;
       startMission(hero, slot);
+      // Forzar actualización inmediata después de asignar héroe
+      setTimeout(() => {
+        renderMissionsOptimized();
+      }, 0);
     }
   }, `select_hero_${slot.id}`);
 
