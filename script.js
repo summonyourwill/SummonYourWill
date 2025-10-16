@@ -5962,7 +5962,8 @@ function showChiefExtra(label, onClose) {
         `• 300 Gold for each Villain in your village (Total: ${dailyTributeInfo.goldFromVillains} Gold)<br>` +
         `• 250 Gold for each Hero (Total: ${dailyTributeInfo.goldFromHeroes} Gold)<br>` +
         `• 200 Gold for each Pet (Total: ${dailyTributeInfo.goldFromPets} Gold)<br>` +
-        `• 100 Gold per Dungeon level (Total: ${dailyTributeInfo.goldFromDungeons} Gold)<br>`;
+        `• 100 Gold per Dungeon level (Total: ${dailyTributeInfo.goldFromDungeons} Gold)<br>` +
+        `<br><strong>Total = ${dailyTributeInfo.totalGold} Gold</strong><br>`;
       text.innerHTML = html;
       wrap.appendChild(text);
     }
