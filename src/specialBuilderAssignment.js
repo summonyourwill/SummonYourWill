@@ -124,12 +124,6 @@ export function renderSection() {
       nameEl.textContent = hero ? hero.name : '';
       gridWrap.appendChild(nameEl);
 
-      const choose = document.createElement('button');
-      choose.className = 'btn btn-celeste';
-      choose.textContent = 'Choose Builder';
-      choose.disabled = true;
-      gridWrap.appendChild(choose);
-
       const status = document.createElement('div');
       status.setAttribute('role', 'status');
       status.textContent = 'Completed!';
@@ -352,8 +346,9 @@ export function openImproveModal(slotId) {
   title.textContent = 'Choose Construction to Improve';
   modal.appendChild(title);
 
+  const hiddenBuildings = ['ArcheryField', 'Ashram', 'BoxingRing', 'FortuneTotem', 'Gym', 'Hospital', 'LifeAltar', 'MageAcademy'];
   const buildings = Object.keys(state.buildingLevels || {})
-    .filter(name => name !== 'Castle')
+    .filter(name => name !== 'Castle' && !hiddenBuildings.includes(name))
     .sort((a,b)=>displayBuildingName(a).localeCompare(displayBuildingName(b), undefined, {sensitivity:'base'}));
 
   const select = document.createElement('select');
