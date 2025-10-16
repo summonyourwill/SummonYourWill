@@ -6769,10 +6769,6 @@ function isHabitEditable(year, month, day) {
 
 async function renderDiary(card) {
   [...card.querySelectorAll(':scope > :not(.close-btn)')].forEach(el => el.remove());
-  const title = document.createElement("h3");
-  title.textContent = "Diary";
-  title.style.textAlign = "center";
-  card.appendChild(title);
   
   // Crear iframe para cargar diary con srcdoc
   const iframeContainer = document.createElement('div');
@@ -6841,10 +6837,6 @@ async function renderDiary(card) {
 
 async function renderWeekPlan(card) {
   [...card.querySelectorAll(':scope > :not(.close-btn)')].forEach(el => el.remove());
-  const title = document.createElement("h3");
-  title.textContent = "WeekPlan";
-  title.style.textAlign = "center";
-  card.appendChild(title);
   
   // Crear iframe para cargar weekplan con srcdoc
   const iframeContainer = document.createElement('div');
