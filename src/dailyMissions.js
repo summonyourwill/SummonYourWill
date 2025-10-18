@@ -82,24 +82,24 @@ export function initDailyMissions(day) {
 
 export function startDailyMission(hero, slot) {
   if (isBusy(hero)) return;
-  const duration = 21600;
+  const duration = 21600; // 6 horas en segundos
   const now = Date.now();
-  hero.missionTime = duration;
-  hero.missionDuration = duration;
-  hero.missionStartTime = now;
+  const durationMs = duration * 1000;
+  
+  // Modelo de Special Builder: timestamps ISO y endAt explícito
   slot.heroId = hero.id;
   slot.completedHeroId = null;
   slot.assignedWeek = getWeekKey(new Date());
-  addTimer({
-    id: `daily_${slot.id}`,
-    type: 'dailyMission',
-    heroId: hero.id,
-    slotId: slot.id,
-    startTime: now,
-    duration: duration * 1000,
-    paused: false,
-    completed: false
-  });
+  slot.startedAt = new Date(now).toISOString();
+  slot.endAt = new Date(now + durationMs).toISOString();
+  slot.durationMs = durationMs;
+  slot.status = 'running';
+  
+  // Mantener propiedades del héroe para compatibilidad con UI
+  hero.missionTime = duration;
+  hero.missionDuration = duration;
+  hero.missionStartTime = now;
+  
   scheduleRenderHeroes();
   renderMissions();
   renderDailyMissions();
@@ -181,39 +181,65 @@ export function renderDailyMissionDay(day) {
           };
           box.appendChild(stopBtn);
         } else if (slot.completed) {
-          const done = document.createElement('div');
-          const finHero = state.heroMap.get(slot.completedHeroId);
-          if (finHero) {
-            const name = document.createElement('div');
-            name.textContent = finHero.name;
-            box.appendChild(name);
-            const avatar = document.createElement('img');
-            avatar.src = finHero.avatar || EMPTY_SRC;
-            avatar.className = 'mission-avatar';
-            if (!finHero.avatar) avatar.classList.add('empty');
-            box.appendChild(avatar);
+          // Si la recompensa no se ha aplicado, mostrar botón "Collect Reward"
+          if (!slot.rewardApplied) {
+            const collectBtn = document.createElement('button');
+            collectBtn.textContent = 'Collect Reward';
+            collectBtn.style.cssText = "background: #4CAF50; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px; margin: 4px; font-size: 0.9em;";
+            collectBtn.onclick = () => {
+              import('../script.js').then(m => {
+                m.collectDailyMissionReward(slot);
+              });
+            };
+            box.appendChild(collectBtn);
+          } else {
+            const done = document.createElement('div');
+            const finHero = state.heroMap.get(slot.completedHeroId);
+            if (finHero) {
+              const name = document.createElement('div');
+              name.textContent = finHero.name;
+              box.appendChild(name);
+              const avatar = document.createElement('img');
+              avatar.src = finHero.avatar || EMPTY_SRC;
+              avatar.className = 'mission-avatar';
+              if (!finHero.avatar) avatar.classList.add('empty');
+              box.appendChild(avatar);
+            }
+            done.textContent = 'Completed!';
+            done.className = 'mission-done';
+            box.appendChild(done);
           }
-          done.textContent = 'Completed!';
-          done.className = 'mission-done';
-          box.appendChild(done);
         }
       }
     } else if (slot.completed) {
-      const finHero = state.heroMap.get(slot.completedHeroId);
-      if (finHero) {
-        const name = document.createElement('div');
-        name.textContent = finHero.name;
-        box.appendChild(name);
-        const avatar = document.createElement('img');
-        avatar.src = finHero.avatar || EMPTY_SRC;
-        avatar.className = 'mission-avatar';
-        if (!finHero.avatar) avatar.classList.add('empty');
-        box.appendChild(avatar);
+      // Si la recompensa no se ha aplicado, mostrar botón "Collect Reward"
+      if (!slot.rewardApplied) {
+        const collectBtn = document.createElement('button');
+        collectBtn.textContent = 'Collect Reward';
+        collectBtn.style.cssText = "background: #4CAF50; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px; margin: 4px; font-size: 0.9em;";
+        collectBtn.onclick = () => {
+          import('../script.js').then(m => {
+            m.collectDailyMissionReward(slot);
+          });
+        };
+        box.appendChild(collectBtn);
+      } else {
+        const finHero = state.heroMap.get(slot.completedHeroId);
+        if (finHero) {
+          const name = document.createElement('div');
+          name.textContent = finHero.name;
+          box.appendChild(name);
+          const avatar = document.createElement('img');
+          avatar.src = finHero.avatar || EMPTY_SRC;
+          avatar.className = 'mission-avatar';
+          if (!finHero.avatar) avatar.classList.add('empty');
+          box.appendChild(avatar);
+        }
+        const done = document.createElement('div');
+        done.textContent = 'Completed!';
+        done.className = 'mission-done';
+        box.appendChild(done);
       }
-      const done = document.createElement('div');
-      done.textContent = 'Completed!';
-      done.className = 'mission-done';
-      box.appendChild(done);
     } else {
       const avatar = document.createElement('div');
       avatar.className = 'mission-avatar empty';

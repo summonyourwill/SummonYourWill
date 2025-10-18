@@ -958,6 +958,41 @@ async function loadGame() {
       m.description =
         missionDescriptions[Math.floor(Math.random() * missionDescriptions.length)];
     m.expReward = missionExpRewards[m.id - 1] || m.expReward || 20;
+    
+    // Migración: detectar misiones del sistema antiguo sin timestamps
+    if (m.heroId && !m.startedAt && !m.endAt && !m.durationMs) {
+      const hero = state.heroes.find(h => h.id === m.heroId);
+      if (hero) {
+        // Si el héroe tiene missionTime = 0, la misión ya completó
+        if (hero.missionTime === 0 || hero.missionTime === undefined) {
+          console.log(`🔧 Migración: Misión ${m.id} completada (sistema antiguo) - Héroe: ${hero.name}`);
+          m.status = 'completed';
+          m.completed = true;
+          m.rewardApplied = false;
+          hero.missionTime = 0;
+          hero.missionStartTime = 0;
+          hero.missionDuration = 0;
+        } else {
+          // Si tiene missionTime > 0, intentar recuperar la información
+          console.log(`🔧 Migración: Misión ${m.id} en curso (sistema antiguo) - Héroe: ${hero.name}, tiempo restante: ${hero.missionTime}s`);
+          const now = Date.now();
+          const remainingMs = hero.missionTime * 1000;
+          const endTime = now + remainingMs;
+          const startTime = hero.missionStartTime || (now - (hero.missionDuration - hero.missionTime) * 1000);
+          
+          m.startedAt = new Date(startTime).toISOString();
+          m.endAt = new Date(endTime).toISOString();
+          m.durationMs = hero.missionDuration * 1000;
+          m.status = 'running';
+        }
+      } else {
+        // No hay héroe, limpiar la misión
+        console.log(`⚠️ Migración: Misión ${m.id} limpiada (héroe no encontrado)`);
+        m.heroId = null;
+        m.completed = false;
+        m.status = 'idle';
+      }
+    }
   });
   state.dailyMissions = data.dailyMissions ?? state.dailyMissions;
   state.groupMissions = (data.groupMissions || state.groupMissions || []).slice(0,4);
@@ -976,32 +1011,15 @@ async function loadGame() {
       rewardApplied: false
     });
   }
+  // Limpiar timers obsoletos (ya no necesitamos timers para misiones)
   activeTimers = activeTimers.filter(t => {
-    if (t.type === 'mission') {
-      const hero = state.heroes.find(h => h.id === t.heroId);
-      const slot = state.missions.find(m => m.id === t.slotId && m.heroId === t.heroId);
-      return hero && hero.missionTime > 0 && slot;
-    }
-    if (t.type === 'dailyMission') {
-      const hero = state.heroes.find(h => h.id === t.heroId);
-      const slot = Object.values(state.dailyMissions).flat().find(m => m.id === t.slotId && m.heroId === t.heroId);
-      return hero && hero.missionTime > 0 && slot;
+    // Eliminar timers de misiones que ahora usan el modelo de Special Builder
+    if (t.type === 'mission' || t.type === 'dailyMission') {
+      return false; // Eliminar todos los timers de misiones del sistema antiguo
     }
     return true;
   });
   saveTimers();
-  state.heroes.forEach(h => {
-    if (
-      h.missionTime > 0 &&
-      !state.missions.some(m => m.heroId === h.id) &&
-      !Object.values(state.dailyMissions).some(arr => arr.some(m => m.heroId === h.id))
-    ) {
-      h.missionTime = 0;
-      h.missionStartTime = 0;
-      h.missionDuration = 0;
-      h.state = { type: 'ready' };
-    }
-  });
   villageChief = data.villageChief ?? villageChief;
   if (villageChief.avatarOffset === undefined) villageChief.avatarOffset = 50;
   if (villageChief.avatarOffsetX === undefined) villageChief.avatarOffsetX = 50;
@@ -1718,15 +1736,17 @@ function finishTimer(timer) {
       const hero = getHeroById(timer.heroId);
       const slot = state.missions.find(m => m.id === timer.slotId);
       if (hero && slot) {
+        // Marcar como completada pero NO aplicar recompensa aún (igual que group missions)
         slot.completed = true;
-        state.money += slot.expReward;
-        addHeroExp(hero, slot.expReward);
-        const energyLoss = missionEnergyCost(slot.id);
-        hero.energia = Math.max(0, hero.energia - energyLoss);
-        autoStartRest(hero);
+        slot.status = 'completed';
+        slot.rewardApplied = false; // La recompensa se aplicará al hacer click en "Collect Reward"
+        
+        // NO liberar al héroe aún, NO aplicar recompensas aún
+        // Solo limpiar los tiempos para la UI
         hero.missionTime = 0;
         hero.missionStartTime = 0;
         hero.missionDuration = 0;
+        
         renderMissions();
         renderHeroesIfVisible();
       }
@@ -1736,17 +1756,19 @@ function finishTimer(timer) {
       const hero = getHeroById(timer.heroId);
       const slot = getDailyMissionSlot(timer.slotId);
       if (hero && slot) {
+        // Marcar como completada pero NO aplicar recompensa aún
         slot.completed = true;
+        slot.status = 'completed';
         slot.completedWeek = getWeekKey(new Date());
         slot.completedHeroId = hero.id;
-        slot.heroId = null;
-        state.money += 5000;
-        addHeroExp(hero, 5000);
-        hero.energia = Math.max(0, hero.energia - 50);
-        autoStartRest(hero);
+        slot.rewardApplied = false;
+        
+        // NO liberar al héroe aún, NO aplicar recompensas aún
+        // Solo limpiar los tiempos para la UI
         hero.missionTime = 0;
         hero.missionStartTime = 0;
         hero.missionDuration = 0;
+        
         renderDailyMissions();
         renderHeroesIfVisible();
         renderMissions();
@@ -1814,27 +1836,8 @@ function processAllTimers(now = Date.now()) {
         }
       }
     }
-    if (timer.type === 'mission') {
-      const hero = getHeroById(timer.heroId);
-      const slot = state.missions.find(m => m.id === timer.slotId);
-      if (hero && slot) {
-        const totalElapsed = Math.floor((now - hero.missionStartTime) / 1000);
-        hero.missionTime = Math.max(0, hero.missionDuration - totalElapsed);
-      }
-    }
-    if (timer.type === 'dailyMission') {
-      const hero = getHeroById(timer.heroId);
-      const slot = getDailyMissionSlot(timer.slotId);
-      if (hero && slot) {
-        const totalElapsed = Math.floor((now - hero.missionStartTime) / 1000);
-        hero.missionTime = Math.max(0, hero.missionDuration - totalElapsed);
-        const tEl = document.getElementById(`daily-mission-timer-${slot.id}`);
-        if (tEl && tEl.offsetParent !== null) {
-          const hours = Math.ceil(hero.missionTime / 3600);
-          tEl.textContent = hours > 0 ? `${hours}H` : 'Completed';
-        }
-      }
-    }
+    // Las misiones ahora usan el modelo de Special Builder y se verifican
+    // cada 30 minutos con checkAllMissions(), no necesitan procesamiento aquí
     
     // Nuevo sistema de entrenamiento por minuto
     if (timer.type === 'train') {
@@ -3791,9 +3794,10 @@ function autoClickTick() {
   if (state.food >= MAX_FOOD) state.farmers.fill(null);
   if (state.wood >= MAX_WOOD) state.lumberjacks.fill(null);
   if (state.stone >= MAX_STONE) state.miners.fill(null);
-  if (villageChief.level < CHIEF_MAX_LEVEL) {
-    addHeroExp(villageChief, 1, CHIEF_MAX_LEVEL);
-  }
+  // Village Chief ya no gana experiencia con autoclick
+  // if (villageChief.level < CHIEF_MAX_LEVEL) {
+  //   addHeroExp(villageChief, 1, CHIEF_MAX_LEVEL);
+  // }
   if (state.autoClickActive) {
     const active = [state.companions, state.farmers, state.lumberjacks, state.miners].some(arr => arr.some(Boolean));
     if (!active) {
@@ -11560,30 +11564,65 @@ function renderPets() {
 }
 
 export function startMission(hero, slot) {
-  if (isBusy(hero)) return;
-  const duration = missionDuration(slot.id);
+  console.log('🚀 startMission() llamada:', {
+    heroName: hero.name,
+    heroId: hero.id,
+    slotId: slot.id,
+    isBusy: isBusy(hero)
+  });
+  
+  if (isBusy(hero)) {
+    console.log('❌ startMission() cancelada: héroe ocupado');
+    return;
+  }
+  
+  const duration = missionDuration(slot.id); // En segundos
   const now = Date.now();
+  const durationMs = duration * 1000;
+  
+  console.log('⏱️ Configurando misión:', {
+    duration: duration,
+    durationMs: durationMs,
+    now: new Date(now).toLocaleString(),
+    endAt: new Date(now + durationMs).toLocaleString()
+  });
+  
+  // Modelo de Special Builder: timestamps ISO y endAt explícito
+  slot.heroId = hero.id;
+  slot.startedAt = new Date(now).toISOString();
+  slot.endAt = new Date(now + durationMs).toISOString();
+  slot.durationMs = durationMs;
+  slot.status = 'running';
+  
+  console.log('✅ Slot actualizado:', {
+    heroId: slot.heroId,
+    startedAt: slot.startedAt,
+    endAt: slot.endAt,
+    durationMs: slot.durationMs,
+    status: slot.status
+  });
+  
+  // Mantener propiedades del héroe para compatibilidad con UI
   hero.missionTime = duration;
   hero.missionDuration = duration;
   hero.missionStartTime = now;
-  slot.heroId = hero.id;
-  addTimer({
-    id: `mission_${slot.id}`,
-    type: 'mission',
-    heroId: hero.id,
-    slotId: slot.id,
-    startTime: now,
-    duration: duration * 1000,
-    paused: false,
-    completed: false
+  
+  console.log('✅ Héroe actualizado:', {
+    missionTime: hero.missionTime,
+    missionDuration: hero.missionDuration,
+    missionStartTime: hero.missionStartTime
   });
+  
   scheduleRenderHeroes();
   // Forzar actualización inmediata del DOM
   setTimeout(() => {
     renderMissions();
+    renderGroupMissions(); // Actualizar group missions para que el héroe no aparezca disponible
   }, 0);
   renderDailyMissions();
   scheduleSaveGame();
+  
+  console.log('✅ startMission() completada');
 }
 
 function handlePendingMissions(hero) {
@@ -13003,7 +13042,7 @@ function isHeroBusy(heroId) {
   // Verificar si está en special builder slots (builders 1-8)
   if (state?.specialBuilderSlots) {
     const busyInBuilder = state.specialBuilderSlots.some(slot => 
-      slot.assignedHeroId === heroId && slot.status === 'running'
+      slot.assignedHeroId === heroId && (slot.status === 'running' || slot.status === 'completed')
     );
     if (busyInBuilder) return true;
   }
@@ -13332,8 +13371,290 @@ function renderGroupMissions() {
   });
 }
 
+// Función de diagnóstico para depurar misiones
+function debugMissions() {
+  console.log('🔍 ===== DIAGNÓSTICO DE MISIONES =====');
+  console.log('Hora actual:', new Date().toLocaleString());
+  console.log('Timestamp actual:', Date.now());
+  
+  state.missions.forEach(slot => {
+    if (slot.heroId) {
+      const hero = getHeroById(slot.heroId);
+      console.log(`\n📋 Misión ${slot.id}:`);
+      console.log('  - Héroe:', hero?.name || 'No encontrado');
+      console.log('  - status:', slot.status);
+      console.log('  - completed:', slot.completed);
+      console.log('  - rewardApplied:', slot.rewardApplied);
+      console.log('  - startedAt:', slot.startedAt);
+      console.log('  - endAt:', slot.endAt);
+      console.log('  - durationMs:', slot.durationMs);
+      
+      if (slot.endAt) {
+        const end = Date.parse(slot.endAt);
+        const now = Date.now();
+        const diff = end - now;
+        console.log('  - Tiempo fin:', new Date(end).toLocaleString());
+        console.log('  - Diferencia (ms):', diff);
+        console.log('  - ¿Debería completarse?:', diff <= 0 ? '✅ SÍ' : '❌ NO (faltan ' + Math.ceil(diff / 60000) + ' min)');
+      } else if (slot.startedAt && slot.durationMs) {
+        const start = Date.parse(slot.startedAt);
+        const end = start + slot.durationMs;
+        const now = Date.now();
+        const diff = end - now;
+        console.log('  - ⚠️ NO TIENE endAt (formato antiguo)');
+        console.log('  - Inicio calculado:', new Date(start).toLocaleString());
+        console.log('  - Fin calculado:', new Date(end).toLocaleString());
+        console.log('  - ¿Debería completarse?:', diff <= 0 ? '✅ SÍ' : '❌ NO');
+      } else {
+        console.log('  - ⚠️ DATOS INCOMPLETOS - no se puede determinar fin');
+      }
+      
+      if (hero) {
+        console.log('  - hero.missionTime:', hero.missionTime);
+        console.log('  - hero.missionStartTime:', hero.missionStartTime);
+        console.log('  - hero.missionDuration:', hero.missionDuration);
+      }
+    }
+  });
+  
+  console.log('\n🔍 ===== FIN DIAGNÓSTICO =====\n');
+}
+
+// Función para forzar la verificación y completación de misiones
+function forceCheckAndCompleteMissions() {
+  console.log('🚀 ===== FORZANDO VERIFICACIÓN DE MISIONES =====');
+  
+  // Primero ejecutar diagnóstico
+  debugMissions();
+  
+  // Ahora forzar verificación
+  console.log('\n⚡ Forzando verificación...\n');
+  checkMissions();
+  
+  console.log('\n✅ Verificación forzada completada');
+  console.log('🔄 Ejecuta debugMissions() nuevamente para ver los cambios\n');
+}
+
+// Hacer disponibles globalmente para debug
+window.debugMissions = debugMissions;
+window.forceCheckAndCompleteMissions = forceCheckAndCompleteMissions;
+window.checkMissions = checkMissions;
+
+// Función de verificación de misiones individuales (modelo Special Builder)
+function checkMissions() {
+  const now = Date.now();
+  let changed = false;
+  
+  console.log('🔄 Ejecutando checkMissions() - Hora:', new Date().toLocaleString());
+  
+  // Verificar misiones individuales (1-21)
+  state.missions.forEach(slot => {
+    // Normalizar estado de misiones antiguas
+    if (slot.heroId && slot.endAt && !slot.status) {
+      slot.status = 'running';
+    }
+    
+    // Verificar si la misión tiene un héroe asignado y tiempo de finalización
+    if (slot.heroId && slot.endAt) {
+      const end = Date.parse(slot.endAt);
+      const hero = getHeroById(slot.heroId);
+      
+      // Si ya pasó el tiempo de finalización, marcar como completada
+      if (end <= now) {
+        // Marcar como completada pero NO aplicar recompensa aún (igual que group missions)
+        if (slot.status !== 'completed' && !slot.completed) {
+          console.log(`✅ Misión ${slot.id} completada automáticamente - Hora fin: ${new Date(end).toLocaleString()}, Hora actual: ${new Date(now).toLocaleString()}`);
+          slot.status = 'completed';
+          slot.completed = true;
+          slot.rewardApplied = false; // La recompensa se aplicará al hacer click en "Collect Reward"
+          
+          // NO liberar al héroe aún, NO aplicar recompensas aún
+          // Solo limpiar los tiempos para la UI
+          if (hero) {
+            hero.missionTime = 0;
+            hero.missionStartTime = 0;
+            hero.missionDuration = 0;
+          }
+          changed = true;
+        }
+      } else if (hero && slot.status === 'running') {
+        // Actualizar tiempo restante en el héroe para la UI
+        const remainingMs = end - now;
+        hero.missionTime = Math.max(0, Math.ceil(remainingMs / 1000));
+      }
+    }
+    
+    // Verificar misiones con startedAt pero sin endAt (migración de formato antiguo)
+    if (slot.heroId && slot.startedAt && !slot.endAt && slot.durationMs) {
+      const start = Date.parse(slot.startedAt);
+      const end = start + slot.durationMs;
+      slot.endAt = new Date(end).toISOString();
+      console.log(`🔧 Misión ${slot.id} migrada - endAt establecido a: ${slot.endAt}`);
+      changed = true;
+      
+      // Ahora verificar si ya debería estar completada
+      if (end <= now && slot.status !== 'completed' && !slot.completed) {
+        console.log(`✅ Misión ${slot.id} completada automáticamente (después de migración)`);
+        slot.status = 'completed';
+        slot.completed = true;
+        slot.rewardApplied = false;
+        const hero = getHeroById(slot.heroId);
+        if (hero) {
+          hero.missionTime = 0;
+          hero.missionStartTime = 0;
+          hero.missionDuration = 0;
+        }
+      }
+    }
+  });
+  
+  // Verificar misiones diarias
+  Object.values(state.dailyMissions).forEach(daySlots => {
+    daySlots.forEach(slot => {
+      // Normalizar estado de misiones antiguas
+      if (slot.heroId && slot.endAt && !slot.status) {
+        slot.status = 'running';
+      }
+      
+      if (slot.heroId && slot.endAt) {
+        const end = Date.parse(slot.endAt);
+        const hero = getHeroById(slot.heroId);
+        
+        if (end <= now) {
+          // Marcar como completada pero NO aplicar recompensa aún
+          if (slot.status !== 'completed' && !slot.completed) {
+            console.log(`✅ Misión diaria ${slot.id} completada automáticamente`);
+            slot.status = 'completed';
+            slot.completed = true;
+            slot.completedWeek = getWeekKey(new Date());
+            slot.completedHeroId = hero?.id || null;
+            slot.rewardApplied = false;
+            
+            // NO liberar al héroe aún, NO aplicar recompensas aún
+            if (hero) {
+              hero.missionTime = 0;
+              hero.missionStartTime = 0;
+              hero.missionDuration = 0;
+            }
+            changed = true;
+          }
+        } else if (hero && slot.status === 'running') {
+          // Actualizar tiempo restante en el héroe para la UI
+          const remainingMs = end - now;
+          hero.missionTime = Math.max(0, Math.ceil(remainingMs / 1000));
+        }
+      }
+      
+      // Verificar misiones con startedAt pero sin endAt
+      if (slot.heroId && slot.startedAt && !slot.endAt && slot.durationMs) {
+        const start = Date.parse(slot.startedAt);
+        const end = start + slot.durationMs;
+        slot.endAt = new Date(end).toISOString();
+        console.log(`🔧 Misión diaria ${slot.id} migrada - endAt establecido`);
+        changed = true;
+        
+        if (end <= now && slot.status !== 'completed' && !slot.completed) {
+          console.log(`✅ Misión diaria ${slot.id} completada automáticamente (después de migración)`);
+          slot.status = 'completed';
+          slot.completed = true;
+          slot.completedWeek = getWeekKey(new Date());
+          slot.completedHeroId = getHeroById(slot.heroId)?.id || null;
+          slot.rewardApplied = false;
+          const hero = getHeroById(slot.heroId);
+          if (hero) {
+            hero.missionTime = 0;
+            hero.missionStartTime = 0;
+            hero.missionDuration = 0;
+          }
+        }
+      }
+    });
+  });
+  
+  if (changed) {
+    console.log('✅ checkMissions() completó con cambios - guardando y renderizando');
+    renderMissions();
+    renderDailyMissions();
+    renderHeroesIfVisible();
+    scheduleSaveGame();
+  } else {
+    console.log('ℹ️ checkMissions() completó sin cambios');
+  }
+}
+
+// Función para recolectar recompensa de misión individual
+export function collectMissionReward(slot) {
+  if (!slot || slot.status !== 'completed' || slot.rewardApplied) return;
+  
+  const hero = getHeroById(slot.heroId);
+  if (!hero) return;
+  
+  // Aplicar recompensas
+  state.money += slot.expReward;
+  addHeroExp(hero, slot.expReward);
+  
+  // Reducir energía del héroe
+  const energyLoss = missionEnergyCost(slot.id);
+  hero.energia = Math.max(0, hero.energia - energyLoss);
+  autoStartRest(hero);
+  
+  // Mostrar mensaje de recompensa
+  showToast(`¡Misión completada! +${slot.expReward} Gold`);
+  
+  // Marcar recompensa como aplicada y limpiar misión
+  slot.rewardApplied = true;
+  slot.heroId = null;
+  slot.completed = false;
+  slot.status = 'idle';
+  slot.startedAt = null;
+  slot.endAt = null;
+  slot.durationMs = 0;
+  slot.description = missionDescriptions[Math.floor(Math.random() * missionDescriptions.length)];
+  
+  // Actualizar UI y guardar
+  updateResourcesDisplay();
+  renderMissions();
+  renderHeroesIfVisible();
+  scheduleSaveGame();
+}
+
+// Función para recolectar recompensa de misión diaria
+export function collectDailyMissionReward(slot) {
+  if (!slot || slot.status !== 'completed' || slot.rewardApplied) return;
+  
+  const hero = getHeroById(slot.heroId);
+  if (!hero) return;
+  
+  // Aplicar recompensas
+  state.money += 5000;
+  addHeroExp(hero, 5000);
+  
+  // Reducir energía del héroe
+  hero.energia = Math.max(0, hero.energia - 50);
+  autoStartRest(hero);
+  
+  // Mostrar mensaje de recompensa
+  showToast('¡Misión diaria completada! +5000 Gold');
+  
+  // Marcar recompensa como aplicada y limpiar misión
+  slot.rewardApplied = true;
+  slot.heroId = null;
+  slot.status = 'idle';
+  slot.startedAt = null;
+  slot.endAt = null;
+  slot.durationMs = 0;
+  
+  // Actualizar UI y guardar
+  updateResourcesDisplay();
+  renderDailyMissions();
+  renderHeroesIfVisible();
+  scheduleSaveGame();
+}
+
 function tickGroupMissions() {
   const now = Date.now();
+  let changed = false;
+  
   for (const m of (state.groupMissions || [])) {
     if (m.status === 'running' && m.endAt && now >= m.endAt) {
       m.status = 'completed';
@@ -13350,17 +13671,25 @@ function tickGroupMissions() {
           if ('energia' in h) h.energia = 100;
         }
       }
-      // NO liberar héroes hasta que se recolecte la recompensa
-      // NO marcar recompensa como aplicada
-      saveGame?.();
+      changed = true;
     }
   }
-  if (document.getElementById('group-mission-grid')) {
-    renderGroupMissions();
+  
+  if (changed) {
+    saveGame?.();
+    if (document.getElementById('group-mission-grid')) {
+      renderGroupMissions();
+    }
   }
 }
 
-// tickGroupMissions se ejecutará después de inicializar el estado
+// Función unificada para verificar todos los tipos de misiones cada 30 minutos
+function checkAllMissions() {
+  checkMissions();
+  tickGroupMissions();
+}
+
+// checkAllMissions se ejecutará después de inicializar el estado
 
 function setupVillainEventListeners() {
   const villainSearchInput = document.getElementById("villain-search");
@@ -13510,9 +13839,9 @@ async function init() {
   // Inicializar y normalizar datos de estado después de cargar el juego
   initializeStateData();
   
-  // Ahora que el estado está inicializado, podemos ejecutar tickGroupMissions
-  tickGroupMissions();
-  setInterval(tickGroupMissions, 60 * MIN); // Cada 1 hora para countdown correcto
+  // Ahora que el estado está inicializado, verificar todas las misiones
+  checkAllMissions();
+  setInterval(checkAllMissions, 30 * MIN); // Cada 30 minutos (modelo simplificado)
   
   cleanupFightIntrudersDaily();
   renderDailyMissions();
@@ -13652,16 +13981,15 @@ async function init() {
       const pImg = document.getElementById('partner-img');
       if (pImg) pImg.style.pointerEvents = 'none';
       openConfirm({
-        message: 'Do you want to export your save before exiting?',
+        message: 'Do you want to save the game before closing?',
         onReturn: () => {
           const img = document.getElementById('partner-img');
           if (img) img.style.pointerEvents = '';
           lockPartnerImage = false;
           resumeTimers();
         },
-        onConfirm: async () => {
+        onConfirm: () => {
           saveGame();
-          await exportSave();
           try {
             localStorage.removeItem('offlineMode');
           } catch {}
@@ -13678,9 +14006,8 @@ async function init() {
     });
   } else {
     window.addEventListener('beforeunload', () => {
-      if (confirm('Save game before exiting?')) {
+      if (confirm('Do you want to save the game before closing?\n\nYes: Save and exit\nNo: Exit without saving')) {
         saveGame();
-        exportSave();
       }
       try {
         localStorage.removeItem('offlineMode');

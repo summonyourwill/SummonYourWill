@@ -184,6 +184,46 @@ function renderSingleDailyMissionOptimized(slot, dayIdx, todayIdx) {
 }
 
 /**
+ * Construye contenido para misión diaria completada
+ */
+function buildDailyCompletedContent(box, slot) {
+  // Si la recompensa no se ha aplicado, mostrar botón "Collect Reward"
+  if (!slot.rewardApplied) {
+    const collectBtn = buttonPool.get();
+    collectBtn.textContent = 'Collect Reward';
+    collectBtn.className = 'collect-reward-btn';
+    collectBtn.style.cssText = "background: #4CAF50; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px; margin: 4px; font-size: 0.9em;";
+    
+    globalEventOptimizer.addOptimizedListener(collectBtn, 'click', () => {
+      import('../../script.js').then(m => {
+        m.collectDailyMissionReward(slot);
+      });
+    }, `collect_daily_${slot.id}`);
+    
+    box.appendChild(collectBtn);
+    return; // No mostrar el contenido de héroe completado aún
+  }
+  
+  const finHero = state.heroMap.get(slot.completedHeroId);
+  if (finHero) {
+    const name = divPool.get();
+    name.textContent = finHero.name;
+    box.appendChild(name);
+    
+    const avatar = imgPool.get();
+    avatar.src = finHero.avatar || EMPTY_SRC;
+    avatar.className = 'mission-avatar';
+    if (!finHero.avatar) avatar.classList.add('empty');
+    box.appendChild(avatar);
+  }
+  
+  const done = divPool.get();
+  done.textContent = 'Completed!';
+  done.className = 'mission-done';
+  box.appendChild(done);
+}
+
+/**
  * Construye contenido para misión diaria con héroe
  */
 function buildDailyHeroContent(box, slot, dayIdx, todayIdx) {
@@ -253,48 +293,11 @@ function buildDailyActiveContent(box, slot, hero) {
 
 /**
  * Construye contenido para misión diaria completada con héroe
+ * (Esta función ya no se usa - ahora todo se maneja en buildDailyCompletedContent)
  */
 function buildDailyHeroCompletedContent(box, slot) {
-  const finHero = state.heroMap.get(slot.completedHeroId);
-  if (finHero) {
-    const name = divPool.get();
-    name.textContent = finHero.name;
-    box.appendChild(name);
-    
-    const avatar = document.createElement('img');
-    avatar.src = finHero.avatar || EMPTY_SRC;
-    avatar.className = 'mission-avatar';
-    if (!finHero.avatar) avatar.classList.add('empty');
-    box.appendChild(avatar);
-  }
-  
-  const done = divPool.get();
-  done.textContent = 'Completed!';
-  done.className = 'mission-done';
-  box.appendChild(done);
-}
-
-/**
- * Construye contenido para misión diaria completada sin héroe activo
- */
-function buildDailyCompletedContent(box, slot) {
-  const finHero = state.heroMap.get(slot.completedHeroId);
-  if (finHero) {
-    const name = divPool.get();
-    name.textContent = finHero.name;
-    box.appendChild(name);
-    
-    const avatar = document.createElement('img');
-    avatar.src = finHero.avatar || EMPTY_SRC;
-    avatar.className = 'mission-avatar';
-    if (!finHero.avatar) avatar.classList.add('empty');
-    box.appendChild(avatar);
-  }
-  
-  const done = divPool.get();
-  done.textContent = 'Completed!';
-  done.className = 'mission-done';
-  box.appendChild(done);
+  // Redirigir a la función principal que maneja ambos casos
+  buildDailyCompletedContent(box, slot);
 }
 
 /**

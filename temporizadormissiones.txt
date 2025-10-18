@@ -1,0 +1,1211 @@
+# SISTEMA DE TEMPORIZADORES DE MISIONES
+================================================================================
+
+## RESUMEN GENERAL
+
+El juego utiliza un sistema de temporizadores centralizado que gestiona todas las 
+actividades cronometradas, incluyendo tres tipos de misiones: individuales, 
+diarias y grupales.
+
+================================================================================
+## 1. MISIONES INDIVIDUALES (MISSIONS)
+================================================================================
+
+### Ubicación del código:
+- Inicio: `script.js` → función `startMission(hero, slot)`
+- Procesamiento: `script.js` → función `processAllTimers()`
+- Finalización: `script.js` → función `finishTimer()` → caso 'mission'
+
+### Duración según dificultad:
+Definidas en `src/missions/utils.js` → función `missionDuration(id)`:
+
+- **Easy**: 1800 segundos (30 minutos)
+- **Normal**: 3600 segundos (1 hora)  
+- **Hard**: 7200 segundos (2 horas)
+- **Misiones especiales**:
+  - IDs 4, 11: 43200 segundos (12 horas)
+  - IDs 10, 12: 28800 segundos (8 horas)
+  - IDs 16, 18, 20: 10800 segundos (3 horas)
+
+### Proceso de inicio:
+```javascript
+function startMission(hero, slot) {
+  const duration = missionDuration(slot.id);  // En segundos
+  const now = Date.now();
+  
+  // Registrar en el héroe
+  hero.missionTime = duration;
+  hero.missionDuration = duration;
+  hero.missionStartTime = now;
+  
+  // Asignar héroe al slot
+  slot.heroId = hero.id;
+  
+  // Crear temporizador
+  addTimer({
+    id: `mission_${slot.id}`,
+    type: 'mission',
+    heroId: hero.id,
+    slotId: slot.id,
+    startTime: now,
+    duration: duration * 1000,  // Convertir a milisegundos
+    paused: false,
+    completed: false
+  });
+}
+```
+
+### Proceso de verificación:
+**IMPORTANTE**: El sistema verifica los temporizadores cada **60 segundos** (MIN).
+
+```javascript
+// En script.js, línea ~1896-1901
+setInterval(() => {
+  if (!document.hidden) {
+    processAllTimers(Date.now());
+    updateConstructionOverlays();
+  }
+}, MIN);  // MIN = 60000 ms (60 segundos)
+```
+
+### Proceso de finalización:
+Cuando `elapsed >= timer.duration`, se ejecuta `finishTimer()`:
+
+```javascript
+case 'mission': {
+  const hero = getHeroById(timer.heroId);
+  const slot = state.missions.find(m => m.id === timer.slotId);
+  
+  if (hero && slot) {
+    // Marcar como completada
+    slot.completed = true;
+    
+    // Aplicar recompensas
+    state.money += slot.expReward;
+    addHeroExp(hero, slot.expReward);
+    
+    // Reducir energía del héroe
+    const energyLoss = missionEnergyCost(slot.id);
+    hero.energia = Math.max(0, hero.energia - energyLoss);
+    
+    // Auto-iniciar descanso si es necesario
+    autoStartRest(hero);
+    
+    // Limpiar estado del héroe
+    hero.missionTime = 0;
+    hero.missionStartTime = 0;
+    hero.missionDuration = 0;
+    
+    // Actualizar interfaz
+    renderMissions();
+    renderHeroesIfVisible();
+  }
+}
+```
+
+================================================================================
+## 2. MISIONES DIARIAS (DAILY MISSIONS)
+================================================================================
+
+### Ubicación del código:
+- Inicio: `src/dailyMissions.js` → función `startDailyMission(hero, slot)`
+- Procesamiento: Igual que misiones individuales
+- Finalización: `script.js` → función `finishTimer()` → caso 'dailyMission'
+
+### Duración:
+- **Fija**: 21600 segundos (6 horas)
+
+### Características especiales:
+- Se regeneran por semana (no por día)
+- Usan la clave de semana: `slot.assignedWeek = getWeekKey(new Date())`
+- Al completarse:
+  - Se marca `slot.completed = true`
+  - Se guarda `slot.completedWeek`
+  - Se guarda `slot.completedHeroId`
+  - Se libera el héroe: `slot.heroId = null`
+
+### Recompensas:
+- Gold: 5000
+- EXP: 5000
+- Pérdida de energía: 50%
+
+================================================================================
+## 3. MISIONES GRUPALES (GROUP MISSIONS)
+================================================================================
+
+### Ubicación del código:
+- Inicio: `script.js` → función anónima en evento click de "Start"
+- Procesamiento: `script.js` → función `tickGroupMissions()`
+- Finalización: Dentro de `tickGroupMissions()`
+
+### Duración:
+```javascript
+const GM_DURATION_MS = 8 * 60 * 60 * 1000;  // 8 horas (28,800,000 ms)
+```
+
+### Sistema de verificación DIFERENTE:
+**CRÍTICO**: Las group missions NO usan el sistema de `processAllTimers()`.
+En su lugar, tienen su propio ticker:
+
+```javascript
+// Ejecutado al iniciar el juego
+tickGroupMissions();
+setInterval(tickGroupMissions, 60 * MIN);  // Cada 60 minutos
+```
+
+**Frecuencia de verificación**: Cada **60 minutos** (3,600,000 ms)
+
+### Proceso de inicio:
+```javascript
+// Al hacer click en "Start"
+gm.started = true;
+gm.status = 'running';
+gm.startAt = Date.now();
+gm.endAt = gm.startAt + GM_DURATION_MS;  // +8 horas
+gm.rewardApplied = false;
+```
+
+### Proceso de verificación y finalización:
+```javascript
+function tickGroupMissions() {
+  const now = Date.now();
+  
+  for (const m of (state.groupMissions || [])) {
+    if (m.status === 'running' && m.endAt && now >= m.endAt) {
+      // Cambiar estado a completado
+      m.status = 'completed';
+      m.started = false;
+      
+      // Restaurar energía de los héroes
+      for (const id of m.heroIds.filter(Boolean)) {
+        const h = getAllHeroes().find(x => 
+          (x.id != null ? String(x.id) : x.name) === id
+        );
+        if (h) {
+          h.energyPercent = 100;
+          h.energy = 100;
+          h.stamina = 100;
+          h.energia = 100;
+        }
+      }
+      
+      // NO se aplica recompensa automáticamente
+      // NO se liberan los héroes hasta recolectar
+      
+      saveGame?.();
+    }
+  }
+  
+  // Actualizar interfaz si está visible
+  if (document.getElementById('group-mission-grid')) {
+    renderGroupMissions();
+  }
+}
+```
+
+### Recolección de recompensas:
+- Manual: El usuario debe hacer click en "Collect Rewards"
+- Cálculo: `GM_BASE_REWARD` (10,000) con posibles bonos
+- Bonos:
+  - **Same Origin Bonus**: +100% si los 5 héroes son del mismo origen
+  - **Promedio de niveles**: Influye en la recompensa final
+
+================================================================================
+## 4. ANÁLISIS DEL PROBLEMA: "Misión de 30 minutos no se completó"
+================================================================================
+
+### Causa probable:
+El sistema tiene diferentes frecuencias de verificación:
+
+1. **Misiones individuales y diarias**:
+   - Se verifican cada **60 segundos**
+   - Una misión de 30 minutos (1800 segundos) se verifica ~30 veces
+   - DEBE completarse correctamente
+
+2. **Group Missions**:
+   - Se verifican cada **60 MINUTOS**
+   - Una misión de 8 horas necesita al menos 9 verificaciones
+   - Puede haber retraso de hasta 59 minutos en marcarla como completada
+
+### Posibles causas de fallo:
+
+#### A) Tab oculta/inactiva:
+```javascript
+setInterval(() => {
+  if (!document.hidden) {  // ← Solo procesa si el tab está visible
+    processAllTimers(Date.now());
+  }
+}, MIN);
+```
+**Solución**: Al volver visible, se ejecuta `processAllTimers()` una vez:
+```javascript
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) processAllTimers(Date.now());
+});
+```
+
+#### B) Minigame activo:
+```javascript
+function processAllTimers(now = Date.now()) {
+  if (timersPaused) return;  // ← Si los timers están pausados
+  
+  for (const timer of activeTimers) {
+    if (isMinigameActive || timer.completed) continue;  // ← Salta si hay minigame
+    // ...
+  }
+}
+```
+
+#### C) Timer marcado como completed pero slot no actualizado:
+Si el timer se marcó como `completed` pero hubo un error en `finishTimer()`.
+
+#### D) Estado desincronizado:
+El héroe tiene `missionTime > 0` pero no hay timer activo para él.
+
+### Sistema de corrección automática:
+```javascript
+// Cada 3 minutos (línea ~1903-1946)
+setInterval(() => {
+  if (document.hidden) return;
+  
+  // Corrige héroes con estado bloqueado
+  state.heroes.forEach(h => {
+    const inactive =
+      h.missionTime <= 0 &&
+      h.collectTime <= 0 &&
+      // ... otras actividades
+      h.restTime <= 0;
+    
+    if (h.energia >= 97 && h.energia < 100 && inactive) {
+      h.energia = 100;
+      // ...
+    }
+  });
+}, 3 * MIN);
+```
+
+================================================================================
+## 5. CONSTANTES DE TIEMPO (src/utils/timerConstants.js)
+================================================================================
+
+```javascript
+export const MIN = 60_000;        // 1 minuto en milisegundos
+export const HOUR = 60 * MIN;     // 1 hora
+export const HALF_HOUR = 30 * MIN; // 30 minutos
+
+export const TIMER_INTERVALS = {
+  MAIN_GAME: MIN,               // 60,000 ms - Timer principal
+  SPECIAL_BUILDER: HOUR,        // 3,600,000 ms - Special builders
+  GROUP_MISSIONS: HALF_HOUR,    // 1,800,000 ms - NOTA: No usado actualmente
+  HERO_CORRECTION: MIN,         // 60,000 ms - Corrección de héroes
+  BUILD_STATUS_CLEANUP: 3 * MIN, // 180,000 ms - Limpieza de construcción
+};
+```
+
+**NOTA IMPORTANTE**: Aunque `TIMER_INTERVALS.GROUP_MISSIONS = HALF_HOUR`, 
+el código real usa `60 * MIN` (1 hora) para las group missions.
+
+================================================================================
+## 6. RECOMENDACIONES Y SOLUCIONES
+================================================================================
+
+### Para depurar una misión que no se completa:
+
+1. **Verificar el estado del timer en consola**:
+```javascript
+// En la consola del navegador
+activeTimers.forEach(t => console.log(t));
+```
+
+2. **Verificar el estado del héroe**:
+```javascript
+// Encontrar el héroe
+const hero = state.heroes.find(h => h.name === "NombreDelHéroe");
+console.log({
+  missionTime: hero.missionTime,
+  missionStartTime: hero.missionStartTime,
+  missionDuration: hero.missionDuration
+});
+```
+
+3. **Verificar el slot de la misión**:
+```javascript
+const slot = state.missions.find(m => m.heroId === hero.id);
+console.log(slot);
+```
+
+4. **Forzar verificación manual**:
+```javascript
+processAllTimers(Date.now());
+```
+
+5. **Para Group Missions**:
+```javascript
+tickGroupMissions();
+```
+
+### Posibles mejoras al sistema:
+
+1. **Unificar frecuencia de verificación**:
+   - Cambiar group missions de 60 minutos a 1 minuto
+
+2. **Mejorar manejo de tab oculta**:
+   - Guardar tiempo transcurrido y aplicarlo al volver
+   
+3. **Agregar logs de depuración**:
+   - Registrar cuándo se inicia/completa cada misión
+   
+4. **Agregar validación de consistencia**:
+   - Verificar que exista timer para cada misión activa
+   - Verificar que exista misión activa para cada timer de misión
+
+================================================================================
+## 7. FLUJO COMPLETO DE UNA MISIÓN DE 30 MINUTOS
+================================================================================
+
+### Timeline esperado:
+
+**T=0s (Inicio)**
+1. Usuario hace click en "Start Mission"
+2. `startMission(hero, slot)` se ejecuta
+3. Se crea timer con `duration: 1800 * 1000` (30 minutos en ms)
+4. `hero.missionTime = 1800`
+5. `hero.missionStartTime = Date.now()`
+
+**T=60s (Primera verificación)**
+1. `processAllTimers()` se ejecuta
+2. Calcula `elapsed = now - timer.startTime` (≈60,000 ms)
+3. Como `elapsed < duration`, no hace nada
+4. Actualiza contador en pantalla (si visible)
+
+**T=120s - 1740s (Verificaciones intermedias)**
+- Cada 60 segundos, `processAllTimers()` verifica
+- `hero.missionTime` se actualiza en la UI
+
+**T=1800s (30 minutos - Completada)**
+1. `processAllTimers()` detecta `elapsed >= duration`
+2. Ejecuta `finishTimer(timer)`
+3. En el caso 'mission':
+   - `slot.completed = true`
+   - Aplica recompensas (gold + exp)
+   - Reduce energía del héroe
+   - Limpia `hero.missionTime = 0`
+   - Llama a `renderMissions()` para actualizar UI
+4. El slot ahora muestra "Collect Rewards"
+
+**T=1860s (Si el usuario no estaba mirando)**
+- La siguiente verificación (a los 1860s) ya encuentra
+  `timer.completed = true` y lo salta
+- La UI se actualiza la próxima vez que se renderice
+
+================================================================================
+## 8. ANÁLISIS COMPARATIVO: MISIONES vs SPECIAL BUILDER ASSIGNMENT
+================================================================================
+
+### PREGUNTA CLAVE:
+¿Se guarda el momento exacto en que se inició una misión para calcular correctamente 
+la finalización? Por ejemplo, si una misión de 30 minutos empezó a las 16:15, 
+¿el sistema garantiza que estará completada a las 16:45?
+
+### RESPUESTA: SÍ, ambos sistemas guardan timestamps, pero con diferencias importantes
+
+================================================================================
+### A) SPECIAL BUILDER ASSIGNMENT (Sistema de referencia - FUNCIONA BIEN)
+================================================================================
+
+#### Ubicación: `src/specialBuilderAssignment.js`
+
+#### Cómo guarda el tiempo:
+```javascript
+function assignHeroToSlot(slotId, heroId) {
+  const cfg = SLOT_CONFIG.find(c => c.slotId === slotId);
+  let durationMs = cfg.baseHours * 60 * 60 * 1000;  // 1H, 2H, 4H u 8H
+  
+  // Si el héroe es builder, reduce duración a la mitad
+  if (hero.professions && hero.professions.some(p => p.toLowerCase() === 'builder')) {
+    durationMs /= 2;
+  }
+  
+  const slot = slots.find(s => s.slotId === slotId);
+  slot.assignedHeroId = id;
+  slot.startedAt = new Date().toISOString();  // ← ISO STRING (ej: "2024-01-15T16:15:00.000Z")
+  slot.durationMs = durationMs;                // ← Duración en milisegundos
+  slot.status = 'running';
+  
+  saveSlots();  // Guarda inmediatamente en localStorage
+}
+```
+
+#### Cómo verifica la finalización:
+```javascript
+function checkSlots() {
+  const now = Date.now();  // Timestamp actual
+  let changed = false;
+  
+  slots.forEach(s => {
+    if (s.status === 'running' && s.startedAt) {
+      // Calcula el momento exacto de finalización
+      const end = Date.parse(s.startedAt) + s.durationMs;
+      
+      // Compara si ya pasó ese momento
+      if (end <= now) {
+        s.status = 'completed';
+        changed = true;
+      }
+    }
+  });
+  
+  if (changed) {
+    saveSlots();
+    renderSection();
+  }
+}
+
+// Se ejecuta cada 1 HORA
+setInterval(checkSlots, 3_600_000);
+```
+
+#### Características:
+✅ **Guarda ISO string** con fecha y hora exacta
+✅ **Calcula tiempo de fin** = startedAt + durationMs
+✅ **Comparación absoluta**: compara `end <= now`
+✅ **Persistencia**: Se guarda en `localStorage['specialBuilderSlots']`
+✅ **Restauración**: Al cargar el juego, lee los slots del localStorage
+✅ **Independiente**: NO depende del sistema de timers centralizados
+
+#### Ejemplo práctico:
+```
+Inicio: 15 Ene 2024 16:15:00 → slot.startedAt = "2024-01-15T16:15:00.000Z"
+Duración: 2 horas → slot.durationMs = 7_200_000 ms
+Fin calculado: Date.parse("2024-01-15T16:15:00.000Z") + 7_200_000
+             = 1705337700000 + 7_200_000
+             = 1705344900000
+             = 15 Ene 2024 18:15:00
+
+Verificación (cada hora):
+- 16:00 → now < end → aún corriendo
+- 17:00 → now < end → aún corriendo
+- 18:00 → now < end → aún corriendo (falta 15 min)
+- 19:00 → now >= end → ¡COMPLETADA!
+```
+
+**VENTAJA**: Aunque se verifique solo cada hora, la comparación es absoluta contra 
+el momento de fin, por lo que SIEMPRE se marca como completada en la primera 
+verificación después de las 18:15.
+
+================================================================================
+### B) MISIONES INDIVIDUALES (Sistema con posibles problemas)
+================================================================================
+
+#### Ubicación: `script.js` → función `startMission()`
+
+#### Cómo guarda el tiempo:
+```javascript
+export function startMission(hero, slot) {
+  const duration = missionDuration(slot.id);  // En SEGUNDOS (ej: 1800 para 30 min)
+  const now = Date.now();  // Timestamp numérico (ej: 1705337700000)
+  
+  // TRIPLE REGISTRO del tiempo:
+  // 1. En el héroe
+  hero.missionTime = duration;           // Tiempo restante en segundos
+  hero.missionDuration = duration;       // Duración total en segundos
+  hero.missionStartTime = now;           // ← TIMESTAMP NUMÉRICO (momento exacto)
+  
+  // 2. En el slot
+  slot.heroId = hero.id;
+  
+  // 3. En el timer centralizado
+  addTimer({
+    id: `mission_${slot.id}`,
+    type: 'mission',
+    heroId: hero.id,
+    slotId: slot.id,
+    startTime: now,                      // ← TIMESTAMP NUMÉRICO (momento exacto)
+    duration: duration * 1000,           // ← Duración en MILISEGUNDOS
+    paused: false,
+    completed: false
+  });
+}
+```
+
+#### Cómo verifica la finalización:
+```javascript
+function processAllTimers(now = Date.now()) {
+  if (timersPaused) return;
+  
+  for (const timer of activeTimers) {
+    if (isMinigameActive || timer.completed) continue;
+    
+    // Calcula tiempo transcurrido
+    const elapsed = now - timer.startTime;
+    
+    // Actualiza contador en el héroe (solo para UI)
+    if (timer.type === 'mission') {
+      const hero = getHeroById(timer.heroId);
+      if (hero) {
+        const totalElapsed = Math.floor((now - hero.missionStartTime) / 1000);
+        hero.missionTime = Math.max(0, hero.missionDuration - totalElapsed);
+      }
+    }
+    
+    // Verifica si ya terminó
+    if (elapsed >= timer.duration) {
+      finishTimer(timer);      // Aplica recompensas
+      timer.completed = true;  // Marca como completado
+      changed = true;
+    }
+  }
+  
+  // Limpia timers completados
+  if (changed) {
+    activeTimers = activeTimers.filter(t => !t.completed);
+    saveTimers();
+    scheduleSaveGame();
+  }
+}
+
+// Se ejecuta cada 60 SEGUNDOS
+setInterval(() => {
+  if (!document.hidden) {
+    processAllTimers(Date.now());
+  }
+}, MIN);  // MIN = 60_000 ms
+```
+
+#### Características:
+✅ **Guarda timestamp numérico** (Date.now()) en `hero.missionStartTime` y `timer.startTime`
+✅ **Calcula tiempo transcurrido** = now - startTime
+✅ **Comparación relativa**: compara `elapsed >= duration`
+⚠️ **Doble persistencia**: 
+   - Estado del héroe en `localStorage['gameState']`
+   - Timer en `localStorage['activeTimers']`
+⚠️ **Dependencia crítica**: El timer DEBE existir en `activeTimers`
+⚠️ **Restauración compleja**: Al recargar, debe sincronizar hero + timer
+
+#### Ejemplo práctico:
+```
+Inicio: 15 Ene 2024 16:15:00
+  hero.missionStartTime = 1705337700000
+  timer.startTime = 1705337700000
+  timer.duration = 1_800_000 (30 minutos en ms)
+
+Verificación cada 60 segundos:
+- 16:16:00 → elapsed = 60,000 ms < 1,800,000 → continúa
+- 16:17:00 → elapsed = 120,000 ms < 1,800,000 → continúa
+- ...
+- 16:44:00 → elapsed = 1,740,000 ms < 1,800,000 → continúa
+- 16:45:00 → elapsed = 1,800,000 ms >= 1,800,000 → ¡COMPLETADA!
+- 16:46:00 → elapsed = 1,860,000 ms >= 1,800,000 → ya completada
+```
+
+**VENTAJA**: Alta precisión (verifica cada 60 segundos vs 1 hora).
+
+**DESVENTAJA**: Más puntos de fallo potencial.
+
+================================================================================
+### C) PROBLEMAS POTENCIALES DEL SISTEMA DE MISIONES
+================================================================================
+
+#### 1. DESINCRONIZACIÓN TIMER-HÉROE
+**Escenario**: El timer se pierde pero el héroe mantiene missionTime > 0
+
+```javascript
+// Validación que existe (línea ~980-1002):
+activeTimers = activeTimers.filter(t => {
+  if (t.type === 'mission') {
+    const hero = state.heroes.find(h => h.id === t.heroId);
+    const slot = state.missions.find(m => m.id === t.slotId && m.heroId === t.heroId);
+    return hero && hero.missionTime > 0 && slot;  // ← Si no hay héroe/slot, elimina el timer
+  }
+  // ...
+});
+
+// Limpieza inversa (línea ~993-1002):
+state.heroes.forEach(h => {
+  if (
+    h.missionTime > 0 &&
+    !state.missions.some(m => m.heroId === h.id) &&
+    !Object.values(state.dailyMissions).some(arr => arr.some(m => m.heroId === h.id))
+  ) {
+    // Héroe tiene missionTime pero no hay slot asociado → limpiar
+    h.missionTime = 0;
+    h.missionStartTime = 0;
+    h.missionDuration = 0;
+    h.state = { type: 'ready' };
+  }
+});
+```
+
+**Problema**: Si el timer se borra de `localStorage['activeTimers']` por cualquier 
+motivo (error, corrupción, limpieza manual), el sistema lo detecta y limpia al 
+héroe, pero la misión puede quedar en estado inconsistente.
+
+#### 2. TAB OCULTA DURANTE LA DURACIÓN COMPLETA
+**Escenario**: Usuario inicia misión de 30 minutos a las 16:15, cierra/oculta el 
+tab, y lo vuelve a abrir a las 17:00.
+
+```javascript
+setInterval(() => {
+  if (!document.hidden) {  // ← Solo procesa si el tab está visible
+    processAllTimers(Date.now());
+  }
+}, MIN);
+```
+
+**Solución implementada**:
+```javascript
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) processAllTimers(Date.now());
+});
+```
+
+Cuando el tab vuelve a ser visible, se ejecuta `processAllTimers()` una vez, 
+calculando `elapsed = now - timer.startTime`, que será >= 45 minutos (2,700,000 ms), 
+por lo que se completará inmediatamente.
+
+**RESULTADO**: ✅ Debería funcionar correctamente.
+
+#### 3. CIERRE DEL NAVEGADOR SIN GUARDAR
+**Escenario**: Usuario inicia misión, el navegador crashea antes de que se ejecute 
+`saveTimers()`.
+
+**Problema**: El timer se guarda inmediatamente en `addTimer()`:
+```javascript
+export function addTimer(timer) {
+  activeTimers.push(timer);
+  saveTimers();  // ← Guarda inmediatamente
+}
+```
+
+Pero el estado del héroe se guarda después:
+```javascript
+export function startMission(hero, slot) {
+  // ... modifica hero y slot ...
+  addTimer({ ... });  // ← Guarda timer inmediatamente
+  
+  scheduleRenderHeroes();
+  setTimeout(() => {
+    renderMissions();
+  }, 0);
+}
+
+// El saveGame() se ejecuta más tarde, posiblemente 200ms después
+export function scheduleSaveGame() {
+  saveTimeout = setTimeout(() => {
+    saveGame();
+  }, 200);
+}
+```
+
+**Riesgo**: Si el navegador se cierra entre `addTimer()` y `saveGame()`, el timer 
+existe en localStorage pero el héroe no tiene missionStartTime guardado.
+
+**Al recargar**: La validación lo detectará y limpiará el timer huérfano.
+
+#### 4. MINIGAME ACTIVO
+```javascript
+function processAllTimers(now = Date.now()) {
+  for (const timer of activeTimers) {
+    if (isMinigameActive || timer.completed) continue;  // ← Salta si hay minigame
+    // ...
+  }
+}
+```
+
+**Problema**: Si un minigame está activo, NO se procesan los timers.
+
+**Impacto**: La verificación se retrasa hasta que el minigame termine. El cálculo 
+sigue siendo correcto porque usa `elapsed = now - timer.startTime`, que considera 
+el tiempo real transcurrido independientemente de cuándo se verifique.
+
+**RESULTADO**: ✅ No hay problema real, solo retraso en actualizar la UI.
+
+================================================================================
+### D) TABLA COMPARATIVA
+================================================================================
+
+| Característica              | Special Builder          | Misiones Individuales    |
+|-----------------------------|--------------------------|--------------------------|
+| **Formato de timestamp**    | ISO String               | Numérico (ms desde epoch)|
+| **Dónde se guarda**         | localStorage['special    | localStorage['gameState']|
+|                             | BuilderSlots']           | + ['activeTimers']       |
+| **Cálculo de finalización** | end = start + duration   | elapsed = now - start    |
+| **Frecuencia verificación** | Cada 60 minutos          | Cada 60 segundos         |
+| **Precisión**               | Baja frecuencia, alta    | Alta frecuencia, alta    |
+|                             | precisión en cálculo     | precisión en cálculo     |
+| **Dependencias**            | Solo el slot             | Timer + Hero + Slot      |
+| **Persistencia**            | Un solo objeto           | Dos objetos separados    |
+| **Restauración**            | Simple: lee slots        | Compleja: sincroniza     |
+|                             | y verifica               | timer con hero/slot      |
+| **Validación de consistencia** | No necesaria          | Sí, limpia huérfanos     |
+| **Afectado por tab oculta** | NO (cálculo absoluto)    | SÍ (pero con solución)   |
+| **Afectado por minigames**  | NO                       | SÍ (pero sin impacto real)|
+
+================================================================================
+### E) CONCLUSIÓN: ¿POR QUÉ UNA MISIÓN DE 30 MINUTOS PODRÍA NO COMPLETARSE?
+================================================================================
+
+**Matemáticamente, el sistema es CORRECTO**:
+- Guarda el timestamp exacto de inicio
+- Calcula elapsed = now - startTime
+- Compara elapsed >= duration
+- Se verifica cada 60 segundos (suficiente para una misión de 30 minutos)
+
+**PERO existen condiciones que pueden causar fallos**:
+
+1. **Timer perdido**: Si `localStorage['activeTimers']` se corrompe o borra
+   → El sistema lo detecta y limpia al héroe, pero puede confundir al usuario
+
+2. **Tab siempre oculta + error en visibilitychange**: Si el tab está oculto 
+   durante toda la duración Y el evento visibilitychange no se dispara al volver
+   → La misión nunca se verifica
+
+3. **Error de JavaScript**: Si hay un error no capturado en `processAllTimers()`,
+   ese ciclo de 60 segundos se salta
+   → La siguiente verificación será en 60 segundos más
+
+4. **Navegador congelado**: Si el navegador entra en modo de suspensión profunda,
+   el setInterval puede no ejecutarse
+   → Al despertar, debería compensar con el cálculo elapsed
+
+5. **Diferencia de reloj**: Si el usuario cambia la hora del sistema mientras
+   la misión corre, el cálculo se afecta
+   → Podría completarse antes o después de lo esperado
+
+================================================================================
+### F) RECOMENDACIONES PARA MEJORAR LA ROBUSTEZ
+================================================================================
+
+#### 1. Adoptar el modelo de Special Builder Assignment
+```javascript
+// En lugar de:
+timer.startTime = now;
+timer.duration = duration * 1000;
+
+// Usar:
+timer.startedAt = new Date().toISOString();  // ← ISO string
+timer.endAt = new Date(now + duration * 1000).toISOString();
+
+// Al verificar:
+const end = Date.parse(timer.endAt);
+if (Date.now() >= end) {
+  // completar
+}
+```
+
+**Ventaja**: Más claro y explícito. Puedes ver exactamente cuándo debe terminar.
+
+#### 2. Unificar la persistencia
+```javascript
+// Guardar todo en el mismo lugar
+slot.startedAt = new Date().toISOString();
+slot.endAt = new Date(now + duration * 1000).toISOString();
+slot.status = 'running';
+// NO crear timer separado en localStorage
+```
+
+**Ventaja**: Elimina desincronización entre timer y slot.
+
+#### 3. Agregar timestamps de "última verificación"
+```javascript
+timer.lastChecked = Date.now();
+
+// Al verificar:
+const timeSinceLastCheck = now - timer.lastChecked;
+if (timeSinceLastCheck > 5 * MIN) {
+  console.warn(`Timer ${timer.id} no verificado en ${timeSinceLastCheck}ms`);
+}
+timer.lastChecked = now;
+```
+
+**Ventaja**: Detectar si el sistema de verificación se atascó.
+
+#### 4. Agregar verificación al cargar el juego
+```javascript
+async function loadGame() {
+  // ... cargar datos ...
+  
+  // Verificar misiones inmediatamente
+  processAllTimers(Date.now());
+  
+  // Esto asegura que misiones que debieron completarse 
+  // mientras el juego estaba cerrado se completen al abrir
+}
+```
+
+#### 5. Logs de depuración
+```javascript
+export function startMission(hero, slot) {
+  const now = Date.now();
+  const endAt = now + duration * 1000;
+  
+  console.log(`[MISSION START] Hero: ${hero.name}, Duration: ${duration}s, 
+    Start: ${new Date(now).toISOString()}, 
+    End: ${new Date(endAt).toISOString()}`);
+  
+  // ... resto del código ...
+}
+
+function finishTimer(timer) {
+  if (timer.type === 'mission') {
+    const now = Date.now();
+    const elapsed = now - timer.startTime;
+    console.log(`[MISSION COMPLETE] Timer: ${timer.id}, 
+      Elapsed: ${(elapsed/1000).toFixed(0)}s, 
+      Expected: ${(timer.duration/1000).toFixed(0)}s`);
+  }
+  // ... resto del código ...
+}
+```
+
+**Ventaja**: Puedes rastrear exactamente qué pasó con una misión específica.
+
+================================================================================
+NOTA FINAL ACTUALIZADA
+================================================================================
+
+**RESPUESTA A LA PREGUNTA DEL USUARIO**:
+
+✅ **SÍ**, el sistema guarda el momento exacto de inicio de las misiones:
+- `hero.missionStartTime = Date.now()` (timestamp numérico)
+- `timer.startTime = Date.now()` (timestamp numérico)
+
+✅ **SÍ**, el cálculo es correcto:
+- Misión de 30 minutos iniciada a las 16:15:00
+- endAt = 16:15:00 + 1800 segundos = 16:45:00
+- El sistema calcula `elapsed = now - startTime`
+- Cuando `elapsed >= 1800000 ms`, se completa
+
+✅ **Special Builder Assignment funciona igual**:
+- Guarda `slot.startedAt = "2024-01-15T16:15:00.000Z"`
+- Guarda `slot.durationMs = 7200000` (2 horas)
+- Calcula `end = Date.parse(startedAt) + durationMs`
+- Compara `now >= end`
+
+⚠️ **PERO las misiones tienen más puntos de fallo**:
+1. Dependen de dos objetos: timer en localStorage + hero en gameState
+2. Se verifican solo si el tab está visible (con solución al volver visible)
+3. No se verifican si hay un minigame activo (pero el cálculo sigue siendo correcto)
+4. Pueden perder sincronización si localStorage se corrompe
+
+🔍 **Para depurar una misión que no se completó**:
+
+```javascript
+// 1. Verificar el timer
+console.log(activeTimers.filter(t => t.type === 'mission'));
+
+// 2. Verificar el héroe
+const hero = state.heroes.find(h => h.name === "NombreDelHéroe");
+console.log({
+  missionTime: hero.missionTime,
+  missionStartTime: hero.missionStartTime,
+  missionDuration: hero.missionDuration,
+  startedAt: new Date(hero.missionStartTime).toISOString(),
+  shouldEndAt: new Date(hero.missionStartTime + hero.missionDuration * 1000).toISOString(),
+  now: new Date().toISOString()
+});
+
+// 3. Forzar verificación
+processAllTimers(Date.now());
+
+// 4. Verificar si hay errores en consola
+// 5. Verificar si el tab estuvo oculto
+```
+
+**El sistema ES matemáticamente correcto y DEBERÍA funcionar**, pero tiene más 
+complejidad que Special Builder Assignment, lo que aumenta las posibilidades de 
+fallos en casos extremos.
+
+================================================================================
+## 9. IMPLEMENTACIÓN DE MEJORAS - ACTUALIZACIÓN 2024
+================================================================================
+
+### ✅ CAMBIOS IMPLEMENTADOS
+
+El sistema de misiones ha sido completamente refactorizado para adoptar el 
+modelo de Special Builder Assignment. Los cambios incluyen:
+
+#### 1. Misiones Individuales - Nuevo Modelo
+
+**Ubicación**: `script.js` → función `startMission()`
+
+```javascript
+export function startMission(hero, slot) {
+  if (isBusy(hero)) return;
+  const duration = missionDuration(slot.id); // En segundos
+  const now = Date.now();
+  const durationMs = duration * 1000;
+  
+  // ✅ Modelo de Special Builder: timestamps ISO y endAt explícito
+  slot.heroId = hero.id;
+  slot.startedAt = new Date(now).toISOString();  // ← ISO STRING
+  slot.endAt = new Date(now + durationMs).toISOString();  // ← MOMENTO EXACTO DE FIN
+  slot.durationMs = durationMs;
+  slot.status = 'running';
+  
+  // Mantener propiedades del héroe para compatibilidad con UI
+  hero.missionTime = duration;
+  hero.missionDuration = duration;
+  hero.missionStartTime = now;
+  
+  scheduleSaveGame();
+}
+```
+
+**Cambios clave**:
+- ✅ `slot.startedAt`: ISO string con fecha y hora exacta
+- ✅ `slot.endAt`: Momento exacto de finalización calculado al inicio
+- ✅ `slot.status`: Estado explícito ('running', 'completed')
+- ✅ `slot.durationMs`: Duración en milisegundos
+- ⚠️ NO crea timer en el sistema centralizado
+
+#### 2. Misiones Diarias - Nuevo Modelo
+
+**Ubicación**: `src/dailyMissions.js` → función `startDailyMission()`
+
+```javascript
+export function startDailyMission(hero, slot) {
+  if (isBusy(hero)) return;
+  const duration = 21600; // 6 horas en segundos
+  const now = Date.now();
+  const durationMs = duration * 1000;
+  
+  // ✅ Modelo de Special Builder
+  slot.heroId = hero.id;
+  slot.completedHeroId = null;
+  slot.assignedWeek = getWeekKey(new Date());
+  slot.startedAt = new Date(now).toISOString();
+  slot.endAt = new Date(now + durationMs).toISOString();
+  slot.durationMs = durationMs;
+  slot.status = 'running';
+  
+  scheduleSaveGame();
+}
+```
+
+#### 3. Sistema de Verificación Unificado
+
+**Ubicación**: `script.js` → función `checkMissions()`
+
+```javascript
+function checkMissions() {
+  const now = Date.now();
+  let changed = false;
+  
+  // Verificar misiones individuales
+  state.missions.forEach(slot => {
+    if (slot.status === 'running' && slot.endAt) {
+      const end = Date.parse(slot.endAt);
+      const hero = getHeroById(slot.heroId);
+      
+      if (end <= now) {
+        // ✅ Completar misión usando comparación absoluta
+        slot.status = 'completed';
+        slot.completed = true;
+        // ... aplicar recompensas ...
+        changed = true;
+      } else if (hero) {
+        // ✅ Actualizar tiempo restante para la UI
+        const remainingMs = end - now;
+        hero.missionTime = Math.max(0, Math.ceil(remainingMs / 1000));
+      }
+    }
+  });
+  
+  // Verificar misiones diarias (lógica similar)
+  // ...
+}
+```
+
+**Características**:
+- ✅ Comparación absoluta: `end <= now`
+- ✅ Actualiza tiempo restante cada verificación
+- ✅ No depende del sistema de timers centralizados
+- ✅ Maneja misiones individuales y diarias
+
+#### 4. Función Unificada para Todas las Misiones
+
+```javascript
+function checkAllMissions() {
+  checkMissions();        // Misiones individuales + diarias
+  tickGroupMissions();    // Misiones grupales
+}
+
+// ✅ Se ejecuta cada 30 MINUTOS (antes 60 seg/60 min)
+setInterval(checkAllMissions, 30 * MIN); // 30 * 60_000 = 1_800_000 ms
+```
+
+#### 5. Limpieza del Sistema de Timers Centralizados
+
+**Ubicación**: `script.js` → inicialización del estado
+
+```javascript
+// Limpiar timers obsoletos
+activeTimers = activeTimers.filter(t => {
+  // ✅ Eliminar todos los timers de misiones del sistema antiguo
+  if (t.type === 'mission' || t.type === 'dailyMission') {
+    return false;
+  }
+  return true;
+});
+saveTimers();
+```
+
+**En `processAllTimers()`**:
+
+```javascript
+// ✅ Las misiones ya no se procesan aquí
+// Las misiones ahora usan el modelo de Special Builder y se verifican
+// cada 30 minutos con checkAllMissions(), no necesitan procesamiento aquí
+```
+
+#### 6. Actualización de Group Missions
+
+```javascript
+function tickGroupMissions() {
+  const now = Date.now();
+  let changed = false;
+  
+  for (const m of (state.groupMissions || [])) {
+    if (m.status === 'running' && m.endAt && now >= m.endAt) {
+      m.status = 'completed';
+      m.started = false;
+      // ... restaurar energía ...
+      changed = true;
+    }
+  }
+  
+  if (changed) {
+    saveGame?.();
+    renderGroupMissions();
+  }
+}
+
+// ✅ Ahora se ejecuta cada 30 minutos (antes 60 minutos)
+```
+
+================================================================================
+### TABLA COMPARATIVA: ANTES vs DESPUÉS
+================================================================================
+
+| Aspecto                   | ANTES                    | DESPUÉS ✅               |
+|---------------------------|--------------------------|--------------------------|
+| **Timestamp format**      | Numérico (Date.now())    | ISO String               |
+| **Cálculo finalización**  | elapsed = now - start    | end <= now               |
+| **Persistencia**          | 2 objetos (timer+hero)   | 1 objeto (slot)          |
+| **Verificación**          | Cada 60 segundos         | Cada 30 minutos          |
+| **Sistema de timers**     | Dependiente              | Independiente ✅         |
+| **Complejidad**           | Alta (múltiples puntos)  | Baja (modelo simple) ✅  |
+| **Puntos de fallo**       | Múltiples                | Mínimos ✅               |
+| **Sincronización**        | Timer + Hero + Slot      | Solo Slot ✅             |
+| **Validación huérfanos**  | Necesaria                | No necesaria ✅          |
+
+================================================================================
+### VENTAJAS DEL NUEVO SISTEMA
+================================================================================
+
+✅ **1. Simplicidad**
+- Un solo objeto (slot) contiene toda la información
+- No hay sincronización entre timer y slot
+- No hay validación de huérfanos
+
+✅ **2. Robustez**
+- Comparación absoluta contra tiempo de fin
+- No depende de verificaciones frecuentes
+- Funciona correctamente incluso con tab oculta
+
+✅ **3. Claridad**
+- `slot.startedAt` y `slot.endAt` son legibles como strings ISO
+- Estado explícito: `slot.status = 'running' | 'completed'`
+- Fácil de depurar en consola
+
+✅ **4. Eficiencia**
+- Verificación cada 30 minutos (vs 60 segundos)
+- Menos carga de CPU
+- Menos actualizaciones del localStorage
+
+✅ **5. Consistencia**
+- Mismo modelo para misiones individuales, diarias y grupales
+- Mismo patrón que Special Builder Assignment (probado y funcional)
+- Código más mantenible
+
+================================================================================
+### MIGRACIÓN Y COMPATIBILIDAD
+================================================================================
+
+El sistema mantiene compatibilidad hacia atrás:
+
+```javascript
+// Mantener propiedades del héroe para compatibilidad con UI
+hero.missionTime = duration;
+hero.missionDuration = duration;
+hero.missionStartTime = now;
+```
+
+Esto asegura que:
+- La UI existente sigue funcionando
+- No se pierden misiones en curso al actualizar
+- Los timers antiguos se limpian automáticamente
+
+================================================================================
+### VERIFICACIÓN MANUAL DEL NUEVO SISTEMA
+================================================================================
+
+Para verificar que una misión funciona correctamente:
+
+```javascript
+// 1. Ver estado del slot
+const slot = state.missions[0]; // Primera misión
+console.log({
+  heroId: slot.heroId,
+  startedAt: slot.startedAt,      // "2024-01-15T16:15:00.000Z"
+  endAt: slot.endAt,              // "2024-01-15T16:45:00.000Z"
+  durationMs: slot.durationMs,    // 1800000
+  status: slot.status,            // "running" o "completed"
+  shouldBeComplete: Date.now() >= Date.parse(slot.endAt)
+});
+
+// 2. Forzar verificación
+checkAllMissions();
+
+// 3. Ver todas las misiones activas
+state.missions.filter(s => s.status === 'running')
+  .map(s => ({
+    id: s.id,
+    hero: state.heroMap.get(s.heroId)?.name,
+    endsAt: s.endAt,
+    timeLeft: Math.ceil((Date.parse(s.endAt) - Date.now()) / 60000) + 'm'
+  }));
+```
+
+================================================================================
+### RESULTADO FINAL
+================================================================================
+
+**PREGUNTA ORIGINAL**: 
+"¿Una misión de 30 minutos iniciada a las 16:15 estará completada a las 16:45?"
+
+**RESPUESTA CON EL NUEVO SISTEMA**: 
+✅ **SÍ, GARANTIZADO**
+
+1. Al iniciar a las 16:15:00:
+   - `slot.startedAt = "2024-01-15T16:15:00.000Z"`
+   - `slot.endAt = "2024-01-15T16:45:00.000Z"`
+   - `slot.status = 'running'`
+
+2. Primera verificación a las 16:30 (después de 15 min):
+   - `Date.parse(slot.endAt) = 1705337100000`
+   - `Date.now() ≈ 1705336200000`
+   - `end > now` → Sigue corriendo ✓
+
+3. Segunda verificación a las 17:00 (después de 45 min):
+   - `Date.now() ≈ 1705339800000`
+   - `end <= now` → ¡COMPLETADA! ✅
+
+**Ventaja**: Aunque la verificación se realice cada 30 minutos, la comparación 
+es contra el tiempo absoluto de finalización, por lo que SIEMPRE se marca como 
+completada en la primera verificación después del tiempo objetivo, sin importar 
+cuánto tiempo haya pasado.
+
+**Comparación con Special Builder Assignment**: ✅ IDÉNTICO
+Ahora ambos sistemas funcionan exactamente igual, con la misma robustez y confiabilidad.

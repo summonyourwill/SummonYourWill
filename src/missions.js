@@ -155,6 +155,11 @@ export function renderMissions() {
           removeTimer(`mission_${slot.id}`);
           slot.heroId = null;
           slot.completed = false;
+          slot.status = 'idle';
+          slot.rewardApplied = false;
+          slot.startedAt = null;
+          slot.endAt = null;
+          slot.durationMs = 0;
           slot.description = missionDescriptions[Math.floor(Math.random() * missionDescriptions.length)];
           
           console.log('🚫 Cancelando misión - Estado DESPUÉS de limpiar misión:', {
@@ -174,18 +179,38 @@ export function renderMissions() {
           done.textContent = "Completed!";
           done.className = "mission-done";
           box.appendChild(done);
-          const close = document.createElement("button");
-          close.textContent = "❌";
-          close.className = "close-btn";
-          close.onclick = () => {
-            slot.heroId = null;
-            slot.completed = false;
-            slot.description = missionDescriptions[Math.floor(Math.random() * missionDescriptions.length)];
-            scheduleSaveGame();
-            renderMissions();
-            renderDailyMissions();
-          };
-          box.appendChild(close);
+          
+          // Si la recompensa no se ha aplicado, mostrar botón "Collect Reward"
+          if (!slot.rewardApplied) {
+            const collectBtn = document.createElement("button");
+            collectBtn.textContent = "Collect Reward";
+            collectBtn.className = "collect-reward-btn";
+            collectBtn.style.cssText = "background: #4CAF50; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px; margin: 4px; font-size: 0.9em;";
+            collectBtn.onclick = () => {
+              import('../script.js').then(m => {
+                m.collectMissionReward(slot);
+              });
+            };
+            box.appendChild(collectBtn);
+          } else {
+            const close = document.createElement("button");
+            close.textContent = "❌";
+            close.className = "close-btn";
+            close.onclick = () => {
+              slot.heroId = null;
+              slot.completed = false;
+              slot.status = 'idle';
+              slot.rewardApplied = false;
+              slot.startedAt = null;
+              slot.endAt = null;
+              slot.durationMs = 0;
+              slot.description = missionDescriptions[Math.floor(Math.random() * missionDescriptions.length)];
+              scheduleSaveGame();
+              renderMissions();
+              renderDailyMissions();
+            };
+            box.appendChild(close);
+          }
         }
       }
     } else {
@@ -250,7 +275,7 @@ export function renderMissions() {
           select.insertAdjacentElement('afterend', note);
           scheduleSaveGame();
         } else {
-          slot.heroId = id;
+          // NO asignar slot.heroId aquí - startMission lo hará
           startMission(hero, slot);
           // Forzar actualización inmediata después de asignar héroe
           setTimeout(() => {
