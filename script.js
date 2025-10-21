@@ -4557,6 +4557,9 @@ function renderVillageChief() {
             } else if (id === 'habits') {
               renderHabits(extraCard);
             } else if (id === 'projects') {
+              // Mostrar animación de experiencia la primera vez
+              showExpGainAnimation('projects', extraCard);
+              
               const iframe = document.createElement('iframe');
               iframe.className = 'html-game-frame';
               iframe.src = GAME_SOURCES.Projects;
@@ -6516,6 +6519,10 @@ function renderFortuneWheel(card) {
 
 function renderLifeMissions(card) {
   [...card.querySelectorAll(':scope > :not(.close-btn)')].forEach(el => el.remove());
+  
+  // Mostrar animación de experiencia la primera vez
+  showExpGainAnimation('lifemissions', card);
+  
   const title = document.createElement("h3");
   title.textContent = "Checklist";
   title.style.textAlign = "center";
@@ -6771,8 +6778,174 @@ function isHabitEditable(year, month, day) {
   return target >= earliest && target <= today;
 }
 
+// Función helper para mostrar la animación de experiencia ganada
+function showExpGainAnimation(sectionName, container) {
+  // Obtener la fecha actual (sin hora)
+  const today = new Date().toISOString().split('T')[0]; // Formato: YYYY-MM-DD
+  const storageKey = `expGainShown_${sectionName}`;
+  
+  // Verificar si ya se mostró hoy
+  const storedData = localStorage.getItem(storageKey);
+  if (storedData) {
+    try {
+      const { date } = JSON.parse(storedData);
+      if (date === today) {
+        return; // Ya se mostró hoy, no hacer nada
+      }
+    } catch (e) {
+      // Si hay error al parsear, continuar y sobrescribir
+    }
+  }
+
+  // Marcar como mostrado hoy
+  localStorage.setItem(storageKey, JSON.stringify({ date: today, shown: true }));
+
+  // Dar experiencia al VillageChief
+  addHeroExp(villageChief, 100, CHIEF_MAX_LEVEL);
+  saveGame();
+  renderVillageChiefIfVisible();
+
+  // Crear el contenedor del toast
+  const toastStack = document.createElement('div');
+  toastStack.id = `toast-stack-${sectionName}`;
+  toastStack.style.cssText = `
+    position: fixed;
+    top: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+    width: min(92vw, 360px);
+    z-index: 9999;
+  `;
+
+  // Crear el estilo
+  const style = document.createElement('style');
+  style.textContent = `
+    .papyrus-toast {
+      position: relative;
+      width: 100%;
+      background: radial-gradient(120% 90% at 50% 10%, rgba(255,255,255,0.55), rgba(247,232,195,0.85) 45%, rgba(214,183,120,0.9) 100%),
+                  radial-gradient(150% 120% at 50% 120%, rgba(0,0,0,0.04), rgba(0,0,0,0.12));
+      border-radius: 14px;
+      padding: 12px 18px;
+      text-align: center;
+      color: #3a2710;
+      font-family: "Cinzel", "MedievalSharp", serif;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.25);
+      box-shadow:
+        0 14px 40px rgba(0,0,0,0.45),
+        inset 0 0 0 1px rgba(60,45,20,0.25),
+        inset 0 1px 0 rgba(255,255,255,0.35);
+      overflow: hidden;
+      pointer-events: auto;
+      animation:
+        toast-pop 220ms ease-out,
+        toast-float 2300ms ease-out forwards;
+    }
+
+    .papyrus-toast::before,
+    .papyrus-toast::after{
+      content:"";
+      position:absolute;
+      inset: 6px;
+      border: 2px solid rgba(96,72,28,0.65);
+      border-radius: 10px;
+      pointer-events:none;
+      opacity: 0.7;
+    }
+    
+    .papyrus-toast::after{
+      inset: 0;
+      border: none;
+      background:
+        repeating-linear-gradient(90deg, rgba(0,0,0,0.03) 0 2px, transparent 2px 4px),
+        radial-gradient(120% 80% at 50% 0%, rgba(255,255,255,0.2), transparent 60%);
+      mix-blend-mode: multiply;
+      opacity: 0.45;
+    }
+
+    .papyrus-toast .rule {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(96,72,28,0.9), transparent);
+      margin: 8px 0 0;
+      opacity: .65;
+    }
+
+    .toast-line {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: clamp(16px, 2.6vw, 22px);
+    }
+    
+    .toast-line .star {
+      font-size: 1.1em;
+      line-height: 1;
+      filter: drop-shadow(0 0 6px rgba(214,178,94,0.65));
+    }
+    
+    .toast-line .exp {
+      color: #d6b25e;
+      text-shadow:
+        -1px -1px 0 #000,
+         0   -1px 0 #000,
+         1px -1px 0 #000,
+        -1px  0   0 #000,
+         1px  0   0 #000,
+        -1px  1px 0 #000,
+         0    1px 0 #000,
+         1px  1px 0 #000,
+        0 0 6px rgba(214,178,94,0.55);
+    }
+
+    @keyframes toast-pop {
+      from { transform: translateY(-8px) scale(0.96); opacity: 0; }
+      to   { transform: translateY(0)    scale(1);     opacity: 1; }
+    }
+    
+    @keyframes toast-float {
+      0%   { opacity: 1; transform: translateY(0) scale(1); }
+      70%  { opacity: 0.95; transform: translateY(-8px) scale(1.01); }
+      100% { opacity: 0; transform: translateY(-20px) scale(1.02); }
+    }
+  `;
+
+  // Crear el toast
+  const toast = document.createElement('div');
+  toast.className = 'papyrus-toast';
+  toast.innerHTML = `
+    <div class="toast-line">
+      <span class="star">✦</span>
+      <span>You gained</span>
+      <span class="exp">100 Exp!</span>
+      <span class="star">✦</span>
+    </div>
+    <div class="rule"></div>
+  `;
+
+  // Agregar todo al DOM
+  document.head.appendChild(style);
+  toastStack.appendChild(toast);
+  document.body.appendChild(toastStack);
+
+  // Remover después de la animación
+  setTimeout(() => {
+    toastStack.remove();
+    style.remove();
+  }, 2650);
+}
+
 async function renderDiary(card) {
   [...card.querySelectorAll(':scope > :not(.close-btn)')].forEach(el => el.remove());
+  
+  // Mostrar animación de experiencia la primera vez
+  showExpGainAnimation('diary', card);
   
   // Crear iframe para cargar diary con srcdoc
   const iframeContainer = document.createElement('div');
@@ -6842,6 +7015,9 @@ async function renderDiary(card) {
 async function renderWeekPlan(card) {
   [...card.querySelectorAll(':scope > :not(.close-btn)')].forEach(el => el.remove());
   
+  // Mostrar animación de experiencia la primera vez
+  showExpGainAnimation('weekplan', card);
+  
   // Crear iframe para cargar weekplan con srcdoc
   const iframeContainer = document.createElement('div');
   iframeContainer.style.width = '100%';
@@ -6902,6 +7078,9 @@ function renderHabits(card) {
   const currentStart = new Date(now.getFullYear(), now.getMonth());
   card.innerHTML = '';
   card.style.position = 'relative';
+  
+  // Mostrar animación de experiencia la primera vez
+  showExpGainAnimation('habits', card);
   
   // Botón de cerrar
   const closeBtn = document.createElement("button");

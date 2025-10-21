@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>You gained 100 Exp!</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=MedievalSharp&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --toast-duration: 2300ms;
+    --toast-width: 360px;
+    --papyrus-bg: radial-gradient(120% 90% at 50% 10%, rgba(255,255,255,0.55), rgba(247,232,195,0.85) 45%, rgba(214,183,120,0.9) 100%),
+                  radial-gradient(150% 120% at 50% 120%, rgba(0,0,0,0.04), rgba(0,0,0,0.12));
+    --ink: #3a2710;
+    --gold: #d6b25e;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; background:#0b0b0b; margin:0; }
+  body { display:grid; place-items:center; color:#eee; font-family: system-ui, -apple-system, Segoe UI, Roboto, "MedievalSharp", sans-serif; }
+
+  .toast-stack {
+    position: fixed;
+    top: 28px; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; gap: 10px;
+    pointer-events: none;
+    width: min(92vw, var(--toast-width));
+    z-index: 9999;
+  }
+
+  .papyrus-toast {
+    position: relative;
+    width: 100%;
+    background: var(--papyrus-bg);
+    border-radius: 14px;
+    padding: 12px 18px;
+    text-align: center;
+    color: var(--ink);
+    font-family: "Cinzel", "MedievalSharp", serif;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.25);
+    box-shadow:
+      0 14px 40px rgba(0,0,0,0.45),
+      inset 0 0 0 1px rgba(60,45,20,0.25),
+      inset 0 1px 0 rgba(255,255,255,0.35);
+    overflow: hidden;
+    pointer-events: auto;
+    animation:
+      toast-pop 220ms ease-out,
+      toast-float var(--toast-duration) ease-out forwards;
+  }
+
+  .papyrus-toast::before,
+  .papyrus-toast::after{
+    content:"";
+    position:absolute; inset: 6px;
+    border: 2px solid rgba(96,72,28,0.65);
+    border-radius: 10px;
+    pointer-events:none;
+    opacity: 0.7;
+  }
+  .papyrus-toast::after{
+    inset: 0; border: none;
+    background:
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.03) 0 2px, transparent 2px 4px),
+      radial-gradient(120% 80% at 50% 0%, rgba(255,255,255,0.2), transparent 60%);
+    mix-blend-mode: multiply;
+    opacity: 0.45;
+  }
+
+  .papyrus-toast .rule {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(96,72,28,0.9), transparent);
+    margin: 8px 0 0;
+    opacity: .65;
+  }
+
+  .toast-line {
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    font-size: clamp(16px, 2.6vw, 22px);
+  }
+  .toast-line .star {
+    font-size: 1.1em; line-height: 1;
+    filter: drop-shadow(0 0 6px rgba(214,178,94,0.65));
+  }
+  .toast-line .exp {
+    color: var(--gold);
+    text-shadow:
+      -1px -1px 0 #000,
+       0   -1px 0 #000,
+       1px -1px 0 #000,
+      -1px  0   0 #000,
+       1px  0   0 #000,
+      -1px  1px 0 #000,
+       0    1px 0 #000,
+       1px  1px 0 #000,
+      0 0 6px rgba(214,178,94,0.55);
+  }
+
+  @keyframes toast-pop {
+    from { transform: translateY(-8px) scale(0.96); opacity: 0; }
+    to   { transform: translateY(0)    scale(1);     opacity: 1; }
+  }
+  @keyframes toast-float {
+    0%   { opacity: 1; transform: translateY(0) scale(1); }
+    70%  { opacity: 0.95; transform: translateY(-8px) scale(1.01); }
+    100% { opacity: 0; transform: translateY(-20px) scale(1.02); }
+  }
+
+  .papyrus-toast .close {
+    position:absolute; top: 6px; right: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 14px; opacity: 0; transition: opacity .2s ease; cursor: pointer; color:#5a3e16;
+  }
+  .papyrus-toast:hover .close { opacity: 0.9; }
+  .papyrus-toast .close:active { transform: translateY(1px); }
+
+  @media (prefers-color-scheme: light) {
+    body { background: #ece7dc; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
+
+<script>
+  function gainExp(opts = {}) {
+    const cssDuration = parseInt(getComputedStyle(document.documentElement)
+                        .getPropertyValue('--toast-duration')) || 2300;
+    const duration = Math.max(1200, +opts.duration || cssDuration);
+
+    const stack = document.getElementById('toastStack');
+    const toast = document.createElement('div');
+    toast.className = 'papyrus-toast';
+    toast.style.setProperty('--toast-duration', duration + 'ms');
+
+    toast.innerHTML = `
+      <div class="close" title="Cerrar">✕</div>
+      <div class="toast-line">
+        <span class="star">✦</span>
+        <span>You gained</span>
+        <span class="exp">100 Exp!</span>
+        <span class="star">✦</span>
+      </div>
+      <div class="rule"></div>
+    `;
+
+    toast.querySelector('.close').addEventListener('click', () => {
+      toast.style.animation = 'none';
+      requestAnimationFrame(() => {
+        toast.style.animation =
+          'toast-pop 120ms ease-out reverse, toast-float 260ms ease-in reverse';
+        setTimeout(() => toast.remove(), 240);
+      });
+    });
+
+    stack.appendChild(toast);
+
+    const removeTimer = setTimeout(() => toast.remove(), duration + 350);
+    toast.addEventListener('animationend', (e) => {
+      if (e.animationName === 'toast-float') {
+        clearTimeout(removeTimer);
+        toast.remove();
+      }
+    });
+  }
+
+  // Mostrar automáticamente al cargar:
+  gainExp();
+</script>
+
+</body>
+</html>
