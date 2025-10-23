@@ -3434,6 +3434,10 @@ html, body {
 }
 
 /* Estado minimizado del reproductor */
+#chiefMusicSlot.minimized {
+  width: auto;
+}
+
 #chiefMusicSlot.minimized .mini-player {
   width: auto;
   padding: 4px 8px;
@@ -3445,8 +3449,9 @@ html, body {
 }
 
 #chiefMusicSlot.minimized .mini-player .manage-row {
-  justify-content: flex-start;
-  gap: 8px;
+  justify-content: center;
+  gap: 0;
+  width: auto;
 }
 
 #chiefMusicSlot.minimized .mini-player .manage-row button:not(#sywMinimize) {
@@ -3455,12 +3460,13 @@ html, body {
 
 #chiefMusicSlot.minimized .mini-player .manage-row #sywMinimize {
   display: block;
-  margin-left: auto;
+  margin-left: 0;
 }
 
 /* Estado minimizado - mostrar solo emoji y botón + */
 #chiefMusicSlot.minimized .mini-player .manage-row .music-emoji {
   display: inline-block;
+  margin-right: 0;
 }
 .mini-player .manage-row{ display:flex; justify-content:center; align-items:center; gap:8px; width:100%; }
 .mini-player .music-emoji{ font-size:16px; margin-right:4px; }

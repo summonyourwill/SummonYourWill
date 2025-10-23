@@ -646,20 +646,20 @@ let villageChief = {
     number: i + 1
   }))
   ,
-  partnerAbilities: Array.from({ length: PARTNER_ABILITY_COUNT }, (_, i) => ({
-    name: `No name${i + 1}`,
-    img: "",
-    imgOffset: 50,
-    imgOffsetX: 50,
-    level: 1,
-    desc: "",
-    modified: Date.now(),
-    firstModified: Date.now(),
-    number: i + 1
-  })),
+  // partnerAbilities: Array.from({ length: PARTNER_ABILITY_COUNT }, (_, i) => ({
+  //   name: `No name${i + 1}`,
+  //   img: "",
+  //   imgOffset: 50,
+  //   imgOffsetX: 50,
+  //   level: 1,
+  //   desc: "",
+  //   modified: Date.now(),
+  //   firstModified: Date.now(),
+  //   number: i + 1
+  // })),
   unlockedFamiliars: 3,
-  unlockedHabilities: 3,
-  unlockedPartnerAbilities: 3
+  unlockedHabilities: 3
+  // unlockedPartnerAbilities: 3
 };
 // Solo definir la propiedad si no existe para evitar errores en producción
 if (!window.hasOwnProperty('villageChief')) {
@@ -863,18 +863,7 @@ async function loadGame() {
   soldiers = data.soldiers ?? soldiers;
   state.heroes = (data.heroes || []).filter(Boolean);
   scheduleRenderHeroes();
-  try {
-    const response = await fetch('assets/data/lastsave.json');
-    if (response.ok) {
-      const jsonHeroes = await response.json();
-      if (Array.isArray(jsonHeroes) && jsonHeroes.length) {
-        state.heroes = jsonHeroes.filter(Boolean);
-        scheduleRenderHeroes();
-      }
-    }
-  } catch (error) {
-    console.error('Error al cargar heroes.json:', error);
-  }
+  // Removed lastsave.json loading - heroes are loaded from save.json only
   state.heroes = (state.heroes || []).filter(Boolean);
   let updatedSex = false;
   state.heroes.forEach(h => {
@@ -1104,54 +1093,54 @@ async function loadGame() {
     }
   }
   makeListNamesUnique(villageChief.habilities);
-  if (!villageChief.partnerAbilities || !Array.isArray(villageChief.partnerAbilities)) {
-    villageChief.partnerAbilities = Array.from({ length: PARTNER_ABILITY_COUNT }, (_, i) => ({
-      name: `No name${i + 1}`,
-      img: "",
-      imgOffset: 50,
-      imgOffsetX: 50,
-      level: 1,
-      desc: "",
-      modified: Date.now()
-    }));
-  } else {
-    for (let i = 0; i < PARTNER_ABILITY_COUNT; i++) {
-      if (!villageChief.partnerAbilities[i]) {
-        villageChief.partnerAbilities[i] = {
-          name: `No name${i + 1}`,
-          img: "",
-          level: 1,
-          desc: "",
-          modified: Date.now()
-        };
-      } else {
-        const p = villageChief.partnerAbilities[i];
-        if (p.name === undefined) p.name = `No name${i + 1}`;
-        if (p.img === undefined) p.img = "";
-        if (p.imgOffset === undefined) p.imgOffset = 50;
-        if (p.imgOffsetX === undefined) p.imgOffsetX = 50;
-        if (p.level === undefined) p.level = 1;
-        if (p.desc === undefined) p.desc = "";
-        if (p.modified === undefined) p.modified = Date.now();
-        if (p.firstModified === undefined) p.firstModified = p.modified;
-        if (p.number === undefined) p.number = i + 1;
-        if (p.stepImgs === undefined) p.stepImgs = [];
-        if (p.activeStep === undefined) p.activeStep = 0;
-      }
-    }
-  }
-  makeListNamesUnique(villageChief.partnerAbilities);
+  // if (!villageChief.partnerAbilities || !Array.isArray(villageChief.partnerAbilities)) {
+  //   villageChief.partnerAbilities = Array.from({ length: PARTNER_ABILITY_COUNT }, (_, i) => ({
+  //     name: `No name${i + 1}`,
+  //     img: "",
+  //     imgOffset: 50,
+  //     imgOffsetX: 50,
+  //     level: 1,
+  //     desc: "",
+  //     modified: Date.now()
+  //   }));
+  // } else {
+  //   for (let i = 0; i < PARTNER_ABILITY_COUNT; i++) {
+  //     if (!villageChief.partnerAbilities[i]) {
+  //       villageChief.partnerAbilities[i] = {
+  //         name: `No name${i + 1}`,
+  //         img: "",
+  //         level: 1,
+  //         desc: "",
+  //         modified: Date.now()
+  //       };
+  //     } else {
+  //       const p = villageChief.partnerAbilities[i];
+  //       if (p.name === undefined) p.name = `No name${i + 1}`;
+  //       if (p.img === undefined) p.img = "";
+  //       if (p.imgOffset === undefined) p.imgOffset = 50;
+  //       if (p.imgOffsetX === undefined) p.imgOffsetX = 50;
+  //       if (p.level === undefined) p.level = 1;
+  //       if (p.desc === undefined) p.desc = "";
+  //       if (p.modified === undefined) p.modified = Date.now();
+  //       if (p.firstModified === undefined) p.firstModified = p.modified;
+  //       if (p.number === undefined) p.number = i + 1;
+  //       if (p.stepImgs === undefined) p.stepImgs = [];
+  //       if (p.activeStep === undefined) p.activeStep = 0;
+  //     }
+  //   }
+  // }
+  // makeListNamesUnique(villageChief.partnerAbilities);
   state.companions = (data.companions ?? state.companions).concat(Array(8).fill(null)).slice(0, 8);
   state.farmers = (data.farmers ?? state.farmers).concat(Array(8).fill(null)).slice(0, 8);
   state.lumberjacks = (data.lumberjacks ?? state.lumberjacks).concat(Array(8).fill(null)).slice(0, 8);
   state.miners = (data.miners ?? state.miners).concat(Array(8).fill(null)).slice(0, 8);
-  partner = data.partner ?? partner;
-  if (partner.exp === undefined) partner.exp = 0;
-  if (partner.hpPotions === undefined) partner.hpPotions = 0;
-  if (partner.manaPotions === undefined) partner.manaPotions = 0;
-  if (partner.energyPotions === undefined) partner.energyPotions = 0;
-  if (partner.expPotions === undefined) partner.expPotions = 0;
-  if (partner.energia === undefined) partner.energia = 100;
+  // partner = data.partner ?? partner;
+  // if (partner.exp === undefined) partner.exp = 0;
+  // if (partner.hpPotions === undefined) partner.hpPotions = 0;
+  // if (partner.manaPotions === undefined) partner.manaPotions = 0;
+  // if (partner.energyPotions === undefined) partner.energyPotions = 0;
+  // if (partner.expPotions === undefined) partner.expPotions = 0;
+  // if (partner.energia === undefined) partner.energia = 100;
   villains = data.villains ?? villains;
   villains.forEach(v => {
     if (v.avatarOffset === undefined) v.avatarOffset = 50;
@@ -1178,13 +1167,13 @@ async function loadGame() {
   habitsLastProcessed = data.habitsLastProcessed ?? habitsLastProcessed;
   unlockedFamiliars = data.unlockedFamiliars ?? unlockedFamiliars;
   unlockedHabilities = data.unlockedHabilities ?? unlockedHabilities;
-  unlockedPartnerAbilities = data.unlockedPartnerAbilities ?? unlockedPartnerAbilities;
+  // unlockedPartnerAbilities = data.unlockedPartnerAbilities ?? unlockedPartnerAbilities;
   if (data.bossStats) {
     Object.assign(bossStats, data.bossStats);
   }
-  if (data.partnerStats) {
-    Object.assign(partnerStats, data.partnerStats);
-  }
+  // if (data.partnerStats) {
+  //   Object.assign(partnerStats, data.partnerStats);
+  // }
   if (data.buildingTask) Object.assign(state.buildingTask, data.buildingTask);
   if (!state.buildingTask.heroes) state.buildingTask.heroes = state.buildingTask.heroIds ? state.buildingTask.heroIds.map(id => state.heroMap.get(id)) : [null, null, null];
   if (state.buildingTask.cost === undefined) state.buildingTask.cost = 0;
@@ -1231,7 +1220,7 @@ async function loadGame() {
   if (MAX_STONE !== expectedStoneCap) setMaxStone(expectedStoneCap);
   MAX_LEVEL = data.MAX_LEVEL ?? MAX_LEVEL;
   CHIEF_MAX_LEVEL = Math.max(20, data.CHIEF_MAX_LEVEL ?? CHIEF_MAX_LEVEL);
-  PARTNER_MAX_LEVEL = data.PARTNER_MAX_LEVEL ?? PARTNER_MAX_LEVEL;
+  // PARTNER_MAX_LEVEL = data.PARTNER_MAX_LEVEL ?? PARTNER_MAX_LEVEL;
   if (data.MAX_STATS) {
     Object.assign(MAX_STATS, data.MAX_STATS);
   } else if (data.MAX_STAT !== undefined) {
@@ -1242,9 +1231,9 @@ async function loadGame() {
   } else if (data.CHIEF_MAX_STAT !== undefined) {
     Object.keys(CHIEF_MAX_STATS).forEach(k => { CHIEF_MAX_STATS[k] = Math.max(15, data.CHIEF_MAX_STAT); });
   }
-  if (data.PARTNER_MAX_STATS) {
-    Object.assign(PARTNER_MAX_STATS, data.PARTNER_MAX_STATS);
-  }
+  // if (data.PARTNER_MAX_STATS) {
+  //   Object.assign(PARTNER_MAX_STATS, data.PARTNER_MAX_STATS);
+  // }
   if (villainFixNeeded) {
     updateResourcesDisplay();
     scheduleSaveGame();
@@ -1991,6 +1980,11 @@ export function saveGame() {
     }
   });
 
+  // Eliminar campos de partner del villageChief antes de guardar
+  delete villageChief.partnerAbilities;
+  delete villageChief.unlockedPartnerAbilities;
+  delete villageChief.partnerLevel;
+
   recalcSummonCost();
   const gameState = {
     version: SAVE_VERSION,
@@ -2022,10 +2016,8 @@ export function saveGame() {
     MAX_STONE,
     MAX_LEVEL,
     CHIEF_MAX_LEVEL,
-    PARTNER_MAX_LEVEL,
     MAX_STATS,
     CHIEF_MAX_STATS,
-    PARTNER_MAX_STATS,
     castleLevelFixApplied,
     villainCapFixApplied,
     autoClickActive: state.autoClickActive,
@@ -2048,14 +2040,11 @@ export function saveGame() {
     habitsLastProcessed,
     unlockedFamiliars,
     unlockedHabilities,
-    unlockedPartnerAbilities,
     bossStats,
     buildingTask: state.buildingTask,
     upgradeTasks: state.upgradeTasks,
     buildingLevels: state.buildingLevels,
     extraHouses,
-    partner,
-    partnerStats,
     projects: (()=>{ try{ return JSON.parse(localStorage.getItem('syw_projects_v1')||'[]'); }catch{ return []; } })(),
     projectPoints: Number(localStorage.getItem('syw_points')||0)
   };
@@ -2898,13 +2887,25 @@ function chooseHeroPet(callback) {
   const existing = document.querySelector('.hero-pet-overlay');
   if (existing) existing.remove();
   const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay card-modal hero-pet-overlay';
+  overlay.className = 'builder-modal-overlay hero-pet-overlay';
   const modal = document.createElement('div');
-  modal.className = 'modal chief-card';
-  modal.style.padding = '10px';
-  modal.style.minHeight = '0';
+  modal.className = 'builder-modal';
+  
+  const title = document.createElement('h3');
+  title.textContent = 'Pet Exploration';
+  title.className = 'builder-modal-title';
+  modal.appendChild(title);
+
+  const formGroup = document.createElement('div');
+  formGroup.className = 'builder-form-group';
+  
+  const label = document.createElement('label');
+  label.textContent = 'Choose Hero:';
+  label.className = 'builder-label';
+  formGroup.appendChild(label);
 
   const select = document.createElement('select');
+  select.className = 'builder-select';
   state.heroes
     .filter(h => h.pet && h.petExploreDay !== getToday())
     .forEach(h => {
@@ -2915,61 +2916,62 @@ function chooseHeroPet(callback) {
     });
 
   if (select.options.length === 0) {
-    modal.className = 'modal';
     const msg = document.createElement('div');
     msg.textContent = 'No pet available today';
+    msg.style.textAlign = 'center';
+    msg.style.padding = '20px';
+    msg.style.color = '#666';
     modal.appendChild(msg);
-    const buttons = document.createElement('div');
-    buttons.style.display = 'flex';
-    buttons.style.gap = '6px';
+    
+    const btnRow = document.createElement('div');
+    btnRow.className = 'builder-modal-buttons';
+    
     const start = document.createElement('button');
     start.textContent = 'Play';
     start.className = 'btn btn-blue';
-    start.style.flex = '1';
     start.disabled = true;
+    btnRow.appendChild(start);
+    
     const close = document.createElement('button');
     close.textContent = 'Close';
-    close.className = 'btn btn-green white-text';
-    close.style.flex = '1';
+    close.className = 'btn btn-lightyellow';
     close.onclick = () => removeOverlay(overlay);
-    buttons.appendChild(start);
-    buttons.appendChild(close);
-    modal.appendChild(buttons);
+    btnRow.appendChild(close);
+    
+    modal.appendChild(btnRow);
     overlay.appendChild(modal);
-    appendOverlay(overlay, document.getElementById('games-buttons-card'));
+    appendOverlay(overlay);
     return;
   }
 
-  const buttons = document.createElement('div');
-  buttons.style.display = 'flex';
-  buttons.style.gap = '6px';
+  formGroup.appendChild(select);
+  modal.appendChild(formGroup);
+
+  const btnRow = document.createElement('div');
+  btnRow.className = 'builder-modal-buttons';
 
   const ok = document.createElement('button');
   ok.textContent = 'Start';
-  ok.className = 'btn btn-blue white-text';
-    ok.style.flex = '1';
-    ok.onclick = () => {
-      const hero = state.heroMap.get(parseInt(select.value));
-      if (hero) {
-        currentPetHero = hero;
-      }
-      removeOverlay(overlay);
-      callback(hero);
-    };
+  ok.className = 'btn btn-celeste';
+  ok.onclick = () => {
+    const hero = state.heroMap.get(parseInt(select.value));
+    if (hero) {
+      currentPetHero = hero;
+    }
+    removeOverlay(overlay);
+    callback(hero);
+  };
+  btnRow.appendChild(ok);
 
   const cancel = document.createElement('button');
   cancel.textContent = 'Cancel';
-  cancel.className = 'btn btn-green white-text';
-  cancel.style.flex = '1';
+  cancel.className = 'btn btn-lightyellow';
   cancel.onclick = () => removeOverlay(overlay);
+  btnRow.appendChild(cancel);
 
-  buttons.appendChild(ok);
-  buttons.appendChild(cancel);
-
-  modal.appendChild(select);
-  modal.appendChild(buttons);
+  modal.appendChild(btnRow);
   overlay.appendChild(modal);
-  appendOverlay(overlay, document.getElementById('games-buttons-card'));
+  appendOverlay(overlay);
   focusNoScroll(select);
 }
 
@@ -5274,7 +5276,7 @@ function renderVillageChief() {
     partSort.appendChild(b);
   });
   partnerDiv.appendChild(partSort);
-  let partList = villageChief.partnerAbilities.slice().sort((a,b)=>{
+  let partList = (villageChief.partnerAbilities || []).slice().sort((a,b)=>{
     if(partnerAbilitySort==='name') return a.name.localeCompare(b.name);
     if(partnerAbilitySort==='level') return (b.level||1)-(a.level||1);
     if(partnerAbilitySort==='number') return (a.number||0)-(b.number||0);
@@ -5352,7 +5354,7 @@ function renderVillageChief() {
     const nameDiv = document.createElement('div');
     nameDiv.textContent = `${ab.name} (Lvl:${ab.level||1})`;
     nameDiv.style.cursor= readOnly ? 'default' : 'pointer';
-    if (!readOnly) nameDiv.onclick=()=>{ openEditModal('Ability Name',ab.name,val=>{ if(val){ ab.name=ensureUniqueAbilityName(villageChief.partnerAbilities.filter(h=>h!==ab),val); const now=Date.now(); if(ab.firstModified===undefined) ab.firstModified=now; ab.modified=now; saveGame(); renderVillageChief(); }},{container: partnerDiv}); };
+    if (!readOnly) nameDiv.onclick=()=>{ openEditModal('Ability Name',ab.name,val=>{ if(val){ ab.name=ensureUniqueAbilityName((villageChief.partnerAbilities || []).filter(h=>h!==ab),val); const now=Date.now(); if(ab.firstModified===undefined) ab.firstModified=now; ab.modified=now; saveGame(); renderVillageChief(); }},{container: partnerDiv}); };
     const descDiv=document.createElement('div');
     descDiv.className='small-desc';
     const dtxt=(ab.desc||'').trim();
@@ -12274,9 +12276,6 @@ Each Pet can collect Gold once per day with the Village Chief and Partner.
 <strong>5.5 Chief Survival</strong>
 Earn 1000 Gold for each level the Chief survives.
 
-<strong>5.6 Tower Defense (Coming Soon)</strong>
-12 Heroes, each must be at 100% energy.
-Rewards: +100 EXP and +1000 Gold per level reached.
 
 <strong>5.7 Fortune Wheel</strong>
 Daily wheel to earn Gold.</pre>`;
@@ -12527,8 +12526,7 @@ function renderGames() {
       2: "EnemyEncounter",
       3: "PetExploration",
       4: "ChiefSurvival",
-      5: "TowerDefense",
-      6: "FortuneWheel",
+      5: "FortuneWheel",
     };
     for (let i = 1; i <= Object.keys(gameNames).length; i++) {
       const label = gameNames[i];
@@ -12593,23 +12591,6 @@ function renderGames() {
           detailCard.style.display = "block";
           minigameOpened();
           renderFortuneWheel(detailCard);
-          return;
-        }
-        if (label === "TowerDefense") {
-          const close = document.createElement("button");
-          close.textContent = "❌";
-          close.className = "close-btn";
-          close.style.color = "red";
-          close.onclick = () => {
-            minigameClosed();
-            detailCard.style.display = "none";
-            detailCard.innerHTML = "";
-            detailCard.dataset.game = "";
-          };
-          detailCard.appendChild(close);
-          detailCard.dataset.game = "TowerDefense";
-          detailCard.style.display = "block";
-          minigameOpened();
           return;
         }
         if (label.startsWith("Game")) {
@@ -13105,7 +13086,7 @@ function unlockPartnerAbility() {
   if (state.money < cost || unlockedPartnerAbilities >= PARTNER_ABILITY_COUNT) return;
   state.money -= cost;
   unlockedPartnerAbilities++;
-  villageChief.unlockedPartnerAbilities = unlockedPartnerAbilities;
+  // villageChief.unlockedPartnerAbilities = unlockedPartnerAbilities;
   updateResourcesDisplay();
   saveGame();
   renderVillageChief();
@@ -15016,7 +14997,7 @@ function renderPartnerAbilitiesSection(container) {
   });
   partnerDiv.appendChild(partSort);
   
-  let partList = villageChief.partnerAbilities.slice().sort((a,b)=>{
+  let partList = (villageChief.partnerAbilities || []).slice().sort((a,b)=>{
     if(partnerAbilitySort==='name') return a.name.localeCompare(b.name);
     if(partnerAbilitySort==='level') return (b.level||1)-(a.level||1);
     if(partnerAbilitySort==='number') return (a.number||0)-(b.number||0);
