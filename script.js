@@ -329,8 +329,7 @@ const PET_RESOURCE_TYPES = Object.keys(PET_RESOURCE_ICONS);
 let unlockedHabilities = 3;
 let unlockedPartnerAbilities = 3;
 const PROFESSION_LIMIT = 5;
-const PROFESSION_MAX = 5;
-const PROFESSION_REMOVE_COST = 300;
+const PROFESSION_MAX = 7;
 function randomPetResource() {
   return PET_RESOURCE_TYPES[Math.floor(Math.random() * PET_RESOURCE_TYPES.length)];
 }
@@ -11102,21 +11101,10 @@ export function renderHeroes() {
         const del = document.createElement("button");
         del.textContent = "x";
         del.onclick = () => {
-          openConfirm({
-            message: `Remove profession for ${PROFESSION_REMOVE_COST} gold?`,
-            onConfirm: () => {
-              if (state.money < PROFESSION_REMOVE_COST) {
-                showAlert("Not enough gold");
-                return;
-              }
-              state.money -= PROFESSION_REMOVE_COST;
-              hero.professions.splice(idx, 1);
-              updateResourcesDisplay();
-              saveGame();
-              scheduleRenderHeroes();
-            },
-            container: div
-          });
+          hero.professions.splice(idx, 1);
+          updateResourcesDisplay();
+          saveGame();
+          scheduleRenderHeroes();
         };
         item.appendChild(del);
       }
@@ -11143,17 +11131,10 @@ export function renderHeroes() {
       select.onchange = e => {
         const val = e.target.value;
         if (!val) return;
-        openConfirm({
-          message: `Add profession ${val}?`,
-          onConfirm: () => {
-            hero.professions.push(val);
-            hero.professions.sort((a,b)=>a.localeCompare(b));
-            saveGame();
-            scheduleRenderHeroes();
-          },
-          onCancel: () => {},
-          container: div
-        });
+        hero.professions.push(val);
+        hero.professions.sort((a,b)=>a.localeCompare(b));
+        saveGame();
+        scheduleRenderHeroes();
         select.value = "";
       };
       profCol.appendChild(select);
