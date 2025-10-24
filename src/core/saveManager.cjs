@@ -527,16 +527,16 @@ async function saveGame(data) {
       await generateVillainsFile(data.villains, chiefId);
     }
     
-    // Generar partner.json y partner_abilities.json
-    if (data.partner) {
-      await generatePartnerFile(data.partner, data.partnerStats, chiefId);
-      await generatePartnerAbilitiesFile(data.villageChief || {});
-    }
+    // Generar partner.json y partner_abilities.json - COMENTADO
+    // if (data.partner) {
+    //   await generatePartnerFile(data.partner, data.partnerStats, chiefId);
+    //   await generatePartnerAbilitiesFile(data.villageChief || {});
+    // }
     
-    // Generar familiars.json
-    if (data.villageChief && data.villageChief.familiars && Array.isArray(data.villageChief.familiars)) {
-      await generateFamiliarsFile(data.villageChief.familiars, chiefId);
-    }
+    // Generar familiars.json - COMENTADO
+    // if (data.villageChief && data.villageChief.familiars && Array.isArray(data.villageChief.familiars)) {
+    //   await generateFamiliarsFile(data.villageChief.familiars, chiefId);
+    // }
     
     // Generar Elites.json
     if (data.Elites && Array.isArray(data.Elites)) {

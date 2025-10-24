@@ -3205,8 +3205,8 @@ section h1::before {
 }
 
 .ability-image {
-  width: 160px;
-  height: 160px;
+  width: 140px;
+  height: 140px;
   max-width: none;
   max-height: none;
   object-fit: cover;

@@ -326,7 +326,6 @@ const PET_RESOURCE_INTERVAL = 60 * 1000; // 1 minute
 const PET_MAX_PENDING = 10;
 const PET_RESOURCE_ICONS = { food: '🥔', wood: '🪵', stone: '🪨', gold: '💰' };
 const PET_RESOURCE_TYPES = Object.keys(PET_RESOURCE_ICONS);
-let unlockedFamiliars = 3;
 let unlockedHabilities = 3;
 let unlockedPartnerAbilities = 3;
 const PROFESSION_LIMIT = 5;
@@ -521,7 +520,7 @@ let PARTNER_MAX_STATS = {
 export function updateMaxLevelsFromCastle() {
   const castleLevel = state.buildingLevels?.Castle || 0;
   MAX_LEVEL = 10 + 5 * castleLevel;
-  CHIEF_MAX_LEVEL = 20 + 10 * castleLevel;
+  // CHIEF_MAX_LEVEL = 20 + 10 * castleLevel; // Removido - Village Chief sin límite
   PARTNER_MAX_LEVEL = 20 + 10 * castleLevel;
 }
 const bossStats = {
@@ -657,7 +656,6 @@ let villageChief = {
   //   firstModified: Date.now(),
   //   number: i + 1
   // })),
-  unlockedFamiliars: 3,
   unlockedHabilities: 3
   // unlockedPartnerAbilities: 3
 };
@@ -1024,36 +1022,41 @@ async function loadGame() {
       imgOffset: 50,
       imgOffsetX: 50,
       level: 1,
-      stepImgs: [],
-      activeStep: 0,
       desc: "",
       modified: Date.now()
     }));
   } else {
-    for (let i = 0; i < FAMILIAR_COUNT; i++) {
-      if (!villageChief.familiars[i]) {
-        villageChief.familiars[i] = {
-          name: `No name${i + 1}`,
-          img: "",
-          level: 1,
-          desc: "",
-          modified: Date.now()
-        };
-      } else {
-        const f = villageChief.familiars[i];
-        if (f.name === undefined) f.name = `No name${i + 1}`;
-        if (f.img === undefined) f.img = "";
-        if (f.imgOffset === undefined) f.imgOffset = 50;
-        if (f.imgOffsetX === undefined) f.imgOffsetX = 50;
-        if (f.level === undefined) f.level = 1;
-        if (f.desc === undefined) f.desc = "";
-        if (f.modified === undefined) f.modified = Date.now();
-        if (f.firstModified === undefined) f.firstModified = f.modified;
-        if (f.number === undefined) f.number = i + 1;
-      }
-    }
+    // Familiars deshabilitados - no inicializar
+    // for (let i = 0; i < FAMILIAR_COUNT; i++) {
+    //   if (!villageChief.familiars[i]) {
+    //     villageChief.familiars[i] = {
+    //       name: `No name${i + 1}`,
+    //       img: "",
+    //       level: 1,
+    //       desc: "",
+    //       modified: Date.now()
+    //     };
+    //   } else {
+    //     const f = villageChief.familiars[i];
+    //     if (f.name === undefined) f.name = `No name${i + 1}`;
+    //     if (f.img === undefined) f.img = "";
+    //     if (f.imgOffset === undefined) f.imgOffset = 50;
+    //     if (f.imgOffsetX === undefined) f.imgOffsetX = 50;
+    //     if (f.level === undefined) f.level = 1;
+    //     if (f.desc === undefined) f.desc = "";
+    //     if (f.modified === undefined) f.modified = Date.now();
+    //     if (f.firstModified === undefined) f.firstModified = f.modified;
+    //     if (f.number === undefined) f.number = i + 1;
+    //   }
+    // }
   }
-  makeListNamesUnique(villageChief.familiars);
+  // makeListNamesUnique(villageChief.familiars);
+  
+  // Limpiar datos del carrusel de familiars existentes - COMENTADO (familiars deshabilitados)
+  // villageChief.familiars.forEach(fam => {
+  //   if (fam.stepImgs) delete fam.stepImgs;
+  //   if (fam.activeStep) delete fam.activeStep;
+  // });
   if (!villageChief.habilities || !Array.isArray(villageChief.habilities)) {
     villageChief.habilities = Array.from({ length: HABILITY_COUNT }, (_, i) => ({
       name: `No name${i + 1}`,
@@ -1061,8 +1064,6 @@ async function loadGame() {
       imgOffset: 50,
       imgOffsetX: 50,
       level: 1,
-      stepImgs: [],
-      activeStep: 0,
       desc: "",
       modified: Date.now()
     }));
@@ -1087,12 +1088,16 @@ async function loadGame() {
         if (h.modified === undefined) h.modified = Date.now();
         if (h.firstModified === undefined) h.firstModified = h.modified;
         if (h.number === undefined) h.number = i + 1;
-        if (h.stepImgs === undefined) h.stepImgs = [];
-        if (h.activeStep === undefined) h.activeStep = 0;
       }
     }
   }
   makeListNamesUnique(villageChief.habilities);
+  
+  // Limpiar datos del carrusel de habilidades existentes
+  villageChief.habilities.forEach(hab => {
+    if (hab.stepImgs) delete hab.stepImgs;
+    if (hab.activeStep) delete hab.activeStep;
+  });
   // if (!villageChief.partnerAbilities || !Array.isArray(villageChief.partnerAbilities)) {
   //   villageChief.partnerAbilities = Array.from({ length: PARTNER_ABILITY_COUNT }, (_, i) => ({
   //     name: `No name${i + 1}`,
@@ -1165,7 +1170,6 @@ async function loadGame() {
   habitsData = data.habitsData ?? habitsData;
   habitsMonth = data.habitsMonth ?? habitsMonth;
   habitsLastProcessed = data.habitsLastProcessed ?? habitsLastProcessed;
-  unlockedFamiliars = data.unlockedFamiliars ?? unlockedFamiliars;
   unlockedHabilities = data.unlockedHabilities ?? unlockedHabilities;
   // unlockedPartnerAbilities = data.unlockedPartnerAbilities ?? unlockedPartnerAbilities;
   if (data.bossStats) {
@@ -1219,7 +1223,7 @@ async function loadGame() {
   if (MAX_WOOD !== expectedWoodCap) setMaxWood(expectedWoodCap);
   if (MAX_STONE !== expectedStoneCap) setMaxStone(expectedStoneCap);
   MAX_LEVEL = data.MAX_LEVEL ?? MAX_LEVEL;
-  CHIEF_MAX_LEVEL = Math.max(20, data.CHIEF_MAX_LEVEL ?? CHIEF_MAX_LEVEL);
+  // CHIEF_MAX_LEVEL = Math.max(20, data.CHIEF_MAX_LEVEL ?? CHIEF_MAX_LEVEL); // Removido - Village Chief sin límite
   // PARTNER_MAX_LEVEL = data.PARTNER_MAX_LEVEL ?? PARTNER_MAX_LEVEL;
   if (data.MAX_STATS) {
     Object.assign(MAX_STATS, data.MAX_STATS);
@@ -1984,6 +1988,8 @@ export function saveGame() {
   delete villageChief.partnerAbilities;
   delete villageChief.unlockedPartnerAbilities;
   delete villageChief.partnerLevel;
+  delete villageChief.familiars;
+  delete villageChief.unlockedFamiliars;
 
   recalcSummonCost();
   const gameState = {
@@ -2015,7 +2021,7 @@ export function saveGame() {
     MAX_WOOD,
     MAX_STONE,
     MAX_LEVEL,
-    CHIEF_MAX_LEVEL,
+    // CHIEF_MAX_LEVEL, // Removido - Village Chief sin límite de nivel
     MAX_STATS,
     CHIEF_MAX_STATS,
     castleLevelFixApplied,
@@ -2038,7 +2044,6 @@ export function saveGame() {
       habitsData,
     habitsMonth,
     habitsLastProcessed,
-    unlockedFamiliars,
     unlockedHabilities,
     bossStats,
     buildingTask: state.buildingTask,
@@ -2284,13 +2289,13 @@ function updateResourcesDisplay() {
     proBtn.disabled = noGold || noEligible;
     proBtn.title = noGold ? "Not enough Gold" : "AllowExtraProfession";
   }
-  const famBtn = document.getElementById("familiar-btn");
-  if (famBtn) {
-    const familiarCost = 1500 * (unlockedFamiliars + 1);
-    const noGold = state.money < familiarCost;
-    famBtn.disabled = noGold || unlockedFamiliars >= FAMILIAR_COUNT;
-    famBtn.title = noGold ? "Not enough Gold" : "";
-  }
+  // const famBtn = document.getElementById("familiar-btn");
+  // if (famBtn) {
+  //   const familiarCost = 1500 * (unlockedFamiliars + 1);
+  //   const noGold = state.money < familiarCost;
+  //   famBtn.disabled = noGold || unlockedFamiliars >= FAMILIAR_COUNT;
+  //   famBtn.title = noGold ? "Not enough Gold" : "";
+  // }
   const abilBtn = document.getElementById("ability-btn");
   if (abilBtn) {
     const abilityCost = 1000 * (unlockedHabilities + 1);
@@ -2466,7 +2471,8 @@ function addHeroExp(hero, amount, maxLevel = MAX_LEVEL) {
       break;
     }
   }
-  if (hero.level >= maxLevel) {
+  // Solo aplicar límite si maxLevel no es Infinity
+  if (maxLevel !== Infinity && hero.level >= maxLevel) {
     hero.level = maxLevel;
     hero.exp = 0;
   }
@@ -4172,11 +4178,8 @@ function renderVillageChief() {
     addMoveArrows(avatarWrap, img, villageChief, 'avatarOffset', false, 'avatarOffsetX');
   }
 
-  const chiefExpNeeded = expNeededForLevel(villageChief.level, CHIEF_MAX_LEVEL);
-  const chiefExpText =
-    villageChief.level >= CHIEF_MAX_LEVEL
-      ? `Exp: ${villageChief.exp}`
-      : `Exp: ${villageChief.exp}/${chiefExpNeeded}`;
+  const chiefExpNeeded = expNeededForLevel(villageChief.level, Infinity);
+  const chiefExpText = `Exp: ${villageChief.exp}/${chiefExpNeeded}`;
 
   const chiefName = document.createElement('div');
   chiefName.className = 'chief-name';
@@ -4198,7 +4201,7 @@ function renderVillageChief() {
   avatarCol.appendChild(avatarWrap);
   const chiefLevel = document.createElement('div');
   chiefLevel.className = 'chief-level';
-  chiefLevel.textContent = `Level: ${villageChief.level}/${CHIEF_MAX_LEVEL} ${chiefExpText}`;
+  chiefLevel.textContent = `Level: ${villageChief.level} ${chiefExpText}`;
   avatarCol.appendChild(chiefLevel);
 
   // Crear el reproductor de música fijo en la esquina superior derecha
@@ -4804,7 +4807,7 @@ function renderVillageChief() {
     famSortBar.appendChild(b);
   });
   famDiv.appendChild(famSortBar);
-  let famList = villageChief.familiars.slice().sort((a,b)=>{
+  let famList = (villageChief.familiars || []).slice().sort((a,b)=>{
     if(chiefFamiliarSort==='name') return a.name.localeCompare(b.name);
     if(chiefFamiliarSort==='level') return (b.level||1)-(a.level||1);
     if(chiefFamiliarSort==='number') return (a.number||0)-(b.number||0);
@@ -4818,7 +4821,7 @@ function renderVillageChief() {
     const globalIdx = famStart + idx;
     const slot = document.createElement("div");
     slot.className = "familiar-slot";
-    if (globalIdx >= villageChief.unlockedFamiliars) slot.classList.add("locked");
+    // if (globalIdx >= villageChief.unlockedFamiliars) slot.classList.add("locked");
     const num = document.createElement('div');
     num.className = 'slot-number';
     num.textContent = fam.number ?? globalIdx + 1;
@@ -4937,12 +4940,12 @@ function renderVillageChief() {
     slot.appendChild(famDl);
     slot.appendChild(nameDiv);
     slot.appendChild(descDiv);
-    if (globalIdx >= villageChief.unlockedFamiliars) {
-      const overlay = document.createElement('div');
-      overlay.className = 'locked-overlay';
-      overlay.textContent = 'Locked';
-      slot.appendChild(overlay);
-    }
+    // if (globalIdx >= villageChief.unlockedFamiliars) {
+    //   const overlay = document.createElement('div');
+    //   overlay.className = 'locked-overlay';
+    //   overlay.textContent = 'Locked';
+    //   slot.appendChild(overlay);
+    // }
     famGrid.appendChild(slot);
   });
   famDiv.appendChild(famWrapper);
@@ -5047,8 +5050,7 @@ function renderVillageChief() {
     slot.appendChild(num);
     const imgDiv = document.createElement("div");
     imgDiv.className = "slot-img hability-img";
-    const stepIdx = hab.activeStep ?? 0;
-    let imgSrc = stepIdx === 0 ? hab.img : (hab.stepImgs[stepIdx-1] || "");
+    let imgSrc = hab.img || "";
     if (imgSrc) imgDiv.style.backgroundImage = `url(${imgSrc})`;
     imgDiv.style.backgroundPosition = `center ${hab.imgOffset ?? 50}%`;
     if (!readOnly) {
@@ -5060,11 +5062,7 @@ function renderVillageChief() {
         input.onchange = e => {
           const reader = new FileReader();
             reader.onload = ev => {
-              if (stepIdx === 0) {
-                hab.img = ev.target.result;
-              } else {
-                hab.stepImgs[stepIdx-1] = ev.target.result;
-              }
+              hab.img = ev.target.result;
               const now = Date.now();
               if (hab.firstModified === undefined) hab.firstModified = now;
               hab.modified = now;
@@ -5108,17 +5106,13 @@ function renderVillageChief() {
       del.style.right = "25px"; // Moved left to avoid overlap with number
       del.onclick = e => {
         e.stopPropagation();
-          if (stepIdx === 0) {
-            hab.img = "";
-          } else {
-            hab.stepImgs[stepIdx-1] = "";
-          }
-          const now = Date.now();
-          if (hab.firstModified === undefined) hab.firstModified = now;
-          hab.modified = now;
-          saveGame();
-          renderVillageChief();
-        };
+        hab.img = "";
+        const now = Date.now();
+        if (hab.firstModified === undefined) hab.firstModified = now;
+        hab.modified = now;
+        saveGame();
+        renderVillageChief();
+      };
       slot.appendChild(del);
     }
     const nameDiv = document.createElement("div");
@@ -5166,43 +5160,6 @@ function renderVillageChief() {
       };
     slot.appendChild(imgDiv);
     if (!readOnly) addMoveArrows(imgDiv, imgDiv, hab, 'imgOffset', true, 'imgOffsetX');
-    const timeline = document.createElement('div');
-    timeline.className = 'timeline';
-    for (let t = 0; t < ABILITY_STEP_COUNT; t++) {
-      const dot = document.createElement('span');
-      dot.className = 'timeline-dot';
-      if (t === stepIdx) dot.classList.add('active');
-      dot.textContent = t === stepIdx ? '●' : '○';
-      dot.onclick = e => {
-        e.stopPropagation();
-        if (t === stepIdx) return;
-        if (t === 0 ? hab.img : hab.stepImgs[t-1]) {
-          hab.activeStep = t;
-          scheduleSaveGame();
-          renderVillageChief();
-        } else {
-          const input = document.createElement('input');
-          input.type = 'file';
-          input.style.display = 'none';
-          input.onchange = ev => {
-            const reader = new FileReader();
-            reader.onload = rv => {
-              if (t === 0) hab.img = rv.target.result; else hab.stepImgs[t-1] = rv.target.result;
-              hab.activeStep = t;
-              const now = Date.now();
-              if (hab.firstModified === undefined) hab.firstModified = now;
-              hab.modified = now;
-              scheduleSaveGame();
-              renderVillageChief();
-            };
-            reader.readAsDataURL(ev.target.files[0]);
-          };
-          input.click();
-        }
-      };
-      timeline.appendChild(dot);
-    }
-    imgDiv.appendChild(timeline);
     slot.appendChild(zoom);
     slot.appendChild(habDl);
     slot.appendChild(nameDiv);
@@ -5296,8 +5253,7 @@ function renderVillageChief() {
     slot.appendChild(num);
     const imgDiv = document.createElement('div');
     imgDiv.className = 'slot-img hability-img';
-    const stepIdxP = ab.activeStep ?? 0;
-    let imgSrcP = stepIdxP === 0 ? ab.img : (ab.stepImgs[stepIdxP-1] || "");
+    let imgSrcP = ab.img || "";
     if (imgSrcP) imgDiv.style.backgroundImage = `url(${imgSrcP})`;
     imgDiv.style.backgroundPosition = `center ${ab.imgOffset ?? 50}%`;
     if (!readOnly) {
@@ -5309,11 +5265,7 @@ function renderVillageChief() {
         input.onchange = e => {
           const reader = new FileReader();
           reader.onload = ev => {
-            if (stepIdxP === 0) {
-              ab.img = ev.target.result;
-            } else {
-              ab.stepImgs[stepIdxP-1] = ev.target.result;
-            }
+            ab.img = ev.target.result;
             const now = Date.now();
             if (ab.firstModified === undefined) ab.firstModified = now;
             ab.modified = now;
@@ -5348,7 +5300,7 @@ function renderVillageChief() {
       del.style.position = 'absolute';
       del.style.top = '2px';
       del.style.right = '2px';
-      del.onclick = e => { e.stopPropagation(); if(stepIdxP===0){ab.img='';} else {ab.stepImgs[stepIdxP-1]='';} const now=Date.now(); if(ab.firstModified===undefined) ab.firstModified=now; ab.modified=now; saveGame(); renderVillageChief(); };
+      del.onclick = e => { e.stopPropagation(); ab.img=''; const now=Date.now(); if(ab.firstModified===undefined) ab.firstModified=now; ab.modified=now; saveGame(); renderVillageChief(); };
       slot.appendChild(del);
     }
     const nameDiv = document.createElement('div');
@@ -5365,43 +5317,6 @@ function renderVillageChief() {
     if(!readOnly) descDiv.onclick=()=>{openEditModal('Ability Description',ab.desc,val=>{ab.desc=val; const now=Date.now(); if(ab.firstModified===undefined) ab.firstModified=now; ab.modified=now; saveGame(); renderVillageChief();},{multiLine:true, container: partnerDiv});};
     slot.appendChild(imgDiv);
     if (!readOnly) addMoveArrows(imgDiv, imgDiv, ab, 'imgOffset', true, 'imgOffsetX');
-    const timelineP = document.createElement('div');
-    timelineP.className = 'timeline';
-    for (let t = 0; t < ABILITY_STEP_COUNT; t++) {
-      const dot = document.createElement('span');
-      dot.className = 'timeline-dot';
-      if (t === stepIdxP) dot.classList.add('active');
-      dot.textContent = t === stepIdxP ? '●' : '○';
-      dot.onclick = e => {
-        e.stopPropagation();
-        if (t === stepIdxP) return;
-        if (t === 0 ? ab.img : ab.stepImgs[t-1]) {
-          ab.activeStep = t;
-          scheduleSaveGame();
-          renderVillageChief();
-        } else {
-          const input = document.createElement('input');
-          input.type = 'file';
-          input.style.display = 'none';
-          input.onchange = ev => {
-            const reader = new FileReader();
-            reader.onload = rv => {
-              if (t === 0) ab.img = rv.target.result; else ab.stepImgs[t-1] = rv.target.result;
-              ab.activeStep = t;
-              const now = Date.now();
-              if (ab.firstModified === undefined) ab.firstModified = now;
-              ab.modified = now;
-              scheduleSaveGame();
-              renderVillageChief();
-            };
-            reader.readAsDataURL(ev.target.files[0]);
-          };
-          input.click();
-        }
-      };
-      timelineP.appendChild(dot);
-    }
-    imgDiv.appendChild(timelineP);
     slot.appendChild(zoom);
     slot.appendChild(partDl);
     slot.appendChild(nameDiv);
@@ -6115,16 +6030,17 @@ function showDailyTribute() {
     return;
   }
   const villainsCount = villains.length;
-  const familiarCount = unlockedFamiliars;
-  const familiarLevels = villageChief.familiars
-    .slice(0, familiarCount)
-    .reduce((sum, f) => sum + (f.level || 1), 0);
+  // const familiarCount = unlockedFamiliars;
+  // const familiarLevels = villageChief.familiars
+  //   .slice(0, familiarCount)
+  //   .reduce((sum, f) => sum + (f.level || 1), 0);
   const heroCount = state.heroes.length;
   const petCount = state.heroes.filter(h => h.pet).length;
   const dungeonLevel = state.buildingLevels?.Dungeons || 0;
   const partnerLevel = partner.level || 0;
   const goldFromVillains = villainsCount * 300;
-  const goldFromFamiliars = familiarCount * 500 + familiarLevels * 50;
+  // const goldFromFamiliars = familiarCount * 500 + familiarLevels * 50;
+  const goldFromFamiliars = 0; // Familiars deshabilitados
   const goldFromHeroes = heroCount * 250;
   const goldFromPets = petCount * 200;
   const goldFromDungeons = dungeonLevel * 100;
@@ -6671,7 +6587,7 @@ function renderLifeMissions(card) {
             checkbox.checked = true;
             const reward = difficulties[select.value].gold;
             state.money += reward;
-            addHeroExp(villageChief, reward, CHIEF_MAX_LEVEL);
+            addHeroExp(villageChief, reward, Infinity);
             renderVillageChief();
             lifeTasks[i].completed = true;
             checkbox.disabled = true;
@@ -6802,10 +6718,10 @@ function showExpGainAnimation(sectionName, container) {
   // Marcar como mostrado hoy
   localStorage.setItem(storageKey, JSON.stringify({ date: today, shown: true }));
 
-  // Dar experiencia al VillageChief
-  addHeroExp(villageChief, 100, CHIEF_MAX_LEVEL);
+  // Dar experiencia al VillageChief (sin límite de nivel)
+  addHeroExp(villageChief, 100, Infinity);
   saveGame();
-  renderVillageChiefIfVisible();
+  renderVillageChief(); // Siempre actualizar el display del Village Chief
 
   // Crear el contenedor del toast
   const toastStack = document.createElement('div');
@@ -8581,24 +8497,13 @@ export function showSilenceTempleModal() {
   select.style.width = '100%';
   select.style.marginBottom = '10px';
   
-  if (currentView === 'productivity') {
-    // Mostrar solo habilidades desbloqueadas del village chief
-    for (let i = 0; i < unlockedHabilities; i++) {
-      const hab = villageChief.habilities[i];
-      const o = document.createElement('option');
-      o.value = i;
-      o.textContent = `${hab.name} (Lvl: ${hab.level || 1})`;
-      select.appendChild(o);
-    }
-  } else {
-    // Comportamiento original para familiars (solo desbloqueados)
-    for (let i = 0; i < unlockedFamiliars; i++) {
-      const fam = villageChief.familiars[i];
-      const o = document.createElement('option');
-      o.value = i;
-      o.textContent = `${fam.name} (Lvl: ${fam.level || 1})`;
-      select.appendChild(o);
-    }
+  // Siempre mostrar habilidades del village chief
+  for (let i = 0; i < unlockedHabilities; i++) {
+    const hab = villageChief.habilities[i];
+    const o = document.createElement('option');
+    o.value = i;
+    o.textContent = `${hab.name} (Lvl: ${hab.level || 1})`;
+    select.appendChild(o);
   }
   const techSelect = document.createElement('select');
   [
@@ -8658,17 +8563,10 @@ export function showSilenceTempleModal() {
     const idx = parseInt(select.value);
     removeOverlay(overlay);
     
-    if (currentView === 'productivity') {
-      // Para productivity, usar habilidades del village chief
-      currentSilenceAbility = villageChief.habilities[idx];
-      const tech = techSelect.value;
-      renderSilenceTempleCard(currentSilenceAbility, tech, 'ability');
-    } else {
-      // Comportamiento original para familiars
-      currentSilenceFam = villageChief.familiars[idx];
-      const tech = techSelect.value;
-      renderSilenceTempleCard(currentSilenceFam, tech, 'familiar');
-    }
+    // Siempre usar habilidades del village chief
+    currentSilenceAbility = villageChief.habilities[idx];
+    const tech = techSelect.value;
+    renderSilenceTempleCard(currentSilenceAbility, tech, 'ability');
   };
   const close = document.createElement('button');
   close.textContent = 'Close';
@@ -8684,7 +8582,7 @@ export function showSilenceTempleModal() {
   appendOverlay(overlay, container);
 }
 
-function renderSilenceTempleCard(target, tech = '446', type = 'familiar') {
+function renderSilenceTempleCard(target, tech = '446', type = 'ability') {
   const card = (currentView === 'productivity' ? document.getElementById('productivity-extra') : null) || document.getElementById('chief-extra');
   if (!card) return;
   card.innerHTML = '';
@@ -8730,10 +8628,12 @@ function renderSilenceTempleCard(target, tech = '446', type = 'familiar') {
       const rec = habitsData[monthKey][day] = habitsData[monthKey][day] || {};
       rec.Meditations = (rec.Meditations || 0) + 1;
       dailyMeditations = rec.Meditations;
+      // Agregar experiencia al Village Chief (sin límite de nivel)
+      addHeroExp(villageChief, 10, Infinity);
       saveGame();
       renderVillageChief();
       const vc = document.getElementById('village-chief');
-      showAlert(`${target.name} leveled up! You also won 2000Gold!`, { container: vc });
+      showAlert(`${target.name} leveled up! You also won 2000Gold! You also gained 10 exp!`, { container: vc });
       if (currentChiefExtra === 'Habits') {
         const c = document.getElementById('chief-extra');
         if (c) renderHabits(c);
@@ -8997,7 +8897,10 @@ function renderPomodoroTowerCard(ab, minutes = 25) {
     if (e.data && e.data.type === 'pomodoroTowerComplete' && currentPomodoroAbility) {
       currentPomodoroAbility.level = (currentPomodoroAbility.level || 1) + 1;
       const reward = currentPomodoroMinutes === 45 ? 5000 : 2500;
+      const expReward = currentPomodoroMinutes === 45 ? 50 : 25;
       state.money += reward;
+      // Agregar experiencia al Village Chief (sin límite de nivel)
+      addHeroExp(villageChief, expReward, Infinity);
       const today = new Date();
       const monthKey = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
       const day = today.getDate();
@@ -9010,7 +8913,7 @@ function renderPomodoroTowerCard(ab, minutes = 25) {
       saveGame();
       renderVillageChief();
       const vc = document.getElementById('village-chief');
-      showAlert(`${currentPomodoroAbility.name} leveled up! You also won ${reward}Gold!`, { container: vc });
+      showAlert(`${currentPomodoroAbility.name} leveled up! You also won ${reward}Gold! You also gained ${expReward} exp!`, { container: vc });
       setTimeout(() => playPomodoroLevelSound(), 2000);
       if (currentChiefExtra === 'Habits') {
         const c = document.getElementById('chief-extra');
@@ -12388,9 +12291,9 @@ async function exportAllImages() {
           add('VillageChiefPartner/My PAbilities', ab.name, img, i + 1)
         );
       });
-    (villageChief.familiars || [])
-      .slice(0, villageChief.unlockedFamiliars ?? (villageChief.familiars ? villageChief.familiars.length : 0))
-      .forEach(f => add('Familiars', f.name, f.img));
+    // (villageChief.familiars || [])
+    //   .slice(0, villageChief.unlockedFamiliars ?? (villageChief.familiars ? villageChief.familiars.length : 0))
+    //   .forEach(f => add('Familiars', f.name, f.img));
     (state.heroes || []).forEach(h => {
       const HERO = sanitizeFileName(h?.name ?? 'Hero');
       const [main, second] = getHeroMainAndSecond(h);
@@ -12408,7 +12311,6 @@ async function exportAllImages() {
       const A1src =
         ability1?.image ||
         ability1?.img ||
-        (Array.isArray(ability1?.stepImgs) ? ability1.stepImgs[0] : null) ||
         h.weaponImg; // ← UI guarda la imagen aquí
 
       if (A1name && A1src) {
@@ -12426,7 +12328,6 @@ async function exportAllImages() {
       const A2src =
         ability2?.image ||
         ability2?.img ||
-        (Array.isArray(ability2?.stepImgs) ? ability2.stepImgs[0] : null) ||
         h.armorImg; // ← UI guarda la imagen aquí
 
       if (A2name && A2src) {
@@ -15020,8 +14921,7 @@ function renderPartnerAbilitiesSection(container) {
     
     const imgDiv = document.createElement('div');
     imgDiv.className = 'slot-img hability-img';
-    const stepIdxP = ab.activeStep ?? 0;
-    let imgSrcP = stepIdxP === 0 ? ab.img : (ab.stepImgs[stepIdxP-1] || "");
+    let imgSrcP = ab.img || "";
     if (imgSrcP) imgDiv.style.backgroundImage = `url(${imgSrcP})`;
     imgDiv.style.backgroundPosition = `center ${ab.imgOffset ?? 50}%`;
     
