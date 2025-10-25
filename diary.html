@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Daily Codex - Medieval Journal</title>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Crimson+Text:wght@400;600;700&family=Cardo:wght@400;700&family=Cormorant+Garamond:wght@400;600&family=IM+Fell+English+SC&family=Special+Elite&display=swap" rel="stylesheet">
-    <script type="module" src="https://unpkg.com/emoji-picker-element@^1/index.js"></script>
+    <script type="module" src="node_modules/emoji-picker-element/index.js"></script>
     <style>
         /* ================================== */
         /* STYLES (CSS)                       */
@@ -423,8 +423,11 @@
             border: 1px solid #c9b08a;
             border-radius: 8px;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-            z-index: 9999;
-            position: fixed;
+            z-index: 99999;
+            position: fixed !important;
+            top: 0;
+            left: 0;
+            transform: none !important;
         }
 
         .popover.hidden {
@@ -618,6 +621,25 @@
         // ==================================
         //         FUNCTIONALITY (JS)
         // ==================================
+
+        // Cargar datos desde el sistema de guardado del juego
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'loadData') {
+                if (event.data.diaryEntries) {
+                    // Cargar entradas del diary
+                    Object.keys(event.data.diaryEntries).forEach(key => {
+                        localStorage.setItem(key, event.data.diaryEntries[key]);
+                    });
+                    // Actualizar la vista actual
+                    updateDiaryView();
+                }
+            }
+        });
+
+        // Solicitar datos al cargar
+        if (window.parent) {
+            window.parent.postMessage({ type: 'requestData' }, '*');
+        }
 
         // Constants for DOM elements
         const currentDateEl = document.getElementById('currentDate');
@@ -854,16 +876,43 @@
 
         /**
          * Toggles the emoji picker visibility and positions it.
+         * For the modal emoji picker - position to the right and centered.
          */
         function toggleEmojiPicker() {
             emojiPickerWrap.classList.toggle('hidden');
             
             if (!emojiPickerWrap.classList.contains('hidden')) {
-                // Position the popover next to the button
+                // Position the popover to the right of the button and centered
                 const rect = openEmojiPicker.getBoundingClientRect();
                 emojiPickerWrap.style.position = 'fixed';
-                emojiPickerWrap.style.left = `${rect.left}px`;
-                emojiPickerWrap.style.top = `${rect.bottom + 8}px`;
+                emojiPickerWrap.style.zIndex = '99999';
+                emojiPickerWrap.style.transform = 'none';
+                
+                // Position to the right of the button
+                emojiPickerWrap.style.left = `${rect.right + 8}px`;
+                
+                // Center vertically with the button
+                const pickerHeight = 400; // Approximate emoji picker height
+                const buttonHeight = rect.height;
+                const centerOffset = (pickerHeight - buttonHeight) / 2;
+                emojiPickerWrap.style.top = `${rect.top - centerOffset}px`;
+                
+                // Ensure it stays in viewport
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                const pickerWidth = 320; // Approximate emoji picker width
+                
+                // Adjust horizontal position if it would go off screen
+                if (rect.right + pickerWidth + 8 > viewportWidth) {
+                    emojiPickerWrap.style.left = `${rect.left - pickerWidth - 8}px`;
+                }
+                
+                // Adjust vertical position if it would go off screen
+                if (rect.top - centerOffset < 0) {
+                    emojiPickerWrap.style.top = '10px';
+                } else if (rect.top - centerOffset + pickerHeight > viewportHeight) {
+                    emojiPickerWrap.style.top = `${viewportHeight - pickerHeight - 10}px`;
+                }
             }
         }
 
@@ -878,16 +927,46 @@
 
         /**
          * Toggles the toolbar emoji picker visibility and positions it.
+         * For the main toolbar emoji picker - ALWAYS position below the button.
          */
         function toggleToolbarEmojiPicker() {
             toolbarEmojiPickerWrap.classList.toggle('hidden');
             
             if (!toolbarEmojiPickerWrap.classList.contains('hidden')) {
-                // Position the popover next to the button
+                // Position the popover below the button with fixed positioning
                 const rect = emojiBtn.getBoundingClientRect();
                 toolbarEmojiPickerWrap.style.position = 'fixed';
+                toolbarEmojiPickerWrap.style.zIndex = '99999';
+                toolbarEmojiPickerWrap.style.transform = 'none';
+                
+                // ALWAYS position below the button - no exceptions
                 toolbarEmojiPickerWrap.style.left = `${rect.left}px`;
                 toolbarEmojiPickerWrap.style.top = `${rect.bottom + 8}px`;
+                
+                // Ensure it stays in viewport horizontally
+                const viewportWidth = window.innerWidth;
+                const pickerWidth = 320; // Approximate emoji picker width
+                
+                // Adjust horizontal position if it would go off screen
+                if (rect.left + pickerWidth > viewportWidth) {
+                    toolbarEmojiPickerWrap.style.left = `${viewportWidth - pickerWidth - 10}px`;
+                }
+                
+                // If it would go off screen below, scroll the page to make room
+                const viewportHeight = window.innerHeight;
+                const pickerHeight = 400; // Approximate emoji picker height
+                
+                if (rect.bottom + pickerHeight + 8 > viewportHeight) {
+                    // Scroll down to make room for the picker
+                    const scrollAmount = (rect.bottom + pickerHeight + 8) - viewportHeight + 20;
+                    window.scrollBy(0, scrollAmount);
+                    
+                    // Reposition after scrolling
+                    setTimeout(() => {
+                        const newRect = emojiBtn.getBoundingClientRect();
+                        toolbarEmojiPickerWrap.style.top = `${newRect.bottom + 8}px`;
+                    }, 100);
+                }
             }
         }
 
@@ -1037,6 +1116,51 @@
             }
             if (!emojiBtn.contains(e.target) && !toolbarEmojiPickerWrap.contains(e.target)) {
                 toolbarEmojiPickerWrap.classList.add('hidden');
+            }
+        });
+
+        // Reposition emoji pickers on scroll to keep them fixed
+        window.addEventListener('scroll', () => {
+            if (!emojiPickerWrap.classList.contains('hidden')) {
+                // Reposition modal emoji picker (to the right and centered)
+                const rect = openEmojiPicker.getBoundingClientRect();
+                emojiPickerWrap.style.left = `${rect.right + 8}px`;
+                
+                const pickerHeight = 400;
+                const buttonHeight = rect.height;
+                const centerOffset = (pickerHeight - buttonHeight) / 2;
+                emojiPickerWrap.style.top = `${rect.top - centerOffset}px`;
+                
+                // Viewport adjustments
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                const pickerWidth = 320;
+                
+                if (rect.right + pickerWidth + 8 > viewportWidth) {
+                    emojiPickerWrap.style.left = `${rect.left - pickerWidth - 8}px`;
+                }
+                if (rect.top - centerOffset < 0) {
+                    emojiPickerWrap.style.top = '10px';
+                } else if (rect.top - centerOffset + pickerHeight > viewportHeight) {
+                    emojiPickerWrap.style.top = `${viewportHeight - pickerHeight - 10}px`;
+                }
+            }
+            if (!toolbarEmojiPickerWrap.classList.contains('hidden')) {
+                // Reposition toolbar emoji picker (ALWAYS below the button)
+                const rect = emojiBtn.getBoundingClientRect();
+                toolbarEmojiPickerWrap.style.left = `${rect.left}px`;
+                toolbarEmojiPickerWrap.style.top = `${rect.bottom + 8}px`;
+                
+                // Viewport adjustments
+                const viewportWidth = window.innerWidth;
+                const pickerWidth = 320;
+                
+                if (rect.left + pickerWidth > viewportWidth) {
+                    toolbarEmojiPickerWrap.style.left = `${viewportWidth - pickerWidth - 10}px`;
+                }
+                
+                // No vertical adjustments - always keep it below the button
+                // The picker will be visible even if it goes off screen
             }
         });
 

@@ -467,6 +467,32 @@ async function generateProjectsFile(projectsData) {
   }
 }
 
+// Función para generar archivo diary.json
+async function generateDiaryFile(diaryData) {
+  try {
+    const diaryPath = path.join(SAVE_DIR, 'diary.json');
+    await fs.writeFile(diaryPath, JSON.stringify(diaryData, null, 2), 'utf-8');
+    logger.info('✅ Archivo diary.json generado en:', diaryPath);
+    return diaryData;
+  } catch (error) {
+    logger.error('❌ Error al generar diary.json:', error);
+    return {};
+  }
+}
+
+// Función para generar archivo weekplan.json
+async function generateWeekplanFile(weekplanData) {
+  try {
+    const weekplanPath = path.join(SAVE_DIR, 'weekplan.json');
+    await fs.writeFile(weekplanPath, JSON.stringify(weekplanData, null, 2), 'utf-8');
+    logger.info('✅ Archivo weekplan.json generado en:', weekplanPath);
+    return weekplanData;
+  } catch (error) {
+    logger.error('❌ Error al generar weekplan.json:', error);
+    return {};
+  }
+}
+
 async function ensureSaveDir() {
   try {
     await fs.mkdir(SAVE_DIR, { recursive: true });
@@ -568,6 +594,16 @@ async function saveGame(data) {
       projectPoints: data.projectPoints
     });
     
+    // Generar diary.json (siempre se genera para mantener consistencia)
+    await generateDiaryFile({
+      diaryEntries: data.diaryEntries || {}
+    });
+    
+    // Generar weekplan.json (siempre se genera para mantener consistencia)
+    await generateWeekplanFile({
+      events: data.weekplanEvents || []
+    });
+    
     logger.info('✅ Archivos JSON generados correctamente');
     
   } catch (error) {
@@ -611,6 +647,40 @@ async function loadProjects() {
   }
 }
 
+async function loadDiary() {
+  try {
+    const diaryPath = path.join(SAVE_DIR, 'diary.json');
+    const data = await fs.readFile(diaryPath, 'utf-8');
+    const diaryData = JSON.parse(data);
+    logger.info('✅ Diary cargado desde:', diaryPath);
+    return diaryData.diaryEntries || {};
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      logger.warn('⚠️ diary.json no encontrado, usando datos vacíos');
+      return {};
+    }
+    logger.error('❌ Error al cargar diary.json:', error);
+    return {};
+  }
+}
+
+async function loadWeekplan() {
+  try {
+    const weekplanPath = path.join(SAVE_DIR, 'weekplan.json');
+    const data = await fs.readFile(weekplanPath, 'utf-8');
+    const weekplanData = JSON.parse(data);
+    logger.info('✅ Weekplan cargado desde:', weekplanPath);
+    return weekplanData.events || [];
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      logger.warn('⚠️ weekplan.json no encontrado, usando datos vacíos');
+      return [];
+    }
+    logger.error('❌ Error al cargar weekplan.json:', error);
+    return [];
+  }
+}
+
 async function loadGame(defaultData = {}) {
   try {
     await migrateLegacySave();
@@ -640,6 +710,24 @@ async function loadGame(defaultData = {}) {
       }
     }
     
+    // Intentar cargar diary.json como respaldo si los datos no están en save.json
+    if (!gameData.diaryEntries) {
+      const diaryData = await loadDiary();
+      if (diaryData && Object.keys(diaryData).length > 0) {
+        gameData.diaryEntries = diaryData;
+        logger.info('✅ Datos de Diary restaurados desde diary.json');
+      }
+    }
+    
+    // Intentar cargar weekplan.json como respaldo si los datos no están en save.json
+    if (!gameData.weekplanEvents) {
+      const weekplanData = await loadWeekplan();
+      if (weekplanData && Array.isArray(weekplanData)) {
+        gameData.weekplanEvents = weekplanData;
+        logger.info('✅ Datos de Weekplan restaurados desde weekplan.json');
+      }
+    }
+    
     // Validar que projects sea siempre un array
     if (!Array.isArray(gameData.projects)) {
       logger.warn('⚠️ gameData.projects no es un array, corrigiendo a array vacío');
@@ -649,6 +737,16 @@ async function loadGame(defaultData = {}) {
     // Asegurar que projectPoints exista
     if (gameData.projectPoints === undefined) {
       gameData.projectPoints = 0;
+    }
+    
+    // Asegurar que diaryEntries exista
+    if (!gameData.diaryEntries) {
+      gameData.diaryEntries = {};
+    }
+    
+    // Asegurar que weekplanEvents exista
+    if (!gameData.weekplanEvents) {
+      gameData.weekplanEvents = [];
     }
     
     return gameData;

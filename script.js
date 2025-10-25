@@ -334,7 +334,7 @@ function randomPetResource() {
   return PET_RESOURCE_TYPES[Math.floor(Math.random() * PET_RESOURCE_TYPES.length)];
 }
 function recalcSummonCost() {
-  summonCost = (state.heroes.length + 1) * 100;
+  summonCost = (state.heroes.length + 1) * 1000;
 }
 let chiefFamiliarSort = 'number';
 let chiefHabilitySort = 'number';
@@ -847,6 +847,20 @@ async function loadGame() {
   try {
     localStorage.setItem('syw_points', String(data.projectPoints || 0));
     localStorage.setItem('syw_projects_v1', JSON.stringify(data.projects || []));
+    
+    // Restaurar diary desde save.json
+    if (data.diaryEntries) {
+      Object.keys(data.diaryEntries).forEach(key => {
+        localStorage.setItem(key, data.diaryEntries[key]);
+      });
+      console.log('✅ Diary restaurado desde save.json');
+    }
+    
+    // Restaurar weekplan desde save.json
+    if (data.weekplanEvents) {
+      localStorage.setItem('weekPlanEvents', JSON.stringify(data.weekplanEvents));
+      console.log('✅ Weekplan restaurado desde save.json');
+    }
   } catch {}
   state.money = data.money ?? state.money;
   state.food = data.food ?? state.food;
@@ -2050,7 +2064,26 @@ export function saveGame() {
     buildingLevels: state.buildingLevels,
     extraHouses,
     projects: (()=>{ try{ return JSON.parse(localStorage.getItem('syw_projects_v1')||'[]'); }catch{ return []; } })(),
-    projectPoints: Number(localStorage.getItem('syw_points')||0)
+    projectPoints: Number(localStorage.getItem('syw_points')||0),
+    // Recopilar datos de diary desde localStorage
+    diaryEntries: (() => {
+      const diaryEntries = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('diary_')) {
+          diaryEntries[key] = localStorage.getItem(key);
+        }
+      }
+      return diaryEntries;
+    })(),
+    // Recopilar datos de weekplan desde localStorage
+    weekplanEvents: (() => {
+      try {
+        return JSON.parse(localStorage.getItem('weekPlanEvents') || '[]');
+      } catch {
+        return [];
+      }
+    })()
   };
   if (ipcRenderer) {
     ipcRenderer.send('set-game-state', gameState);
@@ -4577,12 +4610,27 @@ function renderVillageChief() {
                       name: a.name ?? a.label ?? `Ability ${idx + 1}`,
                       level: a.level ?? a.lvl ?? a.abilityLevel ?? a.lvlAbility ?? a.skillLevel ?? 1
                     }));
+                  
+                  // Enviar datos de projects al iframe
+                  const projects = (() => {
+                    try {
+                      return JSON.parse(localStorage.getItem('syw_projects_v1') || '[]');
+                    } catch {
+                      return [];
+                    }
+                  })();
+                  
                   iframe.contentWindow.postMessage({
                     type: 'projectsData',
                     partner: {
                       unlockedPartnerAbilities: villageChief.unlockedHabilities ?? unlockedHabilities,
                       abilities: chiefAbilities
                     }
+                  }, '*');
+                  
+                  iframe.contentWindow.postMessage({
+                    type: 'loadData',
+                    projects: projects
                   }, '*');
                 } catch {}
               };
@@ -4644,12 +4692,27 @@ function renderVillageChief() {
                     name: a.name ?? a.label ?? `Ability ${idx + 1}`,
                     level: a.level ?? a.lvl ?? a.abilityLevel ?? a.lvlAbility ?? a.skillLevel ?? 1
                   }));
+                
+                // Enviar datos de projects al iframe
+                const projects = (() => {
+                  try {
+                    return JSON.parse(localStorage.getItem('syw_projects_v1') || '[]');
+                  } catch {
+                    return [];
+                  }
+                })();
+                
                 iframe.contentWindow.postMessage({
                   type: 'projectsData',
                   partner: {
                     unlockedPartnerAbilities: villageChief.unlockedHabilities ?? unlockedHabilities,
                     abilities: chiefAbilities
                   }
+                }, '*');
+                
+                iframe.contentWindow.postMessage({
+                  type: 'loadData',
+                  projects: projects
                 }, '*');
               } catch {}
             };
@@ -6901,6 +6964,20 @@ async function renderDiary(card) {
     // Agregar el listener cuando el iframe carga
     iframe.onload = () => {
       window.addEventListener('message', diaryMessageHandler);
+      
+      // Enviar datos de diary al iframe
+      const diaryEntries = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('diary_')) {
+          diaryEntries[key] = localStorage.getItem(key);
+        }
+      }
+      
+      iframe.contentWindow.postMessage({
+        type: 'loadData',
+        diaryEntries: diaryEntries
+      }, '*');
     };
     
     iframeContainer.appendChild(iframe);
@@ -6958,6 +7035,23 @@ async function renderWeekPlan(card) {
     
     // Usar srcdoc en lugar de src para evitar problemas de seguridad
     iframe.srcdoc = htmlContent;
+    
+    // Agregar el listener cuando el iframe carga
+    iframe.onload = () => {
+      // Enviar datos de weekplan al iframe
+      const weekplanEvents = (() => {
+        try {
+          return JSON.parse(localStorage.getItem('weekPlanEvents') || '[]');
+        } catch {
+          return [];
+        }
+      })();
+      
+      iframe.contentWindow.postMessage({
+        type: 'loadData',
+        weekplanEvents: weekplanEvents
+      }, '*');
+    };
     
     iframeContainer.appendChild(iframe);
     card.appendChild(iframeContainer);

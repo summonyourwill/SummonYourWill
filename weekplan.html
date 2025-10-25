@@ -1093,6 +1093,24 @@
         // STATE AND CONFIGURATION
         // ================================
 
+        // Cargar datos desde el sistema de guardado del juego
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'loadData') {
+                if (event.data.weekplanEvents) {
+                    // Cargar eventos del weekplan
+                    localStorage.setItem('weekPlanEvents', JSON.stringify(event.data.weekplanEvents));
+                    // Recargar eventos y actualizar vista
+                    events = loadEvents();
+                    renderCalendar();
+                }
+            }
+        });
+
+        // Solicitar datos al cargar
+        if (window.parent) {
+            window.parent.postMessage({ type: 'requestData' }, '*');
+        }
+
         const HOURS = Array.from({ length: 24 }, (_, i) => i);
         const HOURS_TO_SHOW = 8;
         const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
