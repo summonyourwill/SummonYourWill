@@ -465,6 +465,7 @@ body.loading .content section {
   height: 240px;
   max-width: none;
   max-height: none;
+  object-fit: fill;
   border-radius: 12px;
   border: 2px solid #d4af37;
 }
@@ -3204,7 +3205,7 @@ section h1::before {
   height: 320px;
   max-width: none;
   max-height: none;
-  background-size: contain;
+  background-size: 100% 100%;
   background-position: center;
   background-repeat: no-repeat;
 }
@@ -3214,7 +3215,7 @@ section h1::before {
   height: 140px;
   max-width: none;
   max-height: none;
-  object-fit: cover;
+  object-fit: fill;
 }
 
 .partner-slot {
