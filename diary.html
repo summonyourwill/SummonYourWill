@@ -520,19 +520,188 @@
             transform: none;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+
+        /* --- Botón de Motivation (celeste con letras azules) --- */
+        .motivation-btn {
+            background: linear-gradient(145deg, #87ceeb, #b0e0e6);
+            color: #0066cc;
+            border: 2px solid #4682b4;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            font-family: 'Cormorant Garamond', serif;
+        }
+
+        .motivation-btn:hover {
+            background: linear-gradient(145deg, #b0e0e6, #87ceeb);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .motivation-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* --- Botón de Image (verde claro con letras verde oscuro) --- */
+        .image-btn {
+            background: linear-gradient(145deg, #98fb98, #90ee90);
+            color: #006400;
+            border: 2px solid #228b22;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            font-family: 'Cormorant Garamond', serif;
+        }
+
+        .image-btn:hover {
+            background: linear-gradient(145deg, #90ee90, #98fb98);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .image-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* --- Contenedor de imágenes del diario --- */
+        .diary-images {
+            margin: 20px 0;
+        }
+
+        .diary-images-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        /* Tamaño fijo para todas las imágenes (igual que cuando hay 3) */
+        .diary-images-row .diary-image {
+            width: 250px;
+            height: 250px;
+        }
+
+        .diary-image {
+            position: relative;
+            border: 2px solid var(--color-border);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .diary-image:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .diary-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: fill;
+        }
+
+        .diary-image-delete {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.8);
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            font-size: 16px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            opacity: 0;
+        }
+
+        .diary-image:hover .diary-image-delete {
+            opacity: 1;
+        }
+
+        .diary-image-delete:hover {
+            background: rgba(255, 0, 0, 0.9);
+            transform: scale(1.1);
+        }
+
+        /* --- Modal para límite de imágenes --- */
+        .image-limit-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .image-limit-modal.active {
+            display: flex;
+        }
+
+        .image-limit-content {
+            background-color: var(--color-parchment);
+            border: 3px solid var(--color-border);
+            border-radius: 5px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .image-limit-title {
+            font-family: 'Cinzel Decorative', serif;
+            font-size: 1.5em;
+            color: var(--color-dark-ink);
+            margin-bottom: 15px;
+        }
+
+        .image-limit-message {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.1em;
+            color: var(--color-ink);
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
     <div class="journal-container">
         <header class="journal-header">
-            <!-- Botón de recompensa diaria -->
-            <div class="reward-section" style="text-align:center; margin:15px 0;">
-                <button id="reward-btn" class="gold-btn">💰 Claim 10,000 Gold</button>
+            <!-- Fecha sola en la primera fila -->
+            <div style="text-align: center; margin-bottom: 15px;">
+                <h2 id="currentDate" class="date-script">Sunday, October 26, 2025</h2>
             </div>
             
-            <div class="date-navigation">
+            <!-- Todos los botones en la misma fila -->
+            <div class="buttons-row" style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
                 <button id="prevDay" class="nav-button">◀️ Previous Day</button>
-                <h2 id="currentDate" class="date-script"></h2>
+                <button id="motivationBtn" class="motivation-btn">💬 Motivation</button>
+                <button id="reward-btn" class="gold-btn">💰 Claim 10,000 Gold</button>
+                <button id="imageBtn" class="image-btn">Image 🖼️</button>
                 <button id="nextDay" class="nav-button">Next Day ▶️</button>
             </div>
         </header>
@@ -617,6 +786,15 @@
         <emoji-picker id="toolbarEmojiPicker" locale="en" skin-tone-emoji="👍"></emoji-picker>
     </div>
 
+    <!-- Modal para límite de imágenes -->
+    <div id="imageLimitModal" class="image-limit-modal">
+        <div class="image-limit-content">
+            <h2 class="image-limit-title">Image Limit Reached</h2>
+            <p class="image-limit-message">You can only add a maximum of 3 images per day.</p>
+            <button class="modal-btn modal-btn-save" onclick="closeImageLimitModal()">Understood</button>
+        </div>
+    </div>
+
     <script>
         // ==================================
         //         FUNCTIONALITY (JS)
@@ -632,6 +810,30 @@
                     });
                     // Actualizar la vista actual
                     updateDiaryView();
+                }
+            }
+            
+            // Manejar respuestas de operaciones de imágenes
+            if (event.data && event.data.type === 'diary:image-selected') {
+                if (event.data.success && event.data.imagePath) {
+                    currentDayImages.push(event.data.imagePath);
+                    saveCurrentDayImages();
+                    renderDiaryImages();
+                } else if (event.data.error) {
+                    alert('Error adding image: ' + event.data.error);
+                }
+            }
+            
+            if (event.data && event.data.type === 'diary:image-deleted') {
+                if (event.data.success) {
+                    const index = event.data.imageIndex;
+                    if (index >= 0 && index < currentDayImages.length) {
+                        currentDayImages.splice(index, 1);
+                        saveCurrentDayImages();
+                        renderDiaryImages();
+                    }
+                } else if (event.data.error) {
+                    console.error('Error deleting image:', event.data.error);
                 }
             }
         });
@@ -672,7 +874,14 @@
         currentDate.setHours(0, 0, 0, 0); // Normalize to midnight
 
         // Maximum number of recent colors to display
-        const MAX_RECENT_COLORS = 8;
+        const MAX_RECENT_COLORS = 5;
+
+        // Variables para manejo de imágenes del diario
+        let currentDayImages = [];
+        const MAX_IMAGES_PER_DAY = 3;
+
+        // Elementos del DOM para imágenes
+        const imageLimitModal = document.getElementById('imageLimitModal');
 
         // Preset color palette (2 columns layout)
         const presetColors = [
@@ -683,9 +892,7 @@
             '#FFD700', // gold
             '#800080', // purple
             '#FFFFFF', // white
-            '#FF8C00', // orange
-            '#A52A2A', // brown
-            '#808080'  // gray
+            '#FF8C00'  // orange
         ];
 
         // --- Utility and Date Functions ---
@@ -721,6 +928,11 @@
             const content = localStorage.getItem(key) || ''; // Load content or empty
 
             editorEl.innerHTML = content;
+            
+            // Cargar imágenes del día actual
+            currentDayImages = getCurrentDayImages();
+            renderDiaryImages();
+            
             // This ensures the Next Day button is disabled if it's today
             checkNextDayButton();
         }
@@ -1071,6 +1283,131 @@
             });
         }
 
+        // --- Image Management Functions ---
+
+        /**
+         * Función para cerrar modal de límite de imágenes
+         */
+        function closeImageLimitModal() {
+            imageLimitModal.classList.remove('active');
+        }
+
+        // Hacer la función disponible globalmente para el onclick del HTML
+        window.closeImageLimitModal = closeImageLimitModal;
+
+        /**
+         * Función para obtener imágenes del día actual
+         */
+        function getCurrentDayImages() {
+            const key = `diary_images_${getStorageKey(currentDate)}`;
+            const stored = localStorage.getItem(key);
+            return stored ? JSON.parse(stored) : [];
+        }
+
+        /**
+         * Función para guardar imágenes del día actual
+         */
+        function saveCurrentDayImages() {
+            const key = `diary_images_${getStorageKey(currentDate)}`;
+            localStorage.setItem(key, JSON.stringify(currentDayImages));
+        }
+
+        /**
+         * Función para insertar imagen en el diario
+         */
+        async function insertDiaryImage() {
+            if (currentDayImages.length >= MAX_IMAGES_PER_DAY) {
+                imageLimitModal.classList.add('active');
+                return;
+            }
+
+            try {
+                // Comunicarse con la ventana padre a través de postMessage
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({
+                        type: 'diary:select-image',
+                        date: currentDate.toISOString(),
+                        imageIndex: currentDayImages.length + 1
+                    }, '*');
+                } else {
+                    alert('Image functionality is only available in the desktop version.');
+                }
+            } catch (error) {
+                console.error('Error requesting image selection:', error);
+                alert('Error requesting image selection');
+            }
+        }
+
+        /**
+         * Función para eliminar imagen del diario
+         */
+        async function deleteDiaryImage(index) {
+            const imagePath = currentDayImages[index];
+            try {
+                // Comunicarse con la ventana padre a través de postMessage
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({
+                        type: 'diary:delete-image',
+                        imagePath: imagePath,
+                        imageIndex: index
+                    }, '*');
+                } else {
+                    // Fallback para versión web - solo remover de la lista
+                    currentDayImages.splice(index, 1);
+                    saveCurrentDayImages();
+                    renderDiaryImages();
+                }
+            } catch (error) {
+                console.error('Error deleting diary image:', error);
+            }
+        }
+
+        /**
+         * Función para renderizar imágenes en el diario
+         */
+        function renderDiaryImages() {
+            let imagesContainer = document.getElementById('diary-images-container');
+            if (!imagesContainer) {
+                imagesContainer = document.createElement('div');
+                imagesContainer.id = 'diary-images-container';
+                imagesContainer.className = 'diary-images';
+                editorEl.parentNode.insertBefore(imagesContainer, editorEl);
+            }
+
+            imagesContainer.innerHTML = '';
+
+            // Solo mostrar imágenes si hay alguna
+            if (currentDayImages.length > 0) {
+                const imagesRow = document.createElement('div');
+                imagesRow.className = 'diary-images-row';
+
+                currentDayImages.forEach((imagePath, index) => {
+                    const imageDiv = document.createElement('div');
+                    imageDiv.className = 'diary-image';
+
+                    const img = document.createElement('img');
+                    img.src = `file://${imagePath}`;
+                    img.alt = `Diary image ${index + 1}`;
+                    img.onerror = () => {
+                        // Si la imagen no se puede cargar, mostrar placeholder
+                        img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vdCBmb3VuZDwvdGV4dD48L3N2Zz4=';
+                    };
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'diary-image-delete';
+                    deleteBtn.innerHTML = '🗑️';
+                    deleteBtn.onclick = () => deleteDiaryImage(index);
+                    deleteBtn.title = 'Delete image';
+
+                    imageDiv.appendChild(img);
+                    imageDiv.appendChild(deleteBtn);
+                    imagesRow.appendChild(imageDiv);
+                });
+
+                imagesContainer.appendChild(imagesRow);
+            }
+        }
+
         // --- Initialization ---
 
         // 1. Load initial view (current date)
@@ -1093,6 +1430,9 @@
         settingsBtn.addEventListener('click', openModal);
         emojiBtn.addEventListener('click', toggleToolbarEmojiPicker);
         fontSelector.addEventListener('change', (e) => changeFont(e.target.value));
+        
+        // Event listener para el botón de imagen
+        imageBtn.addEventListener('click', insertDiaryImage);
 
         // 4. Event Listeners for modal
         modalSave.addEventListener('click', saveModal);
@@ -1101,6 +1441,14 @@
             // Close modal if clicking outside the content
             if (e.target === customModal) {
                 closeModal();
+            }
+        });
+
+        // Event listener para cerrar modal de límite de imágenes
+        imageLimitModal.addEventListener('click', (e) => {
+            // Close modal if clicking outside the content
+            if (e.target === imageLimitModal) {
+                closeImageLimitModal();
             }
         });
 

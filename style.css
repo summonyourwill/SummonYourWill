@@ -499,6 +499,7 @@ body.loading .content section {
   padding: 12px 28px;
   font-size: 16px;
   font-weight: bold;
+  font-family: 'Cinzel', serif;
   border: none;
   border-radius: 10px;
   cursor: pointer;
@@ -2532,6 +2533,10 @@ section h1::before {
   width: fit-content;
   margin: 10px auto 0;
   padding: 8px 16px;
+}
+
+.fortune-result {
+  padding-bottom: 10px;
 }
 .enemy-game-container {
   display: flex;

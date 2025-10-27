@@ -1360,10 +1360,11 @@
         window.addEventListener('message', (event) => {
             if (event.data && event.data.type === 'loadData') {
                 if (event.data.projects) {
-                    // Cargar proyectos
+                    // Cargar proyectos usando la clave del sistema principal
+                    localStorage.setItem('syw_projects_v1', JSON.stringify(event.data.projects));
                     localStorage.setItem('medievalProjects', JSON.stringify(event.data.projects));
                     // Recargar proyectos y actualizar vista
-                    projects = JSON.parse(localStorage.getItem('medievalProjects')) || [];
+                    projects = event.data.projects;
                     renderProjects();
                 }
             }
@@ -1375,7 +1376,7 @@
         }
 
         // Application state
-        let projects = JSON.parse(localStorage.getItem('medievalProjects')) || [];
+        let projects = JSON.parse(localStorage.getItem('syw_projects_v1')) || JSON.parse(localStorage.getItem('medievalProjects')) || [];
         let draggedTask = null;
         let draggedTaskProject = null;
         let currentView = 'expanded'; // 'expanded' or 'compact'
@@ -2272,7 +2273,23 @@
 
         // Storage
         function saveToLocalStorage() {
+            // Guardar en localStorage con la clave que usa el sistema principal
+            localStorage.setItem('syw_projects_v1', JSON.stringify(projects));
+            
+            // También mantener compatibilidad con la clave anterior
             localStorage.setItem('medievalProjects', JSON.stringify(projects));
+            
+            // Notificar al sistema principal que los proyectos han cambiado
+            if (window.parent && window.parent !== window) {
+                try {
+                    window.parent.postMessage({
+                        type: 'projectsUpdated',
+                        projects: projects
+                    }, '*');
+                } catch (e) {
+                    console.log('No se pudo notificar al sistema principal:', e);
+                }
+            }
         }
 
         // Export / Import
