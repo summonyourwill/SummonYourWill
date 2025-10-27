@@ -13980,6 +13980,34 @@ async function renderDiary(card) {
         }
       }
 
+      // Manejar solicitud de datos de héroes para frases motivacionales
+      if (event.data && event.data.type === 'requestHeroesDataForMotivation') {
+        try {
+          // Preparar datos de héroes con todas las imágenes necesarias
+          const heroesForMotivation = state.heroes.map(hero => ({
+            id: hero.id,
+            name: hero.name,
+            level: hero.level,
+            avatar: hero.avatar,
+            secondImg: hero.secondImg,
+            ability1Img: hero.ability1Img,
+            ability2Img: hero.ability2Img,
+            ability1: hero.ability1,
+            ability2: hero.ability2
+          }));
+
+          // Enviar datos al diary
+          iframe.contentWindow.postMessage({
+            type: 'heroesDataForMotivation',
+            heroes: heroesForMotivation
+          }, '*');
+          
+          console.log('Enviando datos de héroes para frases motivacionales:', heroesForMotivation.length, 'héroes');
+        } catch (error) {
+          console.error('Error enviando datos de héroes para frases motivacionales:', error);
+        }
+      }
+
     };
 
     
@@ -24912,9 +24940,9 @@ async function exportAllImages() {
 
 
 
-      if (A1name && A1src) {
+      if (A1src) {
 
-        add('Heroes', `${HERO}-Ability1(${A1name})`, A1src);
+        add('Heroes', `${HERO}`, A1src, 3);
 
       }
 
@@ -24946,9 +24974,9 @@ async function exportAllImages() {
 
 
 
-      if (A2name && A2src) {
+      if (A2src) {
 
-        add('Heroes', `${HERO}-Ability2(${A2name})`, A2src);
+        add('Heroes', `${HERO}`, A2src, 4);
 
       }
 
