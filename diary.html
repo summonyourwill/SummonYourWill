@@ -1199,6 +1199,111 @@
         //         FUNCTIONALITY (JS)
         // ==================================
 
+        // ========================================
+        // SISTEMA DE SINCRONIZACIÓN CON HABITSCALENDAR.JSON
+        // ========================================
+
+        // Función para recopilar todos los datos del calendario de hábitos desde localStorage
+        function collectHabitsCalendarData() {
+            const habitsData = {
+                diaryEntries: {},
+                diaryImages: {},
+                customEntryButton: JSON.parse(localStorage.getItem('customEntryButton') || '{"emoji":"🧠","text":"Today I Learned"}'),
+                recentColors: JSON.parse(localStorage.getItem('recentColors') || '[]'),
+                dailyRewards: JSON.parse(localStorage.getItem('dailyRewards') || '{}'),
+                motivationalPhrases: JSON.parse(localStorage.getItem('motivationalPhrases') || '[]')
+            };
+
+            // Recopilar todas las entradas del diario
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('diary_')) {
+                    if (key.includes('diary_images_')) {
+                        habitsData.diaryImages[key] = JSON.parse(localStorage.getItem(key) || '[]');
+                    } else {
+                        habitsData.diaryEntries[key] = localStorage.getItem(key);
+                    }
+                }
+            }
+
+            return habitsData;
+        }
+
+        // Función para sincronizar datos del calendario de hábitos con el sistema de guardado
+        function syncHabitsCalendarWithSave() {
+            const habitsData = collectHabitsCalendarData();
+            
+            // Enviar datos al sistema de guardado del juego
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'syncHabitsCalendar',
+                    data: habitsData
+                }, '*');
+            }
+        }
+
+        // Función para cargar datos del calendario de hábitos desde el sistema de guardado
+        function loadHabitsCalendarFromSave(habitsData) {
+            if (!habitsData) return;
+
+            // Cargar entradas del diario
+            if (habitsData.diaryEntries) {
+                Object.keys(habitsData.diaryEntries).forEach(key => {
+                    localStorage.setItem(key, habitsData.diaryEntries[key]);
+                });
+            }
+
+            // Cargar imágenes del diario
+            if (habitsData.diaryImages) {
+                Object.keys(habitsData.diaryImages).forEach(key => {
+                    localStorage.setItem(key, JSON.stringify(habitsData.diaryImages[key]));
+                });
+            }
+
+            // Cargar configuración del botón personalizado
+            if (habitsData.customEntryButton) {
+                localStorage.setItem('customEntryButton', JSON.stringify(habitsData.customEntryButton));
+                updateCustomButton();
+            }
+
+            // Cargar colores recientes
+            if (habitsData.recentColors) {
+                localStorage.setItem('recentColors', JSON.stringify(habitsData.recentColors));
+                renderRecentColors();
+            }
+
+            // Cargar recompensas diarias
+            if (habitsData.dailyRewards) {
+                localStorage.setItem('dailyRewards', JSON.stringify(habitsData.dailyRewards));
+                // Actualizar estado del botón de recompensa
+                updateRewardButtonState();
+            }
+
+            // Cargar frases motivacionales
+            if (habitsData.motivationalPhrases) {
+                localStorage.setItem('motivationalPhrases', JSON.stringify(habitsData.motivationalPhrases));
+                motivationalPhrases = habitsData.motivationalPhrases;
+            }
+        }
+
+        // Función para actualizar el estado del botón de recompensa
+        function updateRewardButtonState() {
+            const rewardBtn = document.getElementById('reward-btn');
+            if (rewardBtn) {
+                const today = new Date().toISOString().split('T')[0];
+                const dailyRewards = JSON.parse(localStorage.getItem('dailyRewards') || '{}');
+                const claimedToday = dailyRewards[today];
+                
+                if (claimedToday) {
+                    rewardBtn.textContent = '💰 Claimed 10,000 Gold';
+                    rewardBtn.disabled = true;
+                } else {
+                    rewardBtn.textContent = '💰 Claim 10,000 Gold';
+                    rewardBtn.disabled = false;
+                }
+            }
+        }
+
         // Cargar datos desde el sistema de guardado del juego
         window.addEventListener('message', (event) => {
             if (event.data && event.data.type === 'loadData') {
@@ -1208,6 +1313,12 @@
                         localStorage.setItem(key, event.data.diaryEntries[key]);
                     });
                     // Actualizar la vista actual
+                    updateDiaryView();
+                }
+                
+                // Cargar datos del calendario de hábitos si están disponibles
+                if (event.data.habitsCalendarData) {
+                    loadHabitsCalendarFromSave(event.data.habitsCalendarData);
                     updateDiaryView();
                 }
             }
@@ -1240,6 +1351,8 @@
         // Solicitar datos al cargar
         if (window.parent) {
             window.parent.postMessage({ type: 'requestData' }, '*');
+            // También solicitar datos específicos del calendario de hábitos
+            window.parent.postMessage({ type: 'requestHabitsCalendarData' }, '*');
         }
 
         // Constants for DOM elements
@@ -1343,6 +1456,9 @@
             const key = getStorageKey(currentDate);
             // Use innerHTML to save formatting (bold, italic, etc.)
             localStorage.setItem(key, editorEl.innerHTML);
+            
+            // Sincronizar con habitscalendar.json
+            syncHabitsCalendarWithSave();
         }
 
         // --- Navigation and Events ---
@@ -1481,6 +1597,9 @@
         function saveCustomButton(emoji, text) {
             localStorage.setItem('customEntryButton', JSON.stringify({ emoji, text }));
             updateCustomButton();
+            
+            // Sincronizar con habitscalendar.json
+            syncHabitsCalendarWithSave();
         }
 
         /**
@@ -1674,6 +1793,9 @@
             
             // Update the display
             renderRecentColors();
+            
+            // Sincronizar con habitscalendar.json
+            syncHabitsCalendarWithSave();
         }
 
         /**
@@ -1746,6 +1868,9 @@
         function saveCurrentDayImages() {
             const key = `diary_images_${getStorageKey(currentDate)}`;
             localStorage.setItem(key, JSON.stringify(currentDayImages));
+            
+            // Sincronizar con habitscalendar.json
+            syncHabitsCalendarWithSave();
         }
 
         /**
@@ -1966,6 +2091,12 @@
 
         // 7. Ensure Next button is properly disabled at startup
         checkNextDayButton();
+        
+        // 8. Sincronización inicial con habitscalendar.json
+        // Permitir tiempo para que se carguen los datos del juego antes de sincronizar
+        setTimeout(() => {
+            syncHabitsCalendarWithSave();
+        }, 1000);
 
         // 8. Botón de recompensa diaria
         const rewardBtn = document.getElementById('reward-btn');
@@ -1995,6 +2126,9 @@
                     // Actualizar el botón
                     rewardBtn.textContent = '💰 Claimed 10,000 Gold';
                     rewardBtn.disabled = true;
+                    
+                    // Sincronizar con habitscalendar.json
+                    syncHabitsCalendarWithSave();
                 };
             }
         }
@@ -2032,6 +2166,9 @@
         // Guardar frases en localStorage
         function saveMotivationalPhrases() {
             localStorage.setItem('motivationalPhrases', JSON.stringify(motivationalPhrases));
+            
+            // Sincronizar con habitscalendar.json
+            syncHabitsCalendarWithSave();
         }
 
         // Renderizar lista de frases en el modal

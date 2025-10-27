@@ -493,6 +493,19 @@ async function generateWeekplanFile(weekplanData) {
   }
 }
 
+// Función para generar archivo habitscalendar.json
+async function generateHabitsCalendarFile(habitsCalendarData) {
+  try {
+    const habitsCalendarPath = path.join(SAVE_DIR, 'habitscalendar.json');
+    await fs.writeFile(habitsCalendarPath, JSON.stringify(habitsCalendarData, null, 2), 'utf-8');
+    logger.info('✅ Archivo habitscalendar.json generado en:', habitsCalendarPath);
+    return habitsCalendarData;
+  } catch (error) {
+    logger.error('❌ Error al generar habitscalendar.json:', error);
+    return {};
+  }
+}
+
 async function ensureSaveDir() {
   try {
     await fs.mkdir(SAVE_DIR, { recursive: true });
@@ -604,6 +617,13 @@ async function saveGame(data) {
       events: data.weekplanEvents || []
     });
     
+    // Generar habitscalendar.json (siempre se genera para mantener consistencia)
+    await generateHabitsCalendarFile({
+      habitsData: data.habitsData || {},
+      habitsMonth: data.habitsMonth || `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`,
+      habitsLastProcessed: data.habitsLastProcessed || new Date().toISOString().split('T')[0]
+    });
+    
     logger.info('✅ Archivos JSON generados correctamente');
     
   } catch (error) {
@@ -681,6 +701,23 @@ async function loadWeekplan() {
   }
 }
 
+async function loadHabitsCalendar() {
+  try {
+    const habitsCalendarPath = path.join(SAVE_DIR, 'habitscalendar.json');
+    const data = await fs.readFile(habitsCalendarPath, 'utf-8');
+    const habitsCalendarData = JSON.parse(data);
+    logger.info('✅ HabitsCalendar cargado desde:', habitsCalendarPath);
+    return habitsCalendarData;
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      logger.warn('⚠️ habitscalendar.json no encontrado, usando datos vacíos');
+      return {};
+    }
+    logger.error('❌ Error al cargar habitscalendar.json:', error);
+    return {};
+  }
+}
+
 async function loadGame(defaultData = {}) {
   try {
     await migrateLegacySave();
@@ -728,6 +765,17 @@ async function loadGame(defaultData = {}) {
       }
     }
     
+    // Intentar cargar habitscalendar.json como respaldo si los datos no están en save.json
+    if (!gameData.habitsData) {
+      const habitsCalendarData = await loadHabitsCalendar();
+      if (habitsCalendarData && Object.keys(habitsCalendarData).length > 0) {
+        gameData.habitsData = habitsCalendarData.habitsData || {};
+        gameData.habitsMonth = habitsCalendarData.habitsMonth || `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+        gameData.habitsLastProcessed = habitsCalendarData.habitsLastProcessed || new Date().toISOString().split('T')[0];
+        logger.info('✅ Datos de HabitsCalendar restaurados desde habitscalendar.json');
+      }
+    }
+    
     // Validar que projects sea siempre un array
     if (!Array.isArray(gameData.projects)) {
       logger.warn('⚠️ gameData.projects no es un array, corrigiendo a array vacío');
@@ -747,6 +795,17 @@ async function loadGame(defaultData = {}) {
     // Asegurar que weekplanEvents exista
     if (!gameData.weekplanEvents) {
       gameData.weekplanEvents = [];
+    }
+    
+    // Asegurar que los datos del calendario de hábitos existan
+    if (!gameData.habitsData) {
+      gameData.habitsData = {};
+    }
+    if (!gameData.habitsMonth) {
+      gameData.habitsMonth = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+    }
+    if (!gameData.habitsLastProcessed) {
+      gameData.habitsLastProcessed = new Date().toISOString().split('T')[0];
     }
     
     return gameData;

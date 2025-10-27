@@ -12987,6 +12987,98 @@ function renderFortuneWheel(card) {
 
 
 
+// Función para crear efecto de confeti cerca del checkbox
+function createConfettiEffect(targetElement) {
+  const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#FF8C94', '#A8E6CF'];
+  const confettiCount = 25;
+  const taskContainer = targetElement.closest('.task');
+  
+  for (let i = 0; i < confettiCount; i++) {
+    const confetti = document.createElement('div');
+    confetti.className = 'confetti-piece';
+    
+    // Formas variadas de confeti
+    const shapes = ['circle', 'square', 'triangle'];
+    const shape = shapes[Math.floor(Math.random() * shapes.length)];
+    
+    let shapeCSS;
+    if (shape === 'circle') {
+      shapeCSS = 'border-radius: 50%;';
+    } else if (shape === 'triangle') {
+      shapeCSS = `
+        width: 0;
+        height: 0;
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-bottom: 8px solid ${colors[Math.floor(Math.random() * colors.length)]};
+        background-color: transparent;
+      `;
+    } else {
+      shapeCSS = 'border-radius: 0;';
+    }
+    
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    confetti.style.cssText = `
+      position: absolute;
+      width: ${shape === 'triangle' ? '0' : Math.random() * 6 + 6}px;
+      height: ${shape === 'triangle' ? '0' : Math.random() * 6 + 6}px;
+      background-color: ${shape === 'triangle' ? 'transparent' : color};
+      pointer-events: none;
+      z-index: 1000;
+      ${shapeCSS}
+      opacity: 1;
+      transform: rotate(${Math.random() * 360}deg);
+    `;
+    
+    // Posicionar cerca del checkbox con variación
+    const rect = targetElement.getBoundingClientRect();
+    const containerRect = taskContainer.getBoundingClientRect();
+    
+    const baseX = rect.left - containerRect.left + rect.width/2;
+    const baseY = rect.top - containerRect.top + rect.height/2;
+    
+    // Pequeña variación inicial en la posición
+    confetti.style.left = (baseX + (Math.random() - 0.5) * 20) + 'px';
+    confetti.style.top = (baseY + (Math.random() - 0.5) * 20) + 'px';
+    
+    taskContainer.appendChild(confetti);
+    
+    // Animar el confeti con trayectorias más espectaculares
+    const xDirection = (Math.random() - 0.5) * 150;
+    const yDirection = -Math.random() * 80 - 40;
+    const rotation = Math.random() * 1080 - 540; // Rotación más dramática
+    const scale = Math.random() * 0.3 + 0.2;
+    
+    confetti.animate([
+      {
+        transform: `translate(0px, 0px) rotate(0deg) scale(1)`,
+        opacity: 1
+      },
+      {
+        transform: `translate(${xDirection}px, ${yDirection/2}px) rotate(${rotation/2}deg) scale(1.2)`,
+        opacity: 0.8,
+        offset: 0.3
+      },
+      {
+        transform: `translate(${xDirection}px, ${yDirection}px) rotate(${rotation}deg) scale(${scale})`,
+        opacity: 0
+      }
+    ], {
+      duration: 1200 + Math.random() * 800,
+      easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+    }).onfinish = () => {
+      confetti.remove();
+    };
+  }
+  
+  // Agregar sonido de celebración (opcional, comentado por ahora)
+  // try {
+  //   const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmUeAxZRr+X33GQIEWav6OiuXhcCOofO8sSHKAcHa7vr5qZPGwg9iNX3qGEQJSNtuu3xNg');
+  //   audio.volume = 0.3;
+  //   audio.play();
+  // } catch (e) {}
+}
+
 function renderLifeMissions(card) {
 
   [...card.querySelectorAll(':scope > :not(.close-btn)')].forEach(el => el.remove());
@@ -13271,61 +13363,48 @@ function renderLifeMissions(card) {
 
       if (checkbox.checked && select.value && difficulties[select.value]) {
 
-        const confirmMsg =
+        // Completar automáticamente sin popup de confirmación
+        const reward = difficulties[select.value].gold;
 
-          "Are you sure you want to mark this task as completed?\nThis action cannot be undone.";
+        state.money += reward;
 
-        checkbox.checked = false;
+        addHeroExp(villageChief, reward, Infinity);
 
-        openConfirm({
+        renderVillageChief();
 
-          message: confirmMsg,
+        lifeTasks[i].completed = true;
 
-          container: card,
+        checkbox.disabled = true;
 
-          onConfirm: () => {
+        select.disabled = true;
 
-            checkbox.checked = true;
+        input.disabled = true;
 
-            const reward = difficulties[select.value].gold;
+        updateResourcesDisplay();
 
-            state.money += reward;
+        lifeGold += reward;
 
-            addHeroExp(villageChief, reward, Infinity);
+        lifeGoldDay = getToday();
 
-            renderVillageChief();
+        totalGold = lifeGold;
 
-            lifeTasks[i].completed = true;
+        goldDisplay.innerHTML = "\uD83D\uDCB0 <b>Gold:</b> " + totalGold;
 
-            checkbox.disabled = true;
+        // Crear efecto de confeti cerca del checkbox
+        createConfettiEffect(checkbox);
 
-            select.disabled = true;
+        saveGame();
 
-            input.disabled = true;
+        // Esperar un poco para que se vea el confeti antes de recargar
+        setTimeout(() => {
 
-            updateResourcesDisplay();
+          renderLifeMissions(card);
 
-            lifeGold += reward;
+          const next = card.querySelector('input[type="text"]:not([disabled])');
 
-            lifeGoldDay = getToday();
+          if (next) focusNoScroll(next);
 
-            totalGold = lifeGold;
-
-            goldDisplay.innerHTML = "\uD83D\uDCB0 <b>Gold:</b> " + totalGold;
-
-            saveGame();
-
-            setTimeout(() => {
-
-              renderLifeMissions(card);
-
-              const next = card.querySelector('input[type="text"]:not([disabled])');
-
-              if (next) focusNoScroll(next);
-
-            }, 0);
-
-          }});
+        }, 500);
 
       } else {
 
@@ -14008,6 +14087,40 @@ async function renderDiary(card) {
         }
       }
 
+      // Manejar sincronización de datos del calendario de hábitos
+      if (event.data && event.data.type === 'syncHabitsCalendar') {
+        try {
+          // Sincronizar desde la variable global habitsData que ya existe
+          // No necesitamos hacer nada aquí ya que habitsData ya está en el estado global
+          // y se guarda automáticamente con saveGame()
+          console.log('Datos del calendario de hábitos ya están sincronizados en habitsData');
+        } catch (error) {
+          console.error('Error sincronizando datos del calendario de hábitos:', error);
+        }
+      }
+
+      // Manejar solicitud de datos del calendario de hábitos
+      if (event.data && event.data.type === 'requestHabitsCalendarData') {
+        try {
+          // Los datos del calendario de hábitos ya están disponibles en las variables globales
+          const habitsCalendarData = {
+            habitsData: habitsData || {},
+            habitsMonth: habitsMonth || `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`,
+            habitsLastProcessed: habitsLastProcessed || new Date().toISOString().split('T')[0]
+          };
+
+          // Enviar datos al solicitante (aunque no está claro para qué se usaría esto)
+          iframe.contentWindow.postMessage({
+            type: 'habitsCalendarData',
+            data: habitsCalendarData
+          }, '*');
+          
+          console.log('Enviando datos del calendario de hábitos:', habitsCalendarData);
+        } catch (error) {
+          console.error('Error enviando datos del calendario de hábitos:', error);
+        }
+      }
+
     };
 
     
@@ -14247,6 +14360,98 @@ async function renderWeekPlan(card) {
 }
 
 
+
+// Función para obtener el índice del héroe que corresponde a un día específico
+function getHeroIndexForDay(year, month, day) {
+  if (!state.heroes || state.heroes.length === 0) return -1;
+  
+  // Crear una clave única para el día
+  const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  
+  // Obtener todos los días con hábitos hasta la fecha actual (ordenados cronológicamente)
+  const daysWithHabits = [];
+  
+  // Recorrer todos los meses en habitsData
+  Object.keys(habitsData).forEach(monthKey => {
+    const [yearStr, monthStr] = monthKey.split('-');
+    const monthData = habitsData[monthKey];
+    
+    Object.keys(monthData).forEach(dayStr => {
+      const dayData = monthData[dayStr];
+      const dayDate = new Date(parseInt(yearStr), parseInt(monthStr) - 1, parseInt(dayStr));
+      const currentDate = new Date(year, month - 1, day);
+      
+      // Solo considerar días hasta la fecha actual y que tengan al menos un hábito
+      if (dayDate <= currentDate && hasAnyHabit(dayData)) {
+        daysWithHabits.push({
+          date: dayDate,
+          key: `${yearStr}-${monthStr.padStart(2, '0')}-${dayStr.padStart(2, '0')}`
+        });
+      }
+    });
+  });
+  
+  // Ordenar cronológicamente
+  daysWithHabits.sort((a, b) => a.date - b.date);
+  
+  // Encontrar el índice del día actual en la lista
+  const dayIndex = daysWithHabits.findIndex(item => item.key === dateKey);
+  
+  if (dayIndex === -1) return -1; // Este día no tiene hábitos
+  
+  // Retornar el índice del héroe (circular)
+  return dayIndex % state.heroes.length;
+}
+
+// Función auxiliar para verificar si un día tiene al menos un hábito completado
+function hasAnyHabit(dayData) {
+  const habitFields = ['Training', 'Mental Health', 'Study', 'Work', 'Other1', 'Other2', 'Diary'];
+  return habitFields.some(field => dayData[field] && dayData[field].trim() !== '');
+}
+
+// Función para configurar el ciclo de imágenes del hero peek
+function setupHeroPeekImageCycle(heroImg, hero) {
+  if (!heroImg || heroImg.availableImages) return; // Ya configurado
+  
+  // Crear array de imágenes disponibles
+  const availableImages = [];
+  
+  if (hero.avatar) {
+    availableImages.push({ src: hero.avatar, name: 'Avatar' });
+  } else {
+    availableImages.push({ src: EMPTY_SRC, name: 'Avatar' });
+  }
+  
+  if (hero.secondImg) {
+    availableImages.push({ src: hero.secondImg, name: '2nd Image' });
+  }
+  
+  if (hero.ability1Img) {
+    availableImages.push({ src: hero.ability1Img, name: 'Ability 1' });
+  }
+  
+  if (hero.ability2Img) {
+    availableImages.push({ src: hero.ability2Img, name: 'Ability 2' });
+  }
+  
+  // Configurar propiedades del ciclo
+  heroImg.currentImageIndex = 0;
+  heroImg.availableImages = availableImages;
+  
+  // Agregar evento de clic para ciclar imágenes
+  heroImg.addEventListener('click', function(e) {
+    e.stopPropagation(); // Evitar que se active el popup del día
+    
+    if (this.availableImages.length > 1) {
+      this.currentImageIndex = (this.currentImageIndex + 1) % this.availableImages.length;
+      const newImage = this.availableImages[this.currentImageIndex];
+      this.src = newImage.src;
+      this.title = `${hero.name} - ${newImage.name}`;
+      this.onerror = () => this.src = EMPTY_SRC;
+      console.log(`${hero.name}: Cambiando a ${newImage.name}`);
+    }
+  });
+}
 
 function renderHabits(card) {
 
@@ -14544,7 +14749,45 @@ function renderHabits(card) {
 
     btn.appendChild(daily);
 
-    if (editable && currentView !== "profiles") btn.onclick = () => openHabitPopup(d, card, btn);
+    // ===== AGREGAR HERO PEEK =====
+    // Verificar si este día tiene hábitos y agregar hero peek
+    const heroIndex = getHeroIndexForDay(year, month, d);
+    if (heroIndex >= 0 && heroIndex < state.heroes.length) {
+      const hero = state.heroes[heroIndex];
+      
+      // Crear el elemento del hero peek
+      const heroPeek = document.createElement('div');
+      heroPeek.className = 'hero-peek';
+      
+      const heroImg = document.createElement('img');
+      heroImg.src = hero.avatar || EMPTY_SRC;
+      heroImg.alt = hero.name;
+      heroImg.title = `${hero.name} - Avatar (click to cycle images)`;
+      
+      // Manejar error de imagen
+      heroImg.onerror = () => {
+        heroImg.src = EMPTY_SRC;
+      };
+      
+      heroPeek.appendChild(heroImg);
+      btn.appendChild(heroPeek);
+      
+      // Configurar el ciclo de imágenes para este hero peek
+      setupHeroPeekImageCycle(heroImg, hero);
+      
+      // Agregar clase para ajustar el espacio de daily-stats si es necesario
+      btn.classList.add('has-hero-peek');
+    }
+    // ===== FIN HERO PEEK =====
+
+    if (editable && currentView !== "profiles") {
+      btn.onclick = (e) => {
+        // Solo abrir el popup si no se hizo clic en el hero peek
+        if (!e.target.closest('.hero-peek')) {
+          openHabitPopup(d, card, btn);
+        }
+      };
+    }
 
     grid.appendChild(btn);
 
