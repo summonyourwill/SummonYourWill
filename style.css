@@ -2637,7 +2637,7 @@ section h1::before {
 }
 
 #build-house-card {
-  grid-template-columns: repeat(8, 1fr);
+  grid-template-columns: repeat(7, 1fr);
   padding-bottom: 10px;
 }
 
@@ -2648,7 +2648,7 @@ section h1::before {
 
 @media (max-width: 1000px) {
   #build-house-card {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -2660,7 +2660,7 @@ section h1::before {
 
 #village-overview-card {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
+  grid-template-columns: repeat(7, 1fr);
   gap: 0;
   padding: 10px 5px;
   width: 100%;
@@ -2668,7 +2668,7 @@ section h1::before {
 
 @media (max-width: 1000px) {
   #village-overview-card {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 

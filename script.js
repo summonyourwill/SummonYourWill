@@ -4545,9 +4545,13 @@ function updateResourcesDisplay() {
 
   }
 
-  const vilTitle = document.querySelector("#villain-section h1");
+  const vilTitles = document.querySelectorAll("#villain-section h1");
 
-  if (vilTitle) vilTitle.textContent = `My Villains (${villains.length}/${MAX_VILLAINS})`;
+  vilTitles.forEach(vilTitle => {
+
+    vilTitle.textContent = `My Villains (${villains.length}/${MAX_VILLAINS})`;
+
+  });
 
   const sbtn = document.getElementById("summon-btn");
 
@@ -12574,7 +12578,7 @@ function showView(view = "home") {
 
     setVillainSectionVisible(true, view === "profiles");
 
-    if (view === "profiles") setupVillainEventListeners();
+    setupVillainEventListeners();
 
   } else {
 
@@ -19638,8 +19642,6 @@ function completeUpgrade(label) {
 
   }
 
-  if (label === 'Tower') MAX_VILLAINS += 1;
-
   if (label === 'Castle') {
 
     updateMaxLevelsFromCastle();
@@ -20104,7 +20106,6 @@ function applyHiddenTime(seconds) {
 
         }
 
-        if (label === 'Tower') MAX_VILLAINS += 1;
 
         if (label === 'Castle') {
 
@@ -23119,27 +23120,31 @@ function renderVillains() {
 
     nameSpan.textContent = vil.name;
 
-    nameSpan.title = "Edit Name";
+    nameSpan.style.cursor = readOnly ? "default" : "pointer";
 
-    nameSpan.style.cursor = "pointer";
+    nameSpan.title = readOnly ? "" : "Edit Name";
 
-    nameSpan.onclick = () => {
+    if (!readOnly) {
 
-      openEditModal("Name", vil.name, nuevo => {
+      nameSpan.onclick = () => {
 
-        if (nuevo) {
+        openEditModal("Name", vil.name, nuevo => {
 
-          vil.name = ensureUniqueVillainName(nuevo, vil.id);
+          if (nuevo) {
 
-          saveGame();
+            vil.name = ensureUniqueVillainName(nuevo, vil.id);
 
-          renderVillains();
+            saveGame();
 
-        }
+            renderVillains();
 
-      }, { container: div });
+          }
 
-    };
+        }, { container: div });
+
+      };
+
+    }
 
     info.appendChild(nameSpan);
 
@@ -23149,29 +23154,33 @@ function renderVillains() {
 
     originSpan.textContent = `Origin: ${vil.origin || "No origin"}`;
 
-    originSpan.title = "Edit Origin";
+    originSpan.style.cursor = readOnly ? "default" : "pointer";
 
-    originSpan.style.cursor = "pointer";
+    originSpan.title = readOnly ? "" : "Edit Origin";
 
-    originSpan.onclick = () => {
+    if (!readOnly) {
 
-      openEditModal("Origin", vil.origin, nuevo => {
+      originSpan.onclick = () => {
 
-        if (nuevo !== null) {
+        openEditModal("Origin", vil.origin, nuevo => {
 
-          vil.origin = nuevo || "No origin";
+          if (nuevo !== null) {
 
-          saveGame();
+            vil.origin = nuevo || "No origin";
 
-          renderVillains();
+            saveGame();
 
-          updateVillainControls();
+            renderVillains();
 
-        }
+            updateVillainControls();
 
-      }, { container: div, suggestions: getVillainOrigins() });
+          }
 
-    };
+        }, { container: div, suggestions: getVillainOrigins() });
+
+      };
+
+    }
 
     info.appendChild(originSpan);
 
@@ -23181,21 +23190,25 @@ function renderVillains() {
 
     vDescSpan.textContent = vil.desc ? (vil.desc.length>60 ? vil.desc.slice(0,60)+'...' : vil.desc) : 'Empty';
 
-    vDescSpan.style.cursor = 'pointer';
+    vDescSpan.style.cursor = readOnly ? 'default' : 'pointer';
 
-    vDescSpan.onclick = () => {
+    if (!readOnly) {
 
-      openEditModal('Villain Description', vil.desc, val => {
+      vDescSpan.onclick = () => {
 
-        vil.desc = val;
+        openEditModal('Villain Description', vil.desc, val => {
 
-        saveGame();
+          vil.desc = val;
 
-        renderVillains();
+          saveGame();
 
-      }, {multiLine:true, container: div});
+          renderVillains();
 
-    };
+        }, {multiLine:true, container: div});
+
+      };
+
+    }
 
     const vDescLine = document.createElement('div');
 
@@ -25405,13 +25418,11 @@ function renderGames() {
 
       1: "GiantBoss",
 
-      2: "EnemyEncounter",
+      2: "PetExploration",
 
-      3: "PetExploration",
+      3: "ChiefSurvival",
 
-      4: "ChiefSurvival",
-
-      5: "FortuneWheel",
+      4: "FortuneWheel",
 
     };
 
@@ -25459,12 +25470,6 @@ function renderGames() {
 
         btn.disabled = !bossRushAvailable();
 
-      } else if (label === "EnemyEncounter") {
-
-        btn.title = "It adds new Villain -50% Energy • +20 XP";
-
-        btn.disabled = !enemyEncounterAvailable();
-
       } else if (label === "FortuneWheel") {
 
         const showPrize = fortuneDay === getToday() && fortuneLastPrize;
@@ -25497,19 +25502,6 @@ function renderGames() {
 
         }
 
-        if (label === "EnemyEncounter") {
-
-          if (!enemyEncounterAvailable()) return;
-
-          const hasHero = state.heroes.some(h => !isBusy(h) && h.energia >= 50);
-
-          if (!hasHero) { showAlert('No heroes available', { container: detailCard }); return; }
-
-          renderEnemyEncounter(detailCard, gamesSection, false);
-
-          return;
-
-        }
 
         if (label === "FortuneWheel") {
 
@@ -25898,10 +25890,6 @@ function renderGames() {
       if (label === "GiantBoss") {
 
         info.textContent = bossRushAvailable() ? `${5 - bossRushCount} chances left` : "Come back tomorrow";
-
-      } else if (label === "EnemyEncounter") {
-
-        info.textContent = enemyEncounterAvailable() ? `${5 - enemyCount} chances left` : (villains.length >= MAX_VILLAINS ? "Villain limit reached" : "Come back tomorrow");
 
       } else if (label === "ChiefSurvival") {
 
@@ -28943,8 +28931,6 @@ function updatePopulationInfo() {
 
   const heroesCount = state.heroes.length;
 
-  const villainsCount = villains.length;
-
   const petsCount = state.heroes.filter(h => h.pet).length;
 
   
@@ -28955,15 +28941,13 @@ function updatePopulationInfo() {
 
       <span style="color: #2563eb;">Heroes: ${heroesCount}</span> | 
 
-      <span style="color: #dc2626;">Villains: ${villainsCount}</span> | 
-
       <span style="color: #16a34a;">Pets: ${petsCount}</span>
 
     </div>
 
     <div style="font-size: 14px; color: #666;">
 
-      Click on the buttons below to view Heroes, Villains, or Pets.
+      Click on the buttons below to view Heroes or Pets.
 
     </div>
 

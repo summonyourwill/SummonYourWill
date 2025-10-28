@@ -346,7 +346,7 @@ export function openImproveModal(slotId) {
   title.textContent = 'Choose Construction to Improve';
   modal.appendChild(title);
 
-  const hiddenBuildings = ['ArcheryField', 'Ashram', 'BoxingRing', 'FortuneTotem', 'Gym', 'Hospital', 'LifeAltar', 'MageAcademy'];
+  const hiddenBuildings = ['ArcheryField', 'Ashram', 'BoxingRing', 'FortuneTotem', 'Gym', 'Hospital', 'LifeAltar', 'MageAcademy', 'Tower'];
   const buildings = Object.keys(state.buildingLevels || {})
     .filter(name => name !== 'Castle' && !hiddenBuildings.includes(name))
     .sort((a,b)=>displayBuildingName(a).localeCompare(displayBuildingName(b), undefined, {sensitivity:'base'}));
@@ -464,9 +464,6 @@ export function levelUp(buildingName) {
     .then(m => {
       if (buildingName === 'Castle' && m.updateMaxLevelsFromCastle) {
         m.updateMaxLevelsFromCastle();
-      }
-      if (buildingName === 'Tower' && m.incrementMaxVillains) {
-        m.incrementMaxVillains();
       }
       if (m.updateResourcesDisplay) m.updateResourcesDisplay();
     })

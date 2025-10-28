@@ -562,9 +562,10 @@ async function saveGame(data) {
       }
     }
     
-    if (data.villains && Array.isArray(data.villains)) {
-      await generateVillainsFile(data.villains, chiefId);
-    }
+    // Generar villains.json - COMENTADO
+    // if (data.villains && Array.isArray(data.villains)) {
+    //   await generateVillainsFile(data.villains, chiefId);
+    // }
     
     // Generar partner.json y partner_abilities.json - COMENTADO
     // if (data.partner) {
