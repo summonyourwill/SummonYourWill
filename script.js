@@ -11882,8 +11882,6 @@ function showChiefExtra(label, onClose) {
 
         `${dailyTributeInfo.claimedToday ? "Claimed" : "Claim your daily tribute"}:<br>` +
 
-        `• 300 Gold for each Villain in your village (Total: ${dailyTributeInfo.goldFromVillains} Gold)<br>` +
-
         `• 250 Gold for each Hero (Total: ${dailyTributeInfo.goldFromHeroes} Gold)<br>` +
 
         `• 200 Gold for each Pet (Total: ${dailyTributeInfo.goldFromPets} Gold)<br>` +
@@ -12174,8 +12172,6 @@ function showDailyTribute() {
 
   }
 
-  const villainsCount = villains.length;
-
   // const familiarCount = unlockedFamiliars;
 
   // const familiarLevels = villageChief.familiars
@@ -12192,8 +12188,6 @@ function showDailyTribute() {
 
   const partnerLevel = partner.level || 0;
 
-  const goldFromVillains = villainsCount * 300;
-
   // const goldFromFamiliars = familiarCount * 500 + familiarLevels * 50;
 
   const goldFromFamiliars = 0; // Familiars deshabilitados
@@ -12204,7 +12198,7 @@ function showDailyTribute() {
 
   const goldFromDungeons = dungeonLevel * 100;
 
-  const totalGold = goldFromVillains + goldFromFamiliars + goldFromHeroes + goldFromPets + goldFromDungeons;
+  const totalGold = goldFromFamiliars + goldFromHeroes + goldFromPets + goldFromDungeons;
 
   const potionTypes = ["Health", "Mana", "Energy", "Experience"];
 
@@ -12247,8 +12241,6 @@ function showDailyTribute() {
     : (potionSummaryParts[0] || '');
 
   villageChief.dailyTributeRewards = {
-
-    goldFromVillains,
 
     goldFromFamiliars,
 
@@ -12293,8 +12285,6 @@ function showDailyTribute() {
     partnerLevel,
 
     potionSummary,
-
-    goldFromVillains,
 
     goldFromFamiliars,
 
@@ -13922,7 +13912,11 @@ async function renderDiary(card) {
 
   [...card.querySelectorAll(':scope > :not(.close-btn)')].forEach(el => el.remove());
 
-  
+  // Remover listener anterior si existe para evitar duplicados
+  if (window.diaryMessageHandler) {
+    window.removeEventListener('message', window.diaryMessageHandler);
+    window.diaryMessageHandler = null;
+  }
 
   // Mostrar animación de experiencia la primera vez
 
@@ -13980,7 +13974,7 @@ async function renderDiary(card) {
 
     // Listener para recibir mensajes del iframe del diary
 
-    const diaryMessageHandler = async (event) => {
+    window.diaryMessageHandler = async (event) => {
 
       if (event.data && event.data.type === 'dailyReward') {
 
@@ -14008,26 +14002,32 @@ async function renderDiary(card) {
               });
               
               // Enviar respuesta al diary
-              iframe.contentWindow.postMessage({
-                type: 'diary:image-selected',
-                success: true,
-                imagePath: savedPath
-              }, '*');
+              if (iframe && iframe.contentWindow) {
+                iframe.contentWindow.postMessage({
+                  type: 'diary:image-selected',
+                  success: true,
+                  imagePath: savedPath
+                }, '*');
+              }
             } else {
               // Usuario canceló la selección
-              iframe.contentWindow.postMessage({
-                type: 'diary:image-selected',
-                success: false
-              }, '*');
+              if (iframe && iframe.contentWindow) {
+                iframe.contentWindow.postMessage({
+                  type: 'diary:image-selected',
+                  success: false
+                }, '*');
+              }
             }
           }
         } catch (error) {
           console.error('Error handling diary image selection:', error);
-          iframe.contentWindow.postMessage({
-            type: 'diary:image-selected',
-            success: false,
-            error: error.message
-          }, '*');
+          if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.postMessage({
+              type: 'diary:image-selected',
+              success: false,
+              error: error.message
+            }, '*');
+          }
         }
       }
 
@@ -14038,28 +14038,34 @@ async function renderDiary(card) {
             const deleted = await window.electronAPI.invoke('diary:delete-image', event.data.imagePath);
             
             // Enviar respuesta al diary
-            iframe.contentWindow.postMessage({
-              type: 'diary:image-deleted',
-              success: deleted,
-              imageIndex: event.data.imageIndex,
-              error: deleted ? null : 'Failed to delete image file'
-            }, '*');
+            if (iframe && iframe.contentWindow) {
+              iframe.contentWindow.postMessage({
+                type: 'diary:image-deleted',
+                success: deleted,
+                imageIndex: event.data.imageIndex,
+                error: deleted ? null : 'Failed to delete image file'
+              }, '*');
+            }
           } else {
             // Fallback para versión web
-            iframe.contentWindow.postMessage({
-              type: 'diary:image-deleted',
-              success: true,
-              imageIndex: event.data.imageIndex
-            }, '*');
+            if (iframe && iframe.contentWindow) {
+              iframe.contentWindow.postMessage({
+                type: 'diary:image-deleted',
+                success: true,
+                imageIndex: event.data.imageIndex
+              }, '*');
+            }
           }
         } catch (error) {
           console.error('Error handling diary image deletion:', error);
-          iframe.contentWindow.postMessage({
-            type: 'diary:image-deleted',
-            success: false,
-            imageIndex: event.data.imageIndex,
-            error: error.message
-          }, '*');
+          if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.postMessage({
+              type: 'diary:image-deleted',
+              success: false,
+              imageIndex: event.data.imageIndex,
+              error: error.message
+            }, '*');
+          }
         }
       }
 
@@ -14080,10 +14086,12 @@ async function renderDiary(card) {
           }));
 
           // Enviar datos al diary
-          iframe.contentWindow.postMessage({
-            type: 'heroesDataForMotivation',
-            heroes: heroesForMotivation
-          }, '*');
+          if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.postMessage({
+              type: 'heroesDataForMotivation',
+              heroes: heroesForMotivation
+            }, '*');
+          }
           
           console.log('Enviando datos de héroes para frases motivacionales:', heroesForMotivation.length, 'héroes');
         } catch (error) {
@@ -14114,10 +14122,12 @@ async function renderDiary(card) {
           };
 
           // Enviar datos al solicitante (aunque no está claro para qué se usaría esto)
-          iframe.contentWindow.postMessage({
-            type: 'habitsCalendarData',
-            data: habitsCalendarData
-          }, '*');
+          if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.postMessage({
+              type: 'habitsCalendarData',
+              data: habitsCalendarData
+            }, '*');
+          }
           
           console.log('Enviando datos del calendario de hábitos:', habitsCalendarData);
         } catch (error) {
@@ -14133,7 +14143,7 @@ async function renderDiary(card) {
 
     iframe.onload = () => {
 
-      window.addEventListener('message', diaryMessageHandler);
+      window.addEventListener('message', window.diaryMessageHandler);
 
       
 
@@ -14155,13 +14165,15 @@ async function renderDiary(card) {
 
       
 
-      iframe.contentWindow.postMessage({
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({
 
-        type: 'loadData',
+          type: 'loadData',
 
-        diaryEntries: diaryEntries
+          diaryEntries: diaryEntries
 
-      }, '*');
+        }, '*');
+      }
 
     };
 
